@@ -1,0 +1,285 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../config/assets.dart';
+import '../../config/routes.dart';
+import '../../config/theme.dart';
+import '../../data/products_data.dart';
+import '../../models/product.dart';
+import '../../models/product_palette.dart';
+import '../../providers/cart_provider.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/design_image.dart';
+import 'widgets/product_tile.dart';
+
+/// Screen 25 — product detail.
+class ProductDetailScreen extends StatelessWidget {
+  final String productId;
+
+  const ProductDetailScreen({super.key, required this.productId});
+
+  @override
+  Widget build(BuildContext context) {
+    final product =
+        allProducts.where((p) => p.id == productId).firstOrNull;
+
+    if (product == null) {
+      return Scaffold(
+        backgroundColor: AppTheme.surface,
+        appBar: AppBar(leading: const BackButton()),
+        body: Center(
+          child: Text('Product not found', style: AppTheme.bodyText),
+        ),
+      );
+    }
+
+    final cart = context.watch<CartProvider>();
+    final palette = ProductPalette.of(product.category);
+    final inCart = cart.items.any((c) => c.product.id == product.id);
+
+    return Scaffold(
+      backgroundColor: AppTheme.surface,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _Hero(product: product, palette: palette),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(26, 18, 26, 12),
+              children: [
+                Text(
+                  product.name,
+                  style: AppTheme.font(
+                    size: 23,
+                    weight: FontWeight.w800,
+                    color: AppTheme.ink,
+                    letterSpacing: -0.7,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  formatPrice(product.price),
+                  style: AppTheme.font(
+                    size: 22,
+                    weight: FontWeight.w800,
+                    color: AppTheme.action,
+                  ),
+                ),
+                // "Why it's in the picks" — only once the catalog carries
+                // that copy; the description stands in until then.
+                const SizedBox(height: 14),
+                _WhyCard(
+                  text: product.hasWhy ? product.whyPicked : product.description,
+                ),
+                if (product.hasBullets) ...[
+                  const SizedBox(height: 18),
+                  Text(
+                    'What it does',
+                    style: AppTheme.cardTitle,
+                  ),
+                  const SizedBox(height: 10),
+                  for (final bullet in product.bullets)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 9),
+                      child: _Bullet(text: bullet),
+                    ),
+                ],
+                if (product.rating != null) ...[
+                  const SizedBox(height: 16),
+                  _Rating(rating: product.rating!),
+                ],
+              ],
+            ),
+          ),
+          Container(
+            decoration: const BoxDecoration(
+              color: AppTheme.surface,
+              border: Border(top: BorderSide(color: AppTheme.borderSoft)),
+            ),
+            padding: const EdgeInsets.fromLTRB(22, 12, 22, 26),
+            child: inCart
+                ? AppButton(
+                    label: 'In cart · View cart',
+                    variant: AppButtonVariant.tinted,
+                    icon: const Icon(
+                      Icons.check_rounded,
+                      size: 18,
+                      color: AppTheme.action,
+                    ),
+                    height: AppTheme.ctaHeightCompact,
+                    onPressed: () => context.push(AppRoutes.cart),
+                  )
+                : AppButton(
+                    label: 'Add to cart · ${formatPrice(product.price)}',
+                    height: AppTheme.ctaHeightCompact,
+                    onPressed: () => cart.addProduct(product),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Hero extends StatelessWidget {
+  final Product product;
+  final ProductPalette palette;
+
+  const _Hero({required this.product, required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
+    final topInset = MediaQuery.of(context).padding.top;
+
+    return SizedBox(
+      height: 230 + topInset,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: palette.gradient(start: 0, end: 0.7),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(60, 24, 60, 20),
+                child: ProductArt(product: product, pawSize: 86),
+              ),
+            ),
+          ),
+          Positioned(
+            top: topInset + 12,
+            left: 22,
+            child: CircleIconButton(
+              icon: Icons.arrow_back_ios_new_rounded,
+              size: 42,
+              floating: true,
+              semanticLabel: 'Back',
+              onPressed: () => context.pop(),
+            ),
+          ),
+          Positioned(
+            bottom: 14,
+            left: 24,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Text(
+                product.displayTag.toUpperCase(),
+                style: AppTheme.font(
+                  size: 11,
+                  weight: FontWeight.w800,
+                  color: palette.accent,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WhyCard extends StatelessWidget {
+  final String text;
+
+  const _WhyCard({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(15, 13, 15, 13),
+      decoration: BoxDecoration(
+        color: AppTheme.tintPanel,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const DesignImage(AppAssets.emoTilt, width: 34, height: 34),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'WHY IT’S IN THE PICKS',
+                  style: AppTheme.font(
+                    size: 12,
+                    weight: FontWeight.w800,
+                    color: AppTheme.start,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(text, style: AppTheme.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Bullet extends StatelessWidget {
+  final String text;
+
+  const _Bullet({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(top: 2, right: 10),
+          child: Icon(Icons.check_rounded, size: 15, color: AppTheme.success),
+        ),
+        Expanded(child: Text(text, style: AppTheme.bodySmall)),
+      ],
+    );
+  }
+}
+
+class _Rating extends StatelessWidget {
+  final double rating;
+
+  const _Rating({required this.rating});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppTheme.radiusField),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < 5; i++)
+            Icon(
+              Icons.star_rounded,
+              size: 14,
+              color: i < rating.round() ? AppTheme.star : AppTheme.dotInactive,
+            ),
+          const SizedBox(width: 8),
+          Text(
+            rating.toStringAsFixed(1),
+            style: AppTheme.font(
+              size: 13,
+              weight: FontWeight.w700,
+              color: AppTheme.ink,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
