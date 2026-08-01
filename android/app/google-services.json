@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "969502932777",
+    "project_id": "mypetfit-c530e",
+    "storage_bucket": "mypetfit-c530e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:969502932777:android:4a06a52965b75db5474138",
+        "android_client_info": {
+          "package_name": "com.mypetfit.in"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArtSCsT4K5q4Cj_Neu_WlSqIHxdn6S5Us"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

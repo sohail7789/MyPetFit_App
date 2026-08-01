@@ -1,3 +1,5 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -9,8 +11,26 @@ import 'providers/onboarding_provider.dart';
 import 'providers/pet_info_provider.dart';
 import 'providers/quiz_provider.dart';
 
-void main() {
+/// Brings up Firebase where it is configured.
+///
+/// Android reads `android/app/google-services.json` automatically. iOS and web
+/// need their own config, which arrives as a generated `firebase_options.dart`
+/// once `flutterfire configure` has been run — until then this is a no-op on
+/// those platforms rather than a crash, so the app still runs.
+Future<void> _initFirebase() async {
+  try {
+    await Firebase.initializeApp();
+  } catch (error, stack) {
+    if (kDebugMode) {
+      debugPrint('Firebase not initialised on this platform: $error');
+      debugPrintStack(stackTrace: stack);
+    }
+  }
+}
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _initFirebase();
 
   // Prevent Google Fonts from making network requests at runtime.
   // Fonts are served from the package cache (already bundled by pub get).
