@@ -3,483 +3,595 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
+import '../../models/score_band.dart';
 import '../../models/score_result.dart';
 import '../../providers/quiz_provider.dart';
-import '../../widgets/primary_button.dart';
-import 'widgets/health_summary_card.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/app_card.dart';
+import '../../widgets/design_image.dart';
 
-class ReportCardScreen extends StatelessWidget {
+/// Screen 23 — Fitness report card.
+class ReportCardScreen extends StatefulWidget {
   const ReportCardScreen({super.key});
 
-  Color _progressColor(double percentage) {
-    if (percentage < 25) return HealthCategory.critical.color;
-    if (percentage < 50) return HealthCategory.needsImprovement.color;
-    if (percentage < 75) return HealthCategory.good.color;
-    return HealthCategory.excellent.color;
+  @override
+  State<ReportCardScreen> createState() => _ReportCardScreenState();
+}
+
+class _ReportCardScreenState extends State<ReportCardScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _countUp = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
+
+  bool _remind = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _countUp.forward();
+  }
+
+  @override
+  void dispose() {
+    _countUp.dispose();
+    super.dispose();
+  }
+
+  String get _today {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final now = DateTime.now();
+    return '${now.day.toString().padLeft(2, '0')} '
+        '${months[now.month - 1]} ${now.year}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final quiz = context.watch<QuizProvider>();
     final result = quiz.result;
-    final hasHistory = quiz.hasCompletedAssessment;
 
-    // ── No result AND no history → empty state ──
-    if (result == null && !hasHistory) {
+    if (result == null) {
+      // Reached without a completed assessment — send them to take one.
       return Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 88,
-                    height: 88,
-                    decoration: BoxDecoration(
-                      color: AppTheme.tint(
-                          isDark, AppTheme.accentBlue, AppTheme.lightAzure),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.assignment_outlined,
-                      size: 40,
-                      color: isDark
-                          ? AppTheme.accentBlue
-                          : AppTheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  Text('No results yet',
-                      style: theme.textTheme.headlineSmall),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    'Take the 5-minute health assessment to see your pet\'s full report.',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.mutedText(isDark),
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  PrimaryButton(
-                    label: 'Start Assessment',
-                    onPressed: () {
-                      quiz.reset();
-                      context.go(AppRoutes.quiz);
-                    },
-                  ),
-                ],
-              ),
+        backgroundColor: AppTheme.surface,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'No report yet',
+                  textAlign: TextAlign.center,
+                  style: AppTheme.h2,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Complete the assessment to see your report card.',
+                  textAlign: TextAlign.center,
+                  style: AppTheme.bodyText,
+                ),
+                const SizedBox(height: 24),
+                AppButton(
+                  label: 'Start the assessment',
+                  onPressed: () => context.go(AppRoutes.consent),
+                ),
+              ],
             ),
           ),
         ),
       );
     }
 
-    final displayResult = result ?? quiz.assessmentHistory.first;
-    final categoryColor = displayResult.category.color;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final topSectionHeight = screenHeight * 0.35;
+    final band = result.category;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) context.go(AppRoutes.home);
-      },
-      child: Scaffold(
-        body: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              children: [
-                // Top gradient + overlapping score card
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      height: topSectionHeight,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            categoryColor,
-                            Color.lerp(
-                                categoryColor, AppTheme.neutralDeep, 0.25)!,
-                          ],
-                        ),
-                      ),
-                      padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.xxl, AppSpacing.xxl, AppSpacing.xxl, 80),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Your Pet's Health Report",
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              color: Colors.white,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.lg,
-                              vertical: AppSpacing.sm,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.18),
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.xl),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.25),
-                                width: 0.5,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  displayResult.category.emoji,
-                                  style: const TextStyle(fontSize: 20),
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                Text(
-                                  displayResult.category.label,
-                                  style: theme.textTheme.titleMedium
-                                      ?.copyWith(color: Colors.white),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Overlapping score card — neutral shadow, not colored.
-                    Positioned(
-                      left: AppSpacing.xxl,
-                      right: AppSpacing.xxl,
-                      bottom: -60,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.surface(isDark),
-                          borderRadius:
-                              BorderRadius.circular(AppRadius.lg),
-                          border: Border.all(
-                              color: AppTheme.hairline(isDark), width: 0.5),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black
-                                  .withValues(alpha: isDark ? 0.4 : 0.10),
-                              blurRadius: 24,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: AppSpacing.xxxl),
-                        child: Column(
-                          children: [
-                            TweenAnimationBuilder<double>(
-                              tween: Tween(
-                                begin: 0,
-                                end: displayResult.percentageScore
-                                    .toDouble(),
-                              ),
-                              duration:
-                                  const Duration(milliseconds: 1200),
-                              curve: AppMotion.curve,
-                              builder: (context, value, child) {
-                                return Text(
-                                  '${value.round()}%',
-                                  style: theme.textTheme.displayLarge
-                                      ?.copyWith(
-                                    color: categoryColor,
-                                    fontSize: 56,
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(
-                              'Fitness Score',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: AppTheme.mutedText(isDark),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 76),
-
-                // Category breakdown
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xxl),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Category Breakdown',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      ...displayResult.categoryScores.entries.map((entry) {
-                        final percentage = entry.value;
-                        final color = _progressColor(percentage);
-                        return Padding(
-                          padding: const EdgeInsets.only(
-                              bottom: AppSpacing.lg),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      entry.key,
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  Text(
-                                    '${percentage.round()}%',
-                                    style: theme.textTheme.bodyMedium
-                                        ?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: color,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              TweenAnimationBuilder<double>(
-                                tween: Tween(
-                                    begin: 0, end: percentage / 100),
-                                duration:
-                                    const Duration(milliseconds: 900),
-                                curve: AppMotion.curve,
-                                builder: (context, v, _) => ClipRRect(
-                                  borderRadius:
-                                      BorderRadius.circular(4),
-                                  child: LinearProgressIndicator(
-                                    value: v,
-                                    minHeight: 8,
-                                    backgroundColor:
-                                        AppTheme.hairline(isDark),
-                                    valueColor:
-                                        AlwaysStoppedAnimation<Color>(
-                                            color),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
+    return Scaffold(
+      backgroundColor: AppTheme.surface,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'FITNESS REPORT CARD',
+                    style: AppTheme.overline.copyWith(letterSpacing: 1.2),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-
-                // Summary card
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xxl),
-                  child:
-                      HealthSummaryCard(category: displayResult.category),
-                ),
-                const SizedBox(height: AppSpacing.section),
-
-                // ── Assessment History ──
-                if (quiz.assessmentHistory.length > 1) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xxl),
+                  Text(
+                    _today,
+                    style: AppTheme.font(
+                      size: 12,
+                      weight: FontWeight.w700,
+                      color: AppTheme.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(22, 14, 22, 8),
+                children: [
+                  _BandHero(
+                    result: result,
+                    countUp: _countUp,
+                    previous: _previousScore(quiz),
+                  ),
+                  const SizedBox(height: 18),
+                  _Breakdown(scores: result.categoryScores),
+                  const SizedBox(height: 20),
+                  AppCard(
+                    background: const Color(0xFFFCFBFD),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Assessment History',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
+                          'What to do next',
+                          style: AppTheme.font(
+                            size: 14,
+                            weight: FontWeight.w800,
+                            color: AppTheme.ink,
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.xs),
+                        const SizedBox(height: 8),
                         Text(
-                          'Last ${quiz.assessmentHistory.length} assessments',
-                          style: theme.textTheme.bodySmall,
+                          band.bandAdvice,
+                          style: AppTheme.font(
+                            size: 13,
+                            color: AppTheme.bodyStrong,
+                            height: 1.65,
+                          ),
                         ),
-                        const SizedBox(height: AppSpacing.md),
-                        ...quiz.assessmentHistory
-                            .asMap()
-                            .entries
-                            .map((entry) {
-                          return _AssessmentHistoryTile(
-                            result: entry.value,
-                            isLatest: entry.key == 0,
-                            isDark: isDark,
-                          );
-                        }),
                       ],
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.section),
+                  const SizedBox(height: 12),
+                  _ShareButton(onPressed: () {}),
+                  const SizedBox(height: 12),
+                  _RemindToggle(
+                    value: _remind,
+                    onChanged: (v) => setState(() => _remind = v),
+                  ),
+                  const SizedBox(height: 6),
                 ],
-
-                // ── Actions ──
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xxl),
-                  child: Column(
+              ),
+            ),
+            Container(
+              decoration: const BoxDecoration(
+                color: AppTheme.surface,
+                border: Border(top: BorderSide(color: AppTheme.borderSoft)),
+              ),
+              padding: const EdgeInsets.fromLTRB(22, 14, 22, 26),
+              child: Column(
+                children: [
+                  AppButton(
+                    label: 'See recommended products',
+                    height: AppTheme.ctaHeightCompact,
+                    onPressed: () => context.go(AppRoutes.shop),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
                     children: [
-                      PrimaryButton(
-                        label: 'Go to My Dashboard',
-                        onPressed: () => context.go(AppRoutes.home),
+                      Expanded(
+                        child: AppButton(
+                          label: 'Retake',
+                          variant: AppButtonVariant.outline,
+                          height: 50,
+                          onPressed: () {
+                            context.read<QuizProvider>().reset();
+                            context.go(AppRoutes.quiz);
+                          },
+                        ),
                       ),
-                      const SizedBox(height: AppSpacing.md),
-                      OutlinedButton(
-                        onPressed: () {
-                          quiz.reset();
-                          context.go(AppRoutes.quiz);
-                        },
-                        child: const Text('Retake Assessment'),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      TextButton(
-                        onPressed: () => context.push(AppRoutes.products),
-                        child: const Text('See Recommended Products'),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: AppButton(
+                          label: 'Dashboard',
+                          variant: AppButtonVariant.outline,
+                          height: 50,
+                          onPressed: () => context.go(AppRoutes.home),
+                        ),
                       ),
                     ],
                   ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The score before this one, when there is any history to compare against.
+  int? _previousScore(QuizProvider quiz) {
+    final history = quiz.assessmentHistory;
+    if (history.length < 2) return null;
+    return history[1].percentageScore;
+  }
+}
+
+class _BandHero extends StatelessWidget {
+  final ScoreResult result;
+  final Animation<double> countUp;
+  final int? previous;
+
+  const _BandHero({
+    required this.result,
+    required this.countUp,
+    required this.previous,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final band = result.category;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+      decoration: BoxDecoration(
+        color: band.bandTint,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: band.bandLine),
+      ),
+      child: Column(
+        children: [
+          DesignImage(band.bandArt, width: 132, shadow: true),
+          const SizedBox(height: 12),
+          AnimatedBuilder(
+            animation: countUp,
+            builder: (context, _) {
+              final shown = (result.percentageScore * countUp.value).round();
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '$shown',
+                    style: AppTheme.font(
+                      size: 86,
+                      weight: FontWeight.w800,
+                      color: AppTheme.ink,
+                      letterSpacing: -4.5,
+                      height: 0.88,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 9),
+                    child: Text(
+                      '%',
+                      style: AppTheme.font(
+                        size: 26,
+                        weight: FontWeight.w800,
+                        color: AppTheme.body,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: band.bandLine),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: band.bandColor,
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(band.bandGlyph, size: 13, color: Colors.white),
                 ),
-                const SizedBox(height: AppSpacing.xxxl),
+                const SizedBox(width: 8),
+                Text(
+                  band.label,
+                  style: AppTheme.font(
+                    size: 14,
+                    weight: FontWeight.w800,
+                    color: AppTheme.ink,
+                  ),
+                ),
               ],
             ),
           ),
+          // The design shows a trend line; it only makes sense once there is
+          // a previous assessment to compare against.
+          if (previous != null) ...[
+            const SizedBox(height: 10),
+            _Trend(delta: result.percentageScore - previous!),
+          ],
+          const SizedBox(height: 12),
+          Text(
+            band.bandCopy,
+            textAlign: TextAlign.center,
+            style: AppTheme.font(
+              size: 13,
+              color: AppTheme.bodyStrong,
+              height: 1.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Trend extends StatelessWidget {
+  final int delta;
+
+  const _Trend({required this.delta});
+
+  @override
+  Widget build(BuildContext context) {
+    if (delta == 0) {
+      return Text(
+        'Unchanged since your last assessment',
+        style: AppTheme.font(
+          size: 13,
+          weight: FontWeight.w800,
+          color: AppTheme.muted,
+        ),
+      );
+    }
+
+    final up = delta > 0;
+    final color = up ? AppTheme.success : AppTheme.warning;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          up ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+          size: 12,
+          color: color,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '${up ? 'Up' : 'Down'} ${delta.abs()} since your last assessment',
+          style: AppTheme.font(
+            size: 13,
+            weight: FontWeight.w800,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Breakdown extends StatelessWidget {
+  final Map<String, double> scores;
+
+  const _Breakdown({required this.scores});
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = scores.entries.toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Category breakdown',
+              style: AppTheme.font(
+                size: 16,
+                weight: FontWeight.w800,
+                color: AppTheme.ink,
+                letterSpacing: -0.4,
+              ),
+            ),
+            Text(
+              '${entries.length} categories',
+              style: AppTheme.font(
+                size: 12,
+                weight: FontWeight.w600,
+                color: AppTheme.muted,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        for (final entry in entries)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _BreakdownRow(
+              name: entry.key,
+              percent: entry.value,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _BreakdownRow extends StatelessWidget {
+  final String name;
+  final double percent;
+
+  const _BreakdownRow({required this.name, required this.percent});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = categoryBarColor(percent);
+    final rounded = percent.round();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                style: AppTheme.font(
+                  size: 14,
+                  weight: FontWeight.w700,
+                  color: AppTheme.ink,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              '$rounded%',
+              style: AppTheme.font(
+                size: 12,
+                weight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 7),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(99),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: (percent / 100).clamp(0, 1)),
+            duration: const Duration(milliseconds: 700),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, _) => LinearProgressIndicator(
+              value: value,
+              minHeight: 12,
+              backgroundColor: const Color(0xFFEDEBF4),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShareButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _ShareButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        height: 50,
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(25),
+          border: Border.all(color: AppTheme.action, width: 1.5),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.ios_share_rounded,
+              size: 17,
+              color: AppTheme.action,
+            ),
+            const SizedBox(width: 9),
+            Text(
+              'Share report with your vet',
+              style: AppTheme.font(
+                size: 15,
+                weight: FontWeight.w700,
+                color: AppTheme.action,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// A compact tile showing one past assessment's date, score, and category.
-class _AssessmentHistoryTile extends StatelessWidget {
-  final ScoreResult result;
-  final bool isLatest;
-  final bool isDark;
+class _RemindToggle extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
 
-  const _AssessmentHistoryTile({
-    required this.result,
-    required this.isLatest,
-    required this.isDark,
-  });
+  const _RemindToggle({required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dt = result.completedAt;
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    final dateStr =
-        '${months[dt.month - 1]} ${dt.day}, ${dt.year} · ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm + 2),
-      padding: const EdgeInsets.all(AppSpacing.lg - 2),
-      decoration: BoxDecoration(
-        color: AppTheme.surface(isDark),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(
-          color: isLatest
-              ? result.category.color.withValues(alpha: 0.5)
-              : AppTheme.hairline(isDark),
-          width: isLatest ? 1.5 : 0.5,
-        ),
-      ),
+    return AppCard(
+      background: const Color(0xFFFCFBFD),
+      onTap: () => onChanged(!value),
       child: Row(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: result.category.color
-                  .withValues(alpha: isDark ? 0.22 : 0.12),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
+          Expanded(
             child: Text(
-              '${result.percentageScore}%',
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: result.category.color,
+              'Remind me to retake in 3 months',
+              style: AppTheme.font(
+                size: 13.5,
+                weight: FontWeight.w700,
+                color: AppTheme.ink,
               ),
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        '${result.category.emoji}  ${result.category.label}',
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    if (isLatest) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppTheme.secondary
-                              .withValues(alpha: isDark ? 0.3 : 0.15),
-                          borderRadius:
-                              BorderRadius.circular(AppRadius.sm),
-                        ),
-                        child: Text(
-                          'Latest',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: isDark
-                                ? AppTheme.accentPink
-                                : AppTheme.secondary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(dateStr, style: theme.textTheme.bodySmall),
-              ],
-            ),
-          ),
+          const SizedBox(width: 12),
+          _Switch(value: value),
         ],
+      ),
+    );
+  }
+}
+
+/// The 44×26 pill switch used across the design.
+class _Switch extends StatelessWidget {
+  final bool value;
+
+  const _Switch({required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: 44,
+      height: 26,
+      decoration: BoxDecoration(
+        color: value ? AppTheme.action : AppTheme.dotInactive,
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: AnimatedAlign(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.all(3),
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.ink.withValues(alpha: 0.35),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

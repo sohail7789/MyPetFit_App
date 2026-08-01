@@ -7,9 +7,6 @@ class AppConstants {
   static const int needsImprovementMax = 50;
   static const int goodMax = 75;
 
-  // Scoring formula constants
-  static const int minPossibleScore = 68;
-  static const int maxPossibleScore = 326;
-
-  static const String currencySymbol = '\$';
+  /// The design prices everything in Indian rupees.
+  static const String currencySymbol = '₹';
 }

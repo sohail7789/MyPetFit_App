@@ -1,11 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/pet_info_provider.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/app_icons.dart';
+import '../../widgets/labeled_field.dart';
 
+/// Copy of the consent form, verbatim from the design.
+const _consentParagraphs = <String>[
+  'I, the undersigned, voluntarily consent to the collection and use of the '
+      'information provided in this questionnaire for the purpose of assessing, '
+      'monitoring, and improving the overall fitness, health, and wellness of my '
+      'pet through the MyPetFit program. I understand that participation is '
+      'intended solely for the betterment of pet health and wellbeing.',
+  'I acknowledge and agree that the data collected may be securely stored and '
+      'used in an anonymized and aggregated manner for veterinary and clinical '
+      'research, health and wellness analytics, and the development or '
+      'improvement of products and services related to companion animal care. '
+      'This information may be used across scientific, academic, educational, '
+      'and commercial platforms to advance knowledge in pet health, disease '
+      'prevention, longevity, and quality-of-life enhancement.',
+  'I understand that my pet’s identity and personal information will remain '
+      'confidential and will not be publicly disclosed. By signing this form, I '
+      'grant permission for my pet’s health and lifestyle data to be used as '
+      'described above without further notice, review, or financial '
+      'compensation.',
+];
+
+/// Screen 10 — Consent & Use of Data.
+///
+/// Continue unlocks only once the box is ticked *and* a signature is typed,
+/// matching the design's `consentReady` rule.
 class ConsentScreen extends StatefulWidget {
   const ConsentScreen({super.key});
 
@@ -14,122 +39,204 @@ class ConsentScreen extends StatefulWidget {
 }
 
 class _ConsentScreenState extends State<ConsentScreen> {
+  final _signature = TextEditingController();
   bool _agreed = false;
-  final TextEditingController _signatureController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    // Prefill the signature with the signed-in user's full name so most
-    // users don't have to retype it. They can still edit before agreeing.
-    final auth = context.read<AuthProvider>();
-    if (auth.displayName.isNotEmpty) {
-      _signatureController.text = auth.displayName;
-    }
-    // If the user already consented (returning to this screen via deep-link
-    // or back-nav), skip forward instead of forcing them to re-sign.
-    final pet = context.read<PetInfoProvider>();
-    if (pet.consentGiven) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) context.pushReplacement(AppRoutes.ownerInfo);
-      });
-    }
-  }
 
   @override
   void dispose() {
-    _signatureController.dispose();
+    _signature.dispose();
     super.dispose();
   }
 
-  bool get _canContinue =>
-      _agreed && _signatureController.text.trim().isNotEmpty;
+  bool get _ready => _agreed && _signature.text.trim().length > 1;
+
+  String get _today {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final now = DateTime.now();
+    final day = now.day.toString().padLeft(2, '0');
+    return '$day ${months[now.month - 1]} ${now.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final now = DateTime.now();
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
-    final today =
-        '${months[now.month - 1]} ${now.day.toString().padLeft(2, '0')}, ${now.year}';
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Consent & Data Usage'),
-      ),
+      backgroundColor: AppTheme.surface,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.xxl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.xl),
-                  child: Text(
-                    'I, the undersigned, voluntarily consent to the collection and use of the information provided in this questionnaire for the purpose of assessing, monitoring, and improving the overall fitness, health, and wellness of my pet through the MyPetFit program. I understand that participation is intended solely for the betterment of pet health and wellbeing.\n\n'
-                    'I acknowledge and agree that the data collected may be securely stored and used in an anonymized and aggregated manner for veterinary and clinical research, health and wellness analytics, and the development or improvement of products and services related to companion animal care. This information may be used across scientific, academic, educational, and commercial platforms to advance knowledge in pet health, disease prevention, longevity, and quality-of-life enhancement.\n\n'
-                    'I understand that my pet\'s identity and personal information will remain confidential and will not be publicly disclosed. By signing this form, I grant permission for my pet\'s health and lifestyle data to be used as described above without further notice, review, or financial compensation.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.heading(isDark),
-                      height: 1.6,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(26, 22, 26, 16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppTheme.tint,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.description_outlined,
+                      size: 22,
+                      color: AppTheme.action,
                     ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Consent & Use of Data',
+                          style: AppTheme.h3.copyWith(
+                            fontSize: 22,
+                            letterSpacing: -0.6,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Step 1 of 3 · required',
+                          style: AppTheme.font(
+                            size: 13,
+                            weight: FontWeight.w600,
+                            color: AppTheme.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppSpacing.xxl),
-              CheckboxListTile(
-                value: _agreed,
-                onChanged: (value) {
-                  setState(() {
-                    _agreed = value ?? false;
-                  });
-                },
-                title: Text(
-                  'I agree to the terms above',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w500,
+            ),
+
+            // Scrollable consent body
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFBFAFD),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var i = 0; i < _consentParagraphs.length; i++)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            bottom:
+                                i == _consentParagraphs.length - 1 ? 0 : 12,
+                          ),
+                          child: Text(
+                            _consentParagraphs[i],
+                            style: AppTheme.font(
+                              size: 13,
+                              color: AppTheme.bodyStrong,
+                              height: 1.7,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                activeColor: AppTheme.interactive(isDark),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
               ),
-              const SizedBox(height: AppSpacing.lg),
-              TextField(
-                controller: _signatureController,
-                decoration: const InputDecoration(
-                  labelText: 'Signature',
-                  hintText: 'Type your full name',
-                ),
-                onChanged: (_) => setState(() {}),
+            ),
+
+            // Agreement, signature and CTA
+            Padding(
+              padding: const EdgeInsets.fromLTRB(26, 16, 26, 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _agreed = !_agreed),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 1),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 140),
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: _agreed
+                                  ? AppTheme.action
+                                  : AppTheme.surface,
+                              borderRadius: BorderRadius.circular(7),
+                              border: _agreed
+                                  ? null
+                                  : Border.all(
+                                      color: const Color(0xFFC9C6D9),
+                                      width: 1.5,
+                                    ),
+                            ),
+                            alignment: Alignment.center,
+                            child: _agreed
+                                ? AppIcon(AppIcons.check(), size: 13)
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 11),
+                        Expanded(
+                          child: Text(
+                            'I have read and agree to the consent above.',
+                            style: AppTheme.font(
+                              size: 13,
+                              color: AppTheme.bodyStrong,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: LabeledField(
+                          label: 'Signature',
+                          hint: 'Type your full name',
+                          controller: _signature,
+                          height: 52,
+                          radius: 14,
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        width: 126,
+                        child: LabeledField(
+                          label: 'Date',
+                          readOnlyValue: _today,
+                          height: 52,
+                          radius: 14,
+                          background: AppTheme.tintSoft,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  AppButton(
+                    label: 'Agree & Continue',
+                    height: AppTheme.ctaHeightCompact,
+                    onPressed:
+                        _ready ? () => context.push(AppRoutes.ownerInfo) : null,
+                  ),
+                ],
               ),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'Date: $today',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.mutedText(isDark),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xxxl),
-              ElevatedButton(
-                onPressed: _canContinue
-                    ? () {
-                        context.read<PetInfoProvider>().giveConsent(
-                              signatureName:
-                                  _signatureController.text.trim(),
-                            );
-                        context.push(AppRoutes.ownerInfo);
-                      }
-                    : null,
-                child: const Text('Continue'),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,18 +1,13 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
-import '../../models/pet_info.dart';
-import '../../providers/pet_info_provider.dart';
-import '../../providers/quiz_provider.dart';
-import '../../widgets/floating_paws_background.dart';
-import '../../widgets/pet_form_fields.dart';
-import '../../widgets/primary_button.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/app_card.dart';
+import '../../widgets/labeled_field.dart';
+import '../../widgets/paw_mark.dart';
 
-/// Step 2 of the funnel: pet profile(s). The owner can add multiple pets.
+/// Screen 12 — Pet details.
 class PetInfoScreen extends StatefulWidget {
   const PetInfoScreen({super.key});
 
@@ -21,211 +16,195 @@ class PetInfoScreen extends StatefulWidget {
 }
 
 class _PetInfoScreenState extends State<PetInfoScreen> {
-  bool _showAddForm = false;
+  final _name = TextEditingController();
+  final _breed = TextEditingController();
+  final _years = TextEditingController();
+  final _months = TextEditingController();
+  final _weight = TextEditingController();
+  final _height = TextEditingController();
+  final _microchip = TextEditingController();
+  String? _gender;
 
-  void _confirmRemove(PetInfoProvider provider, int index) {
-    final petName = provider.pets[index].name;
-    HapticFeedback.mediumImpact();
-    // Removal used to fire immediately with no confirmation — the only
-    // destructive action in the app without one.
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (ctx) => CupertinoActionSheet(
-        title: Text('Remove $petName?'),
-        message: const Text('This can\'t be undone.'),
-        actions: [
-          CupertinoActionSheetAction(
-            isDestructiveAction: true,
-            onPressed: () {
-              provider.removePet(index);
-              Navigator.pop(ctx);
-            },
-            child: const Text('Remove'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
-        ),
-      ),
-    );
+  @override
+  void dispose() {
+    for (final c in [
+      _name,
+      _breed,
+      _years,
+      _months,
+      _weight,
+      _height,
+      _microchip,
+    ]) {
+      c.dispose();
+    }
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final provider = context.watch<PetInfoProvider>();
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Pet Profiles')),
-      body: FloatingPawsBackground(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.xxl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: AppTheme.tint(
-                            isDark, AppTheme.secondary, AppTheme.softPeach),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.pets_rounded,
-                        color: isDark
-                            ? AppTheme.accentPink
-                            : AppTheme.secondary,
-                        size: 26,
-                      ),
+      backgroundColor: AppTheme.surface,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(26, 20, 26, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleIconButton(
+                    icon: Icons.arrow_back_ios_new_rounded,
+                    size: 44,
+                    semanticLabel: 'Back',
+                    onPressed: () => context.pop(),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Pet details',
+                    style:
+                        AppTheme.h1.copyWith(fontSize: 26, letterSpacing: -1),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Step 3 of 3 · this shapes the scoring.',
+                    style: AppTheme.font(
+                      size: 14,
+                      color: AppTheme.body,
+                      height: 1.5,
                     ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(26, 18, 26, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _PhotoPrompt(),
+                    const SizedBox(height: 11),
+                    LabeledField(
+                      label: "Pet's name",
+                      hint: 'e.g. Bruno',
+                      controller: _name,
+                      height: 56,
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 11),
+                    LabeledField(
+                      label: 'Breed',
+                      hint: 'e.g. Golden Retriever',
+                      controller: _breed,
+                      height: 56,
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 11),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: LabeledField(
+                            label: 'Age — years',
+                            hint: '3',
+                            controller: _years,
+                            height: 56,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 11),
+                        Expanded(
+                          child: LabeledField(
+                            label: 'Months',
+                            hint: '4',
+                            controller: _months,
+                            height: 56,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 2,
+                        vertical: 4,
+                      ),
+                      child: Row(
                         children: [
-                          Text('Pet profiles',
-                              style: theme.textTheme.headlineSmall),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Add up to ${PetInfoProvider.maxPets} pets · ${provider.petCount} added',
-                            style: theme.textTheme.bodySmall,
+                          Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: Text(
+                              'Gender',
+                              style: AppTheme.font(
+                                size: 13,
+                                weight: FontWeight.w600,
+                                color: AppTheme.body,
+                              ),
+                            ),
+                          ),
+                          ChoiceChips(
+                            options: const ['Male', 'Female'],
+                            selected: _gender,
+                            onSelect: (g) => setState(() => _gender = g),
                           ),
                         ],
                       ),
                     ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: LabeledField(
+                            label: 'Weight (kg)',
+                            hint: '24',
+                            controller: _weight,
+                            height: 56,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 11),
+                        Expanded(
+                          child: LabeledField(
+                            label: 'Height (cm)',
+                            hint: '56',
+                            controller: _height,
+                            height: 56,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 11),
+                    LabeledField(
+                      label: 'Microchip / tag number',
+                      labelNote: 'optional',
+                      hint: '000 000 000 000',
+                      controller: _microchip,
+                      height: 56,
+                      textInputAction: TextInputAction.done,
+                    ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.section),
-
-                // Existing pet cards
-                for (int i = 0; i < provider.pets.length; i++) ...[
-                  _PetSummaryCard(
-                    pet: provider.pets[i],
-                    index: i + 1,
-                    isDark: isDark,
-                    onRemove: provider.petCount > 1
-                        ? () => _confirmRemove(provider, i)
-                        : null,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                ],
-
-                // Add-pet form, or the button that reveals it
-                if (provider.pets.isEmpty || _showAddForm)
-                  _InlinePetForm(
-                    petNumber: provider.petCount + 1,
-                    onSubmit: (pet) {
-                      provider.addPet(pet);
-                      setState(() => _showAddForm = false);
-                    },
-                    onCancel: provider.pets.isNotEmpty
-                        ? () => setState(() => _showAddForm = false)
-                        : null,
-                  )
-                else if (provider.canAddPet)
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      HapticFeedback.selectionClick();
-                      setState(() => _showAddForm = true);
-                    },
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Add another pet'),
-                  ),
-
-                const SizedBox(height: AppSpacing.section),
-
-                // Proceed
-                if (provider.pets.isNotEmpty)
-                  PrimaryButton(
-                    label: 'Start Assessment',
-                    onPressed: () {
-                      context.read<QuizProvider>().reset();
-                      context.push(AppRoutes.quiz);
-                    },
-                  ),
-
-                const SizedBox(height: AppSpacing.xxl),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PetSummaryCard extends StatelessWidget {
-  final PetInfo pet;
-  final int index;
-  final bool isDark;
-  final VoidCallback? onRemove;
-
-  const _PetSummaryCard({
-    required this.pet,
-    required this.index,
-    required this.isDark,
-    this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppTheme.darkBlueBg
-                    : AppTheme.lightAzure,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                pet.species.emoji,
-                style: const TextStyle(fontSize: 20),
               ),
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(26, 16, 26, 30),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    pet.name,
-                    style: theme.textTheme.titleSmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  AppButton(
+                    label: 'Start the assessment',
+                    variant: AppButtonVariant.start,
+                    height: AppTheme.ctaHeightCompact,
+                    onPressed: () => context.push(AppRoutes.quiz),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 12),
                   Text(
-                    '${pet.breed} · ${pet.ageDisplay} · ${pet.weightKg} kg',
-                    style: theme.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    '45 questions · 9 categories · about 6 minutes',
+                    style: AppTheme.font(size: 12, color: AppTheme.muted),
                   ),
                 ],
               ),
             ),
-            if (onRemove != null)
-              IconButton(
-                icon: const Icon(Icons.close_rounded, size: 18),
-                color: AppTheme.mutedText(isDark),
-                tooltip: 'Remove ${pet.name}',
-                onPressed: onRemove,
-              ),
           ],
         ),
       ),
@@ -233,87 +212,98 @@ class _PetSummaryCard extends StatelessWidget {
   }
 }
 
-/// Inline variant of the pet form used inside the onboarding funnel.
-/// Shares its fields and validators with the modal sheet via
-/// [PetFormFields] / [PetFormData].
-class _InlinePetForm extends StatefulWidget {
-  final ValueChanged<PetInfo> onSubmit;
-  final VoidCallback? onCancel;
-  final int petNumber;
-
-  const _InlinePetForm({
-    required this.onSubmit,
-    required this.petNumber,
-    this.onCancel,
-  });
-
-  @override
-  State<_InlinePetForm> createState() => _InlinePetFormState();
-}
-
-class _InlinePetFormState extends State<_InlinePetForm> {
-  final _formKey = GlobalKey<FormState>();
-  final _data = PetFormData();
-
-  @override
-  void dispose() {
-    _data.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    if (!_formKey.currentState!.validate()) return;
-    HapticFeedback.selectionClick();
-    widget.onSubmit(_data.build());
-  }
+/// The dashed-ring photo slot. Picking an image is not wired up yet — there is
+/// no image-picker dependency in the project — so it renders the prompt state.
+class _PhotoPrompt extends StatelessWidget {
+  const _PhotoPrompt();
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    'Pet ${widget.petNumber}',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const Spacer(),
-                  if (widget.onCancel != null)
-                    TextButton(
-                      onPressed: widget.onCancel,
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Text('Cancel'),
+    return AppCard(
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFFFFFFF), Color(0xFFF4F1F9)],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 96,
+            height: 96,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppTheme.tint.withValues(alpha: 0.7),
                     ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              PetFormFields(
-                data: _data,
-                onChanged: () => setState(() {}),
-                onSubmit: _submit,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _submit,
-                  child: Text('Add pet ${widget.petNumber}'),
+                    child: const Center(
+                      child: PawMark(
+                        size: 38,
+                        color: AppTheme.action,
+                        opacity: 0.3,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+                Positioned(
+                  right: -2,
+                  bottom: -2,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: AppTheme.action,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppTheme.surface, width: 2.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.ink.withValues(alpha: 0.5),
+                          blurRadius: 10,
+                          spreadRadius: -4,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.photo_camera_outlined,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Add your pet's photo",
+                  style: AppTheme.font(
+                    size: 14.5,
+                    weight: FontWeight.w800,
+                    color: AppTheme.ink,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Tap the circle or drop an image. It shows on the report card '
+                  'and helps your vet identify records.',
+                  style: AppTheme.font(
+                    size: 12.5,
+                    color: AppTheme.body,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
+import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
-import '../../data/questions_data.dart';
 import '../../providers/quiz_provider.dart';
-import '../../widgets/category_illustration.dart';
-import '../../widgets/dog_progress_track.dart';
-import 'widgets/category_question_list.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/design_image.dart';
+import 'widgets/question_card.dart';
 
+/// Screens 13–21 — one screen per assessment category.
+///
+/// The category index lives in [QuizProvider], so backing out and returning
+/// resumes where the user left off.
 class QuizScreen extends StatefulWidget {
   const QuizScreen({super.key});
 
@@ -18,249 +22,293 @@ class QuizScreen extends StatefulWidget {
 }
 
 class _QuizScreenState extends State<QuizScreen> {
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _advance(QuizProvider quiz) {
+    if (quiz.isLastCategory) {
+      context.push(AppRoutes.scoring);
+      return;
+    }
+    quiz.nextCategory();
+    _scroll.jumpTo(0);
+  }
+
+  void _back(QuizProvider quiz) {
+    if (quiz.canGoBack) {
+      quiz.previousCategory();
+      _scroll.jumpTo(0);
+    } else {
+      context.pop();
+    }
+  }
+
+  /// 1-based number of the first question in [index] across the whole
+  /// questionnaire, so cards read 1…45 rather than restarting each category.
+  int _questionOffset(QuizProvider quiz, int index) {
+    var offset = 0;
+    for (var i = 0; i < index; i++) {
+      offset += quiz.categories[i].questions.length;
+    }
+    return offset;
+  }
+
   @override
   Widget build(BuildContext context) {
     final quiz = context.watch<QuizProvider>();
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final index = quiz.currentCategoryIndex;
     final category = quiz.currentCategory;
-    final categoryIndex = quiz.currentCategoryIndex;
-    final totalCategories = quiz.totalCategories;
-    final overallProgress = quiz.overallProgress;
+    final offset = _questionOffset(quiz, index);
+    final remaining = quiz.remainingInCategory(index);
+    final ready = remaining == 0;
 
-    final pastel = AppTheme.categoryPastels[
-        categoryIndex % AppTheme.categoryPastels.length];
-    final rawAccent =
-        AppTheme.brandAccents[categoryIndex % AppTheme.brandAccents.length];
-    // Deep navy tones disappear on the dark background — remap them to the
-    // light-blue accent so category theming stays visible in dark mode.
-    final accent = isDark &&
-            (rawAccent == AppTheme.primary ||
-                rawAccent == AppTheme.neutralDark)
-        ? AppTheme.accentBlue
-        : rawAccent;
-    // Text/icon color that passes contrast on top of the accent.
-    final onAccent =
-        accent.computeLuminance() > 0.45 ? AppTheme.neutralDeep : Colors.white;
-
-    final bgColor = isDark
-        ? AppTheme.darkBlueBg
-        : Color.lerp(Colors.white, pastel, 0.4)!;
-
-    // Next category name for dynamic button label
-    final nextCategoryName = quiz.isLastCategory
-        ? null
-        : healthCategories[categoryIndex + 1].name;
-
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        if (quiz.canGoBack) {
-          quiz.previousCategory();
-        } else if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
-        } else {
-          context.go(AppRoutes.home);
-        }
-      },
-      child: Scaffold(
-        backgroundColor: bgColor,
-        appBar: AppBar(
-          backgroundColor: bgColor,
-          centerTitle: true,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () {
-              if (quiz.canGoBack) {
-                quiz.previousCategory();
-              } else if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop();
-              } else {
-                context.go(AppRoutes.home);
-              }
-            },
-          ),
-          title: Text(
-            'Category ${categoryIndex + 1} of $totalCategories',
-            style: theme.textTheme.titleMedium,
-          ),
+    return Scaffold(
+      backgroundColor: AppTheme.surface,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Header(
+              progress: quiz.overallProgress,
+              answeredLabel: '${quiz.answeredCount} / ${quiz.totalQuestions}',
+              onBack: () => _back(quiz),
+            ),
+            _CategoryHeading(
+              index: index,
+              total: quiz.totalCategories,
+              title: category.name,
+            ),
+            Expanded(
+              child: ListView.separated(
+                controller: _scroll,
+                padding: const EdgeInsets.fromLTRB(22, 6, 22, 10),
+                itemCount: category.questions.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 14),
+                itemBuilder: (context, i) {
+                  final question = category.questions[i];
+                  return QuestionCard(
+                    // Keyed so state is not reused across categories.
+                    key: ValueKey(question.id),
+                    question: question,
+                    number: offset + i + 1,
+                    isSelected: (a) => quiz.isOptionSelected(question, a),
+                    onSelect: (a) => question.isMulti
+                        ? quiz.toggleMultiAnswer(question.id, a)
+                        : quiz.selectAnswer(question.id, a),
+                    followValue: quiz.textFieldValueFor(question.id),
+                    onFollowChanged: question.hasFollowUp
+                        ? (v) => quiz.setTextFieldValue(question.id, v)
+                        : null,
+                  );
+                },
+              ),
+            ),
+            _Footer(
+              progress: quiz.overallProgress,
+              ready: ready,
+              label: quiz.isLastCategory ? 'See my score' : 'Next category',
+              blockedLabel: remaining == 1
+                  ? '1 question left'
+                  : '$remaining questions left',
+              onNext: () => _advance(quiz),
+            ),
+          ],
         ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: AnimatedSwitcher(
-                  duration: AppMotion.slow,
-                  switchInCurve: AppMotion.curve,
-                  switchOutCurve: AppMotion.curve,
-                  transitionBuilder: (child, animation) {
-                    // Subtle fade + rise; the old default fade-only switch
-                    // felt static.
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.02),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: SingleChildScrollView(
-                    key: ValueKey(categoryIndex),
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.page,
-                      AppSpacing.sm,
-                      AppSpacing.page,
-                      AppSpacing.xxl,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ─── Section header with illustration ───
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(AppSpacing.xl),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? accent.withValues(alpha: 0.14)
-                                : null,
-                            gradient: isDark
-                                ? null
-                                : LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      pastel,
-                                      pastel.withValues(alpha: 0.4),
-                                    ],
-                                  ),
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.lg),
-                            border: Border.all(
-                              color: isDark
-                                  ? accent.withValues(alpha: 0.25)
-                                  : Colors.transparent,
-                              width: 0.5,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              CategoryIllustration(
-                                category: category,
-                                categoryIndex: categoryIndex,
-                                size: 72,
-                              ),
-                              const SizedBox(width: AppSpacing.lg),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      category.name,
-                                      style: theme.textTheme.titleLarge
-                                          ?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: AppSpacing.xs),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: AppSpacing.sm + 2,
-                                        vertical: 3,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: accent.withValues(
-                                            alpha: isDark ? 0.25 : 0.15),
-                                        borderRadius: BorderRadius.circular(
-                                            AppRadius.sm),
-                                      ),
-                                      child: Text(
-                                        '${categoryIndex + 1} / $totalCategories',
-                                        style: theme.textTheme.labelSmall
-                                            ?.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: isDark
-                                              ? Colors.white
-                                              : accent,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.section),
+      ),
+    );
+  }
+}
 
-                        // Question list
-                        CategoryQuestionList(category: category),
+class _Header extends StatelessWidget {
+  final double progress;
+  final String answeredLabel;
+  final VoidCallback onBack;
 
-                        const SizedBox(height: AppSpacing.lg),
+  const _Header({
+    required this.progress,
+    required this.answeredLabel,
+    required this.onBack,
+  });
 
-                        // Dynamic navigation button
-                        ElevatedButton(
-                          onPressed: quiz.isCurrentCategoryComplete
-                              ? () {
-                                  HapticFeedback.selectionClick();
-                                  if (quiz.isLastCategory) {
-                                    quiz.calculateResult();
-                                    context.go(AppRoutes.report);
-                                  } else {
-                                    quiz.nextCategory();
-                                  }
-                                }
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: accent,
-                            foregroundColor: onAccent,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  quiz.isLastCategory
-                                      ? 'Complete Assessment'
-                                      : 'Move to $nextCategoryName',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (!quiz.isLastCategory) ...[
-                                const SizedBox(width: AppSpacing.sm),
-                                const Icon(Icons.arrow_forward_rounded,
-                                    size: 18),
-                              ],
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                      ],
-                    ),
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 16, 22, 0),
+      child: Row(
+        children: [
+          CircleIconButton(
+            icon: Icons.arrow_back_ios_new_rounded,
+            size: 40,
+            semanticLabel: 'Back',
+            onPressed: onBack,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: progress),
+                duration: const Duration(milliseconds: 450),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, _) => LinearProgressIndicator(
+                  value: value,
+                  minHeight: 8,
+                  backgroundColor: const Color(0xFFEDEBF4),
+                  valueColor:
+                      const AlwaysStoppedAnimation<Color>(AppTheme.action),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            answeredLabel,
+            style: AppTheme.font(
+              size: 13,
+              weight: FontWeight.w700,
+              color: AppTheme.action,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryHeading extends StatelessWidget {
+  final int index;
+  final int total;
+  final String title;
+
+  const _CategoryHeading({
+    required this.index,
+    required this.total,
+    required this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 10),
+      child: Row(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F1F9),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            clipBehavior: Clip.antiAlias,
+            alignment: Alignment.center,
+            child: DesignImage(
+              AppAssets.categoryFace(index),
+              width: 64,
+              height: 64,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'CATEGORY ${index + 1} OF $total',
+                  style: AppTheme.font(
+                    size: 12,
+                    weight: FontWeight.w700,
+                    color: AppTheme.start,
+                    letterSpacing: 1.2,
                   ),
                 ),
-              ),
-              // Animated dog mascot progress track
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.page,
-                  0,
-                  AppSpacing.page,
-                  AppSpacing.lg,
+                const SizedBox(height: 5),
+                Text(
+                  title,
+                  style: AppTheme.h3.copyWith(height: 1.15),
                 ),
-                child: DogProgressTrack(
-                  progress: overallProgress,
-                  label:
-                      'Your pet is cheering you on • ${(overallProgress * 100).round()}%',
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  final double progress;
+  final bool ready;
+  final String label;
+  final String blockedLabel;
+  final VoidCallback onNext;
+
+  const _Footer({
+    required this.progress,
+    required this.ready,
+    required this.label,
+    required this.blockedLabel,
+    required this.onNext,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppTheme.surface,
+        border: Border(top: BorderSide(color: AppTheme.borderSoft)),
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // The walker tracks overall progress along the footer rule.
+          Positioned(
+            top: -44,
+            left: 0,
+            right: 0,
+            height: 64,
+            child: IgnorePointer(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final clamped = progress.clamp(0.06, 0.94);
+                  return AnimatedAlign(
+                    duration: const Duration(milliseconds: 450),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment(clamped * 2 - 1, 0),
+                    child: SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: Lottie.asset(
+                        AppAssets.walker,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 12, 22, 26),
+            child: AppButton(
+              label: ready ? label : blockedLabel,
+              height: AppTheme.ctaHeightCompact,
+              icon: ready
+                  ? const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 19,
+                      color: Colors.white,
+                    )
+                  : null,
+              onPressed: ready ? onNext : null,
+            ),
+          ),
+        ],
       ),
     );
   }

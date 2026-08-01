@@ -66,14 +66,16 @@ class ScoreResult {
 
   factory ScoreResult.calculate({
     required int rawScore,
+    required int minPossibleScore,
     required int maxPossibleScore,
     Map<String, double> categoryScores = const {},
   }) {
-    final percentage = ((rawScore - AppConstants.minPossibleScore) /
-            (AppConstants.maxPossibleScore - AppConstants.minPossibleScore) *
-            100)
-        .round()
-        .clamp(0, 100);
+    // Normalised the way the design does it: the floor is the score you get
+    // by picking the worst option everywhere, not zero.
+    final span = maxPossibleScore - minPossibleScore;
+    final percentage = span <= 0
+        ? 0
+        : ((rawScore - minPossibleScore) / span * 100).round().clamp(0, 100);
     return ScoreResult(
       rawScore: rawScore,
       maxPossibleScore: maxPossibleScore,
