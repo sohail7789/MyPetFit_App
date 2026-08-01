@@ -44,7 +44,7 @@ class _QuizScreenState extends State<QuizScreen> {
       quiz.previousCategory();
       _scroll.jumpTo(0);
     } else {
-      context.pop();
+      context.backOr(AppRoutes.home);
     }
   }
 

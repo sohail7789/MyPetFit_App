@@ -45,7 +45,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   CircleIconButton(
                     icon: Icons.arrow_back_ios_new_rounded,
                     semanticLabel: 'Back',
-                    onPressed: () => context.pop(),
+                    onPressed: () => context.backOr(AppRoutes.shop),
                   ),
                   const SizedBox(width: 12),
                   Text('Checkout', style: AppTheme.h2),

@@ -105,7 +105,7 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
       art: AppAssets.verifyCode,
       artWidth: 270,
       artLabel: 'Puppy waiting with a ball',
-      onBack: () => context.pop(),
+      onBack: () => context.backOr(AppRoutes.signIn),
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.center,

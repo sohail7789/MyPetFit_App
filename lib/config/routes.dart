@@ -307,3 +307,21 @@ class AppRoutes {
   }
 
 }
+
+/// Navigation helpers shared by screen headers.
+extension AppNavigation on BuildContext {
+  /// Goes back where there is somewhere to go back to, and otherwise lands on
+  /// [fallback].
+  ///
+  /// Screens in these flows are reached both by `push` (from a tab, with a
+  /// stack behind them) and by `go` (after sign-up, or "Retake" from the
+  /// report card, which replace the stack). An unconditional `pop` leaves the
+  /// second case stranded with a dead back button.
+  void backOr(String fallback) {
+    if (canPop()) {
+      pop();
+    } else {
+      go(fallback);
+    }
+  }
+}

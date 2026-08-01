@@ -73,19 +73,10 @@ class _ConsentScreenState extends State<ConsentScreen> {
               padding: const EdgeInsets.fromLTRB(26, 22, 26, 16),
               child: Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppTheme.tint,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.description_outlined,
-                      size: 22,
-                      color: AppTheme.action,
-                    ),
+                  CircleIconButton(
+                    icon: Icons.arrow_back_ios_new_rounded,
+                    semanticLabel: 'Back',
+                    onPressed: () => context.backOr(AppRoutes.home),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

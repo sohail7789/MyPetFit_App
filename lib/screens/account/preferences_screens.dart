@@ -41,7 +41,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
           children: [
             ScreenHeader(
               title: 'Reminders',
-              onBack: () => context.pop(),
+              onBack: () => context.backOr(AppRoutes.account),
             ),
             Expanded(
               child: ListView(
@@ -135,7 +135,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ScreenHeader(title: 'Language', onBack: () => context.pop()),
+            ScreenHeader(title: 'Language', onBack: () => context.backOr(AppRoutes.account)),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 18, 22, 24),
@@ -286,7 +286,7 @@ class OrdersScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ScreenHeader(title: 'Orders', onBack: () => context.pop()),
+            ScreenHeader(title: 'Orders', onBack: () => context.backOr(AppRoutes.account)),
             Expanded(
               child: Center(
                 child: Padding(
@@ -345,7 +345,7 @@ class InboxScreen extends StatelessWidget {
           children: [
             ScreenHeader(
               title: 'Notifications',
-              onBack: () => context.pop(),
+              onBack: () => context.backOr(AppRoutes.account),
             ),
             Expanded(
               child: Center(

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../data/legal_content.dart';
 import '../../widgets/settings_tile.dart';
@@ -31,7 +31,7 @@ class LegalScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ScreenHeader(title: title, onBack: () => context.pop()),
+            ScreenHeader(title: title, onBack: () => context.backOr(AppRoutes.account)),
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(24, 18, 24, 30),

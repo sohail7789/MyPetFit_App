@@ -155,7 +155,7 @@ class _Hero extends StatelessWidget {
               size: 42,
               floating: true,
               semanticLabel: 'Back',
-              onPressed: () => context.pop(),
+              onPressed: () => context.backOr(AppRoutes.shop),
             ),
           ),
           Positioned(

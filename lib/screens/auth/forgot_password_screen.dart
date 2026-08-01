@@ -61,7 +61,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       art: AppAssets.forgotPassword,
       artWidth: 334,
       artLabel: 'Puppy holding an envelope',
-      onBack: () => context.pop(),
+      onBack: () => context.backOr(AppRoutes.signIn),
       children: [
         AppField(
           hint: 'Email address',

@@ -52,7 +52,7 @@ class OrderTrackingScreen extends StatelessWidget {
                   CircleIconButton(
                     icon: Icons.arrow_back_ios_new_rounded,
                     semanticLabel: 'Back',
-                    onPressed: () => context.pop(),
+                    onPressed: () => context.backOr(AppRoutes.shop),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

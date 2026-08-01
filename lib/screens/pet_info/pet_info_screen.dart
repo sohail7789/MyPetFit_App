@@ -58,7 +58,7 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
                     icon: Icons.arrow_back_ios_new_rounded,
                     size: 44,
                     semanticLabel: 'Back',
-                    onPressed: () => context.pop(),
+                    onPressed: () => context.backOr(AppRoutes.home),
                   ),
                   const SizedBox(height: 18),
                   Text(

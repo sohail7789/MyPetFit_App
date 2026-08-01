@@ -49,7 +49,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       art: AppAssets.resetPassword,
       artWidth: 280,
       artLabel: 'Playful puppy',
-      onBack: () => context.pop(),
+      onBack: () => context.backOr(AppRoutes.signIn),
       children: [
         AppField(
           hint: 'New password',

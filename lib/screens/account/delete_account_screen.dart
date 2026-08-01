@@ -61,7 +61,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
           children: [
             ScreenHeader(
               title: 'Delete account',
-              onBack: () => context.pop(),
+              onBack: () => context.backOr(AppRoutes.account),
             ),
             Expanded(
               child: ListView(
@@ -132,7 +132,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                     label: 'Keep my account',
                     variant: AppButtonVariant.outline,
                     height: 52,
-                    onPressed: () => context.pop(),
+                    onPressed: () => context.backOr(AppRoutes.account),
                   ),
                 ],
               ),

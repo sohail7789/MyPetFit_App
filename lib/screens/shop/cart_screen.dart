@@ -31,7 +31,7 @@ class CartScreen extends StatelessWidget {
                   CircleIconButton(
                     icon: Icons.arrow_back_ios_new_rounded,
                     semanticLabel: 'Back',
-                    onPressed: () => context.pop(),
+                    onPressed: () => context.backOr(AppRoutes.shop),
                   ),
                   const SizedBox(width: 12),
                   Expanded(child: Text('Your cart', style: AppTheme.h2)),
@@ -236,7 +236,7 @@ class _EmptyCart extends StatelessWidget {
               label: 'Back to shop',
               height: 44,
               expand: false,
-              onPressed: () => context.pop(),
+              onPressed: () => context.backOr(AppRoutes.shop),
             ),
           ],
         ),

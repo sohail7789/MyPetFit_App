@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../../config/assets.dart';
+import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
@@ -49,7 +49,7 @@ class SupportScreen extends StatelessWidget {
                   CircleIconButton(
                     icon: Icons.arrow_back_ios_new_rounded,
                     semanticLabel: 'Back',
-                    onPressed: () => context.pop(),
+                    onPressed: () => context.backOr(AppRoutes.shop),
                   ),
                   const SizedBox(width: 12),
                   Text('Help & support', style: AppTheme.h2),

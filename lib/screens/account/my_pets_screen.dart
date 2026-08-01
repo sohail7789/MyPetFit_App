@@ -26,7 +26,7 @@ class MyPetsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ScreenHeader(title: 'My pets', onBack: () => context.pop()),
+            ScreenHeader(title: 'My pets', onBack: () => context.backOr(AppRoutes.account)),
             Expanded(
               child: pets.pets.isEmpty
                   ? _Empty(onAdd: () => context.push(AppRoutes.petInfo))
