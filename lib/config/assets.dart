@@ -8,6 +8,11 @@
 /// Anything still missing resolves to a path with no file on disk;
 /// `DesignImage` renders its placeholder for those rather than throwing.
 ///
+/// Filenames deliberately contain no spaces. Flutter's image loader tolerates
+/// them, but video_player on Android resolves assets through ExoPlayer's
+/// AssetDataSource, which fails with FileNotFoundException on any path
+/// containing a space — so the videos silently fell back to their posters.
+///
 /// These are `const` so screens can stay in const constructors.
 class AppAssets {
   AppAssets._();
@@ -17,48 +22,48 @@ class AppAssets {
   /// Not yet supplied — the Welcome lockup falls back to a placeholder.
   static const String logo = 'assets/v3/logo.png';
 
-  static const String welcomeVideo = 'assets/v3/welcome screen.webm';
+  static const String welcomeVideo = 'assets/v3/welcome-screen.webm';
   static const String welcomePoster = 'assets/v3/running.png';
 
   /// Apple-compatible encodes (HEVC-with-alpha .mov, or .mp4 where
   /// transparency isn't needed). iOS cannot decode WebM, so these are what
   /// play there; until they exist the poster still is shown.
-  static const String welcomeVideoApple = 'assets/v3/welcome screen.mov';
+  static const String welcomeVideoApple = 'assets/v3/welcome-screen.mov';
 
-  static const String onboarding1 = 'assets/v3/onboard 1.png';
-  static const String onboarding2 = 'assets/v3/onboard 2.png';
-  static const String onboarding3 = 'assets/v3/onboard 3.png';
+  static const String onboarding1 = 'assets/v3/onboard-1.png';
+  static const String onboarding2 = 'assets/v3/onboard-2.png';
+  static const String onboarding3 = 'assets/v3/onboard-3.png';
 
-  static const String signIn = 'assets/v3/sign in.png';
-  static const String signUp = 'assets/v3/sign up.png';
-  static const String forgotPassword = 'assets/v3/forgot password.png';
-  static const String verifyCode = 'assets/v3/verify code.png';
-  static const String resetPassword = 'assets/v3/reset password.png';
+  static const String signIn = 'assets/v3/sign-in.png';
+  static const String signUp = 'assets/v3/sign-up.png';
+  static const String forgotPassword = 'assets/v3/forgot-password.png';
+  static const String verifyCode = 'assets/v3/verify-code.png';
+  static const String resetPassword = 'assets/v3/reset-password.png';
 
   // -- Assessment (screens 10–23b) --------------------------------------
 
-  static const String ownerDetails = 'assets/v3/owner details.png';
+  static const String ownerDetails = 'assets/v3/owner-details.png';
 
   /// Still frame behind the scoring interstitial, and its motion version.
   static const String analyzing = 'assets/v3/analyzing.png';
-  static const String scoringVideo = 'assets/v3/scoring your answers.webm';
-  static const String scoringVideoApple = 'assets/v3/scoring your answers.mov';
+  static const String scoringVideo = 'assets/v3/scoring-your-answers.webm';
+  static const String scoringVideoApple = 'assets/v3/scoring-your-answers.mov';
 
   /// Report card celebration — motion plus the still it falls back to.
-  static const String reportCardVideo = 'assets/v3/Fitness Report Card.webm';
-  static const String reportCardVideoApple = 'assets/v3/Fitness Report Card.mov';
-  static const String greatJob = 'assets/v3/great job.png';
+  static const String reportCardVideo = 'assets/v3/fitness-report-card.webm';
+  static const String reportCardVideoApple = 'assets/v3/fitness-report-card.mov';
+  static const String greatJob = 'assets/v3/great-job.png';
 
   /// Shown for the Critical band on screen 23b.
-  static const String vetAlert = 'assets/v3/Vet alert.png';
+  static const String vetAlert = 'assets/v3/vet-alert.png';
 
   /// Lottie walker on the assessment progress track.
   static const String walker = 'assets/v3/dog_walking.json';
 
   // -- Shop (screens 24–29b) --------------------------------------------
 
-  static const String orderPlaced = 'assets/v3/order placed.png';
-  static const String orderTracking = 'assets/v3/order tracking.png';
+  static const String orderPlaced = 'assets/v3/order-placed.png';
+  static const String orderTracking = 'assets/v3/order-tracking.png';
 
   // -- Puppy expression set ---------------------------------------------
 
