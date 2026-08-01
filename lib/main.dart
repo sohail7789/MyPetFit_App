@@ -8,7 +8,6 @@ import 'providers/dashboard_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'providers/pet_info_provider.dart';
 import 'providers/quiz_provider.dart';
-import 'providers/theme_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,16 +18,10 @@ void main() {
 
   // IMPORTANT: Do NOT await SharedPreferences before runApp().
   //
-  // Previously we did `await themeProvider.load()` + `await onboardingProvider.init()`
-  // here, which blocked the first frame for ~100–400 ms on cold start —
-  // especially noticeable in debug mode on Android emulators (appears as
-  // a "blank screen" / "Skipped N frames" warning from Choreographer).
-  //
-  // Instead we construct the providers synchronously with sensible defaults
-  // and kick off their async loads in the background. Each provider calls
-  // notifyListeners() when its load completes, so any watching widgets
-  // rebuild with the persisted values automatically.
-  final themeProvider = ThemeProvider();
+  // Awaiting persisted state here blocks the first frame for ~100–400 ms on
+  // cold start. Instead the providers are constructed synchronously with
+  // sensible defaults and their loads are kicked off in the background; each
+  // calls notifyListeners() on completion so watchers rebuild automatically.
   final onboardingProvider = OnboardingProvider();
   final authProvider = AuthProvider();
   final petInfoProvider = PetInfoProvider();
@@ -38,7 +31,6 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: onboardingProvider),
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider.value(value: petInfoProvider),
@@ -51,10 +43,8 @@ void main() {
   );
 
   // Kick off persisted-state loads after the first frame has been scheduled.
-  // Providers notifyListeners() when done; widgets rebuild automatically,
-  // and the router re-evaluates its redirect (see AppRoutes.build).
+  // The router re-evaluates its redirect when these land (see AppRoutes.build).
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    themeProvider.load();
     onboardingProvider.init();
     authProvider.init();
     petInfoProvider.init();

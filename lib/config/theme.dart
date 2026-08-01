@@ -1,511 +1,262 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// App-wide theme, tuned to feel like a native Apple app:
-///   * Inter as an SF-Pro-adjacent typeface (Google Fonts' closest match).
-///   * Tight negative letter-spacing on display sizes — the hallmark of
-///     SF Pro Display and what separates "Material" from "iOS" typography.
-///   * Very soft surfaces (system-background-style off-white in light,
-///     tighter near-black with a blue-gray tint in dark).
-///   * Cards with no visible shadow — just a hairline border. Elevation
-///     is signaled through contrast, not drop-shadows.
-///   * 14 pt corner radius (Apple's canonical rounded-rect).
+/// Design tokens for the MyPetFit redesign.
+///
+/// Values are transcribed from the approved application design
+/// (MyPetFit All Screens.dc.html and the four component files it imports).
+/// The design is light-only; there is no dark variant yet.
 class AppTheme {
-  // ─────────────────────────────────────────────────────────────────────────
-  // Brand palette (April 2026 brand guideline) — unchanged.
-  // ─────────────────────────────────────────────────────────────────────────
-  static const Color primary = Color(0xFF222853); // deep navy
-  static const Color secondary = Color(0xFFBF8CAC); // mauve / dusty rose
-  static const Color accentBlue = Color(0xFF88A8D0);
-  static const Color accentPink = Color(0xFFE0C8D5);
-  static const Color neutralDark = Color(0xFF27415D);
-  static const Color neutralDeep = Color(0xFF101F2F);
+  AppTheme._();
 
-  // Logo wordmark colors
-  static const Color logoNavy = primary;
-  static const Color logoMauve = secondary;
+  // ---------------------------------------------------------------------
+  // Palette
+  // ---------------------------------------------------------------------
 
-  // Backwards-compat aliases (existing code references these)
-  static const Color brandBlue = primary;
-  static const Color brandGreen = Color(0xFF34A853);
-  static const Color brandRed = Color(0xFFEA4335);
-  static const Color brandYellow = Color(0xFFFBBC04);
-  static const Color primaryColor = primary;
-  static const Color secondaryColor = secondary;
-  static const Color accentColor = accentBlue;
-  static const Color backgroundColor = Colors.white;
-  static const Color cardColor = Colors.white;
+  /// Primary action colour — buttons, active nav, selected states.
+  static const Color action = Color(0xFF46437F);
 
-  static const List<Color> brandAccents = [
-    primary,
-    secondary,
-    accentBlue,
-    neutralDark,
+  /// Secondary "start" colour — sign-up, place-order, celebratory CTAs.
+  static const Color start = Color(0xFF8E4F7C);
+
+  /// Lighter plum used for onboarding accents and password strength.
+  static const Color startLight = Color(0xFFA76A96);
+
+  /// Headings and high-emphasis text.
+  static const Color ink = Color(0xFF2A2C5A);
+
+  /// Body copy.
+  static const Color body = Color(0xFF6B6D8F);
+
+  /// Denser body copy inside cards.
+  static const Color bodyStrong = Color(0xFF4A4A72);
+
+  /// Muted meta text, uppercase section labels.
+  static const Color muted = Color(0xFF8A8AA6);
+
+  /// Input placeholders and inactive marks.
+  static const Color placeholder = Color(0xFF9B9BB4);
+
+  /// Screen background behind the app surface.
+  static const Color canvas = Color(0xFFF1F0F6);
+
+  /// Card / sheet surface.
+  static const Color surface = Color(0xFFFFFFFF);
+
+  /// Filled tint for selected chips, secondary buttons, active nav pill.
+  static const Color tint = Color(0xFFEFECF5);
+
+  /// Subtle tinted surface for pressed states and inset panels.
+  static const Color tintSoft = Color(0xFFF7F5FA);
+
+  /// Very light tinted panel used on checkout / detail cards.
+  static const Color tintPanel = Color(0xFFF8F7FB);
+
+  /// Standard hairline border.
+  static const Color border = Color(0xFFE6E4EF);
+
+  /// Lighter hairline used for footers and dividers between rows.
+  static const Color borderSoft = Color(0xFFF0EEF6);
+
+  /// Divider used for the "or continue with" rules.
+  static const Color divider = Color(0xFFEAE8F1);
+
+  /// Inactive pagination dot / toggle track.
+  static const Color dotInactive = Color(0xFFD8D5E6);
+
+  // Semantic accents ----------------------------------------------------
+
+  static const Color success = Color(0xFF2E7D46);
+  static const Color danger = Color(0xFFB0475A);
+  static const Color critical = Color(0xFFC62828);
+  static const Color warning = Color(0xFFC25A20);
+  static const Color info = Color(0xFF1E6FA8);
+  static const Color star = Color(0xFFC9A227);
+
+  // ---------------------------------------------------------------------
+  // Score bands — mirrors BANDS in MyPetFit Assessment.dc.html
+  // ---------------------------------------------------------------------
+
+  static const Color bandCriticalTint = Color(0xFFFBF0F0);
+  static const Color bandCriticalLine = Color(0xFFF0D6D6);
+  static const Color bandNeedsTint = Color(0xFFFDF4EE);
+  static const Color bandNeedsLine = Color(0xFFF2E0D2);
+  static const Color bandGoodTint = Color(0xFFF1F8F3);
+  static const Color bandGoodLine = Color(0xFFD9EADF);
+  static const Color bandExcellentTint = Color(0xFFEFF5FB);
+  static const Color bandExcellentLine = Color(0xFFD5E4F1);
+
+  // ---------------------------------------------------------------------
+  // Radii and metrics
+  // ---------------------------------------------------------------------
+
+  static const double radiusCta = 29;
+  static const double radiusCard = 20;
+  static const double radiusCardSmall = 18;
+  static const double radiusField = 16;
+  static const double radiusChip = 18;
+
+  /// Primary CTA height (58 on auth screens, 56 in-flow).
+  static const double ctaHeight = 58;
+  static const double ctaHeightCompact = 56;
+  static const double fieldHeight = 56;
+  static const double fieldHeightCompact = 54;
+
+  // ---------------------------------------------------------------------
+  // Elevation
+  // ---------------------------------------------------------------------
+
+  /// Glow under the primary (action) CTA.
+  static List<BoxShadow> get ctaShadow => [
+        BoxShadow(
+          color: action.withValues(alpha: 0.42),
+          blurRadius: 26,
+          spreadRadius: -10,
+          offset: const Offset(0, 12),
+        ),
+      ];
+
+  /// Glow under the secondary (start) CTA.
+  static List<BoxShadow> get ctaShadowStart => [
+        BoxShadow(
+          color: start.withValues(alpha: 0.42),
+          blurRadius: 26,
+          spreadRadius: -10,
+          offset: const Offset(0, 12),
+        ),
+      ];
+
+  /// Soft lift under text fields.
+  static List<BoxShadow> get fieldShadow => [
+        BoxShadow(
+          color: ink.withValues(alpha: 0.12),
+          blurRadius: 6,
+          spreadRadius: -4,
+          offset: const Offset(0, 2),
+        ),
+      ];
+
+  /// Lift under floating circular back buttons.
+  static List<BoxShadow> get floatShadow => [
+        BoxShadow(
+          color: ink.withValues(alpha: 0.2),
+          blurRadius: 16,
+          spreadRadius: -8,
+          offset: const Offset(0, 6),
+        ),
+      ];
+
+  // ---------------------------------------------------------------------
+  // Typography
+  // ---------------------------------------------------------------------
+  //
+  // The design specifies SF Pro Display / SF Pro Text. Inter is the closest
+  // freely-licensed match and renders identically across iOS and Android,
+  // so every text style routes through [font].
+
+  /// Inter carries no emoji glyphs, so headings containing them (e.g. the
+  /// 👋 on sign-in) fall through to the platform emoji font instead of tofu.
+  static const List<String> _emojiFallback = [
+    'Apple Color Emoji',
+    'Noto Color Emoji',
+    'Segoe UI Emoji',
   ];
 
-  // Soft pastels (used for hero/category backgrounds — refined slightly)
-  static const Color lightGreen = Color(0xFFE8F5EE);
-  static const Color lightAzure = Color(0xFFEAF1F9);
-  static const Color softPeach = Color(0xFFF6E9F0);
-  static const Color softLavender = Color(0xFFEAD9E3);
-
-  static const List<Color> categoryPastels = [
-    lightAzure,
-    softPeach,
-    lightGreen,
-    softLavender,
-    lightAzure,
-    softPeach,
-    lightGreen,
-    softLavender,
-    lightAzure,
-  ];
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // System neutrals — chosen to read as "iOS light / dark mode"
-  // ─────────────────────────────────────────────────────────────────────────
-  static const Color _lightScaffold = Color(0xFFF7F7F9);
-  static const Color _lightInputFill = Color(0xFFF1F1F4);
-  static const Color _lightHairline = Color(0xFFE5E5EA);
-  static const Color _lightMuted = Color(0xFF8A8A8E);
-
-  static const Color darkBlueBg = Color(0xFF0E1220); // tighter near-black
-  static const Color darkBlueSurface = Color(0xFF1B2032);
-  static const Color _darkHairline = Color(0xFF2A3143);
-  static const Color darkBlueTextLight = Color(0xFFB6BAD1);
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Text
-  // ─────────────────────────────────────────────────────────────────────────
-  static const Color textDark = Color(0xFF11131A);
-  static const Color textLight = _lightMuted;
-
-  // Status
-  static const Color successColor = Color(0xFF34C759); // iOS system green
-  static const Color warningColor = Color(0xFFFF9F0A); // iOS system orange
-  static const Color errorColor = Color(0xFFFF3B30); // iOS system red
-
-  // Gradients (kept for backwards compat)
-  static const LinearGradient primaryGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [primary, secondary],
-  );
-  static const LinearGradient cardGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [lightAzure, softPeach],
-  );
-  static const LinearGradient onboardingGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Colors.white, lightAzure],
-  );
-  static const LinearGradient darkGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [neutralDeep, neutralDark],
-  );
-
-  // Corner radii — 14 is Apple's canonical modal/card radius, 10 for buttons.
-  static const double radiusCard = 18;
-  static const double radiusInput = 14;
-  static const double radiusButton = 14;
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Semantic color helpers — one source of truth for "what color is a card /
-  // hairline / muted label in this brightness". Screens should call these
-  // instead of hand-picking pastels per-widget, which is how dark-mode
-  // regressions crept in.
-  // ─────────────────────────────────────────────────────────────────────────
-  static Color surface(bool isDark) => isDark ? darkBlueSurface : Colors.white;
-  static Color hairline(bool isDark) => isDark ? _darkHairline : _lightHairline;
-  static Color mutedText(bool isDark) => isDark ? darkBlueTextLight : textLight;
-  static Color heading(bool isDark) => isDark ? Colors.white : textDark;
-
-  /// A tinted fill that stays readable in both modes: pastel in light,
-  /// low-alpha accent wash in dark.
-  static Color tint(bool isDark, Color accent, Color pastel) =>
-      isDark ? accent.withValues(alpha: 0.16) : pastel;
-
-  /// Color for interactive text and icons (links, inline actions).
-  /// The brand navy sits at roughly 1.3:1 against the dark background —
-  /// unreadable — so dark mode uses the light blue accent instead.
-  static Color interactive(bool isDark) => isDark ? accentBlue : primary;
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Public text-theme builder — screens that need one-off styles can call
-  // AppTheme.font(...) instead of GoogleFonts.inter(...) directly, so if
-  // we ever swap the family (SF Pro on iOS, e.g.) it changes in one place.
-  // ─────────────────────────────────────────────────────────────────────────
   static TextStyle font({
-    double fontSize = 15,
-    FontWeight fontWeight = FontWeight.w400,
+    double? size,
+    FontWeight? weight,
     Color? color,
     double? letterSpacing,
     double? height,
   }) =>
       GoogleFonts.inter(
-        fontSize: fontSize,
-        fontWeight: fontWeight,
+        fontSize: size,
+        fontWeight: weight,
         color: color,
-        letterSpacing: letterSpacing ?? _defaultTracking(fontSize),
+        letterSpacing: letterSpacing,
         height: height,
+      ).copyWith(fontFamilyFallback: _emojiFallback);
+
+  /// 30/800/-1.1 — onboarding and auth page titles.
+  static TextStyle get h1 =>
+      font(size: 30, weight: FontWeight.w800, color: ink, letterSpacing: -1.1);
+
+  /// 29/800/-1 — welcome headline.
+  static TextStyle get h1Welcome =>
+      font(size: 29, weight: FontWeight.w800, color: ink, letterSpacing: -1);
+
+  /// 24/800/-0.8 — in-flow screen titles (Cart, Checkout, Help).
+  static TextStyle get h2 =>
+      font(size: 24, weight: FontWeight.w800, color: ink, letterSpacing: -0.8);
+
+  /// 22/800/-0.7 — compact screen titles beside a back button.
+  static TextStyle get h3 =>
+      font(size: 22, weight: FontWeight.w800, color: ink, letterSpacing: -0.7);
+
+  /// 15/800 — card headings.
+  static TextStyle get cardTitle =>
+      font(size: 15, weight: FontWeight.w800, color: ink);
+
+  /// 15/1.55 — standard body copy.
+  static TextStyle get bodyText => font(size: 15, color: body, height: 1.55);
+
+  /// 13.5/1.5 — dense body copy inside cards.
+  static TextStyle get bodySmall =>
+      font(size: 13.5, color: bodyStrong, height: 1.5);
+
+  /// 12/700/1.0 uppercase — section labels.
+  static TextStyle get overline => font(
+        size: 12,
+        weight: FontWeight.w700,
+        color: muted,
+        letterSpacing: 1,
       );
 
-  /// SF-Pro-inspired negative tracking: larger sizes get tighter kerning.
-  /// This is the single change that most makes text feel "iOS-native".
-  static double _defaultTracking(double size) {
-    if (size >= 30) return -0.6;
-    if (size >= 24) return -0.4;
-    if (size >= 20) return -0.3;
-    if (size >= 17) return -0.2;
-    if (size >= 15) return -0.1;
-    return 0;
-  }
+  /// 17/700/-0.2 — primary CTA label.
+  static TextStyle get button => font(
+        size: 17,
+        weight: FontWeight.w700,
+        color: Colors.white,
+        letterSpacing: -0.2,
+      );
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Light / dark theme entry points
-  // ─────────────────────────────────────────────────────────────────────────
-  static ThemeData get theme => lightTheme;
+  // ---------------------------------------------------------------------
+  // ThemeData
+  // ---------------------------------------------------------------------
 
-  static ThemeData get lightTheme {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: primary,
-      brightness: Brightness.light,
-      primary: primary,
-      secondary: secondary,
-      tertiary: accentBlue,
-      error: errorColor,
-      surface: Colors.white,
-    );
-    return _buildTheme(
-      colorScheme: colorScheme,
-      scaffoldBg: _lightScaffold,
-      cardBg: Colors.white,
-      textColor: textDark,
-      mutedTextColor: _lightMuted,
-      inputFill: _lightInputFill,
-      hairline: _lightHairline,
-      brightness: Brightness.light,
-    );
-  }
+  static ThemeData get light {
+    final base = ThemeData.light(useMaterial3: true);
 
-  static ThemeData get darkTheme {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: primary,
-      brightness: Brightness.dark,
-      primary: accentBlue,
-      secondary: secondary,
-      tertiary: accentPink,
-      error: errorColor,
-      surface: darkBlueSurface,
-    );
-    return _buildTheme(
-      colorScheme: colorScheme,
-      scaffoldBg: darkBlueBg,
-      cardBg: darkBlueSurface,
-      textColor: Colors.white,
-      mutedTextColor: darkBlueTextLight,
-      inputFill: darkBlueSurface,
-      hairline: _darkHairline,
-      brightness: Brightness.dark,
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Shared theme builder
-  // ─────────────────────────────────────────────────────────────────────────
-  static ThemeData _buildTheme({
-    required ColorScheme colorScheme,
-    required Color scaffoldBg,
-    required Color cardBg,
-    required Color textColor,
-    required Color mutedTextColor,
-    required Color inputFill,
-    required Color hairline,
-    required Brightness brightness,
-  }) {
-    // Type scale — sizes and weights modelled on the iOS Human Interface
-    // Guidelines' "Large" text style set. The negative letter-spacing on
-    // larger sizes is what separates SF Pro Display from Text on iOS.
-    TextStyle t({
-      required double size,
-      required FontWeight weight,
-      double? tracking,
-      double? height,
-      Color? color,
-    }) =>
-        GoogleFonts.inter(
-          fontSize: size,
-          fontWeight: weight,
-          letterSpacing: tracking ?? _defaultTracking(size),
-          height: height,
-          color: color ?? textColor,
-        );
-
-    final textTheme = TextTheme(
-      displayLarge: t(size: 34, weight: FontWeight.w700, height: 1.15),
-      displayMedium: t(size: 30, weight: FontWeight.w700, height: 1.18),
-      displaySmall: t(size: 26, weight: FontWeight.w700, height: 1.2),
-      headlineLarge: t(size: 24, weight: FontWeight.w700, height: 1.22),
-      headlineMedium: t(size: 22, weight: FontWeight.w700, height: 1.25),
-      headlineSmall: t(size: 20, weight: FontWeight.w600, height: 1.28),
-      titleLarge: t(size: 20, weight: FontWeight.w600, height: 1.3),
-      titleMedium: t(size: 17, weight: FontWeight.w600, height: 1.35),
-      titleSmall: t(size: 15, weight: FontWeight.w600, height: 1.4),
-      bodyLarge: t(size: 17, weight: FontWeight.w400, height: 1.45),
-      bodyMedium: t(size: 15, weight: FontWeight.w400, height: 1.5),
-      bodySmall: t(
-        size: 13,
-        weight: FontWeight.w400,
-        height: 1.45,
-        color: mutedTextColor,
+    return base.copyWith(
+      scaffoldBackgroundColor: surface,
+      canvasColor: canvas,
+      colorScheme: const ColorScheme.light(
+        primary: action,
+        secondary: start,
+        surface: surface,
+        error: critical,
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
+        onSurface: ink,
       ),
-      labelLarge: t(size: 15, weight: FontWeight.w600, tracking: -0.1),
-      labelMedium: t(size: 13, weight: FontWeight.w600, tracking: 0),
-      labelSmall: t(size: 12, weight: FontWeight.w600, tracking: 0.2),
-    );
-
-    return ThemeData(
-      useMaterial3: true,
-      brightness: brightness,
-      colorScheme: colorScheme,
-      textTheme: textTheme,
-      primaryTextTheme: textTheme,
-      scaffoldBackgroundColor: scaffoldBg,
-      splashFactory: InkSparkle.splashFactory,
-      dividerTheme: DividerThemeData(
-        color: hairline,
-        thickness: 0.5,
-        space: 0.5,
+      textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
+        bodyColor: ink,
+        displayColor: ink,
       ),
       appBarTheme: AppBarTheme(
-        centerTitle: false, // iOS-style left-aligned titles
-        backgroundColor: scaffoldBg,
+        backgroundColor: surface,
         surfaceTintColor: Colors.transparent,
-        foregroundColor: textColor,
         elevation: 0,
-        scrolledUnderElevation: 0,
-        titleTextStyle: GoogleFonts.inter(
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -0.2,
-          color: textColor,
-        ),
-        iconTheme: IconThemeData(color: textColor, size: 22),
+        centerTitle: false,
+        iconTheme: const IconThemeData(color: ink),
+        titleTextStyle: h3,
       ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor:
-              brightness == Brightness.dark ? const Color(0xFF2A3143) : const Color(0xFFE5E5EA),
-          disabledForegroundColor:
-              brightness == Brightness.dark ? const Color(0xFF6B7080) : const Color(0xFF9A9AA0),
-          minimumSize: const Size(double.infinity, 52),
-          elevation: 0,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radiusButton),
-          ),
-          textStyle: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.1,
-          ),
-        ),
+      dividerTheme: const DividerThemeData(
+        color: borderSoft,
+        thickness: 1,
+        space: 1,
       ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(double.infinity, 52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radiusButton),
-          ),
-          side: BorderSide(color: hairline, width: 1),
-          foregroundColor: textColor,
-          textStyle: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.1,
-          ),
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: primary,
-          textStyle: GoogleFonts.inter(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.1,
-          ),
-        ),
-      ),
-      cardTheme: CardThemeData(
-        // No drop shadow — iOS cards are defined by hairline borders and
-        // subtle contrast, not elevation.
-        elevation: 0,
-        shadowColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusCard),
-          side: BorderSide(color: hairline, width: 0.5),
-        ),
-        color: cardBg,
-        margin: EdgeInsets.zero,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: inputFill,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radiusInput),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radiusInput),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radiusInput),
-          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radiusInput),
-          borderSide: BorderSide(color: errorColor, width: 1),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radiusInput),
-          borderSide: BorderSide(color: errorColor, width: 1.5),
-        ),
-        labelStyle:
-            GoogleFonts.inter(color: mutedTextColor, letterSpacing: -0.1),
-        hintStyle: GoogleFonts.inter(
-          color: mutedTextColor,
-          fontSize: 15,
-          letterSpacing: -0.1,
-        ),
-        errorStyle: GoogleFonts.inter(
-          fontSize: 12,
-          color: errorColor,
-          fontWeight: FontWeight.w500,
-        ),
-        prefixIconColor: mutedTextColor,
-        suffixIconColor: mutedTextColor,
-      ),
-      snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor:
-            brightness == Brightness.dark ? Colors.white : textDark,
-        contentTextStyle: GoogleFonts.inter(
-          color: brightness == Brightness.dark ? textDark : Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-      chipTheme: ChipThemeData(
-        backgroundColor: inputFill,
-        selectedColor: primary,
-        disabledColor: inputFill,
-        labelStyle: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          letterSpacing: -0.05,
-          color: textColor,
-        ),
-        secondaryLabelStyle: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
-        side: BorderSide.none,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      ),
-      checkboxTheme: CheckboxThemeData(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        side: BorderSide(color: hairline, width: 1.5),
-      ),
-      listTileTheme: ListTileThemeData(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        iconColor: mutedTextColor,
-      ),
-      bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: cardBg,
-        surfaceTintColor: Colors.transparent,
-        modalBackgroundColor: cardBg,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-        ),
-      ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: cardBg,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        titleTextStyle: GoogleFonts.inter(
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -0.2,
-          color: textColor,
-        ),
-        contentTextStyle: GoogleFonts.inter(
-          fontSize: 14,
-          height: 1.5,
-          color: mutedTextColor,
-        ),
-      ),
-      progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: colorScheme.primary,
-        linearTrackColor: hairline,
-        circularTrackColor: hairline,
-      ),
+      splashFactory: InkRipple.splashFactory,
     );
   }
-}
-
-// ───────────────────────────────────────────────────────────────────────────
-// Design tokens — every screen composes from these instead of ad-hoc values.
-// ───────────────────────────────────────────────────────────────────────────
-
-/// 8-pt spacing scale. If a gap isn't one of these, it's off-system.
-abstract final class AppSpacing {
-  static const double xs = 4;
-  static const double sm = 8;
-  static const double md = 12;
-  static const double lg = 16;
-  static const double xl = 20;
-  static const double xxl = 24;
-  static const double xxxl = 32;
-
-  /// Standard screen edge inset.
-  static const double page = 20;
-
-  /// Vertical rhythm between content sections.
-  static const double section = 24;
-}
-
-/// Corner-radius scale. sm=chips/controls, md=buttons/inputs, lg=cards,
-/// xl=sheets/modals.
-abstract final class AppRadius {
-  static const double sm = 10;
-  static const double md = 14;
-  static const double lg = 18;
-  static const double xl = 24;
-}
-
-/// Motion tokens — premium apps use few, consistent durations.
-abstract final class AppMotion {
-  static const Duration fast = Duration(milliseconds: 150);
-  static const Duration base = Duration(milliseconds: 200);
-  static const Duration gentle = Duration(milliseconds: 250);
-  static const Duration slow = Duration(milliseconds: 300);
-  static const Curve curve = Curves.easeOutCubic;
 }

@@ -1,0 +1,143 @@
+import 'package:flutter/material.dart';
+import '../config/theme.dart';
+
+/// Icon colour used inside form fields across the design.
+const Color kFieldIcon = Color(0xFF8C8CA8);
+
+/// The rounded text field from the design: hairline border, soft lift, a
+/// leading stroke icon, and a focus state that switches the border to the
+/// action colour and adds a 3px translucent ring.
+class AppField extends StatefulWidget {
+  final String hint;
+
+  /// Leading glyph — pass an [AppIcon] built from [AppIcons] so the field
+  /// carries the design's own stroke artwork.
+  final Widget? icon;
+
+  final TextEditingController? controller;
+  final bool obscure;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final double height;
+  final ValueChanged<String>? onChanged;
+  final String? initialValue;
+
+  /// Trailing widget — the eye toggle on password fields.
+  final Widget? trailing;
+
+  final bool enabled;
+
+  const AppField({
+    super.key,
+    required this.hint,
+    this.icon,
+    this.controller,
+    this.obscure = false,
+    this.keyboardType,
+    this.textInputAction,
+    this.height = AppTheme.fieldHeight,
+    this.onChanged,
+    this.initialValue,
+    this.trailing,
+    this.enabled = true,
+  });
+
+  @override
+  State<AppField> createState() => _AppFieldState();
+}
+
+class _AppFieldState extends State<AppField> {
+  late final FocusNode _focus;
+  TextEditingController? _internal;
+  bool _focused = false;
+
+  TextEditingController get _controller =>
+      widget.controller ?? (_internal ??= TextEditingController(text: widget.initialValue));
+
+  @override
+  void initState() {
+    super.initState();
+    _focus = FocusNode()
+      ..addListener(() {
+        if (_focus.hasFocus != _focused) {
+          setState(() => _focused = _focus.hasFocus);
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    _internal?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 140),
+      height: widget.height,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusField),
+        border: Border.all(
+          color: _focused ? AppTheme.action : AppTheme.border,
+        ),
+        boxShadow: _focused
+            // The design's focus ring: 0 0 0 3px rgba(70,67,127,.1).
+            ? [
+                BoxShadow(
+                  color: AppTheme.action.withValues(alpha: 0.1),
+                  blurRadius: 0,
+                  spreadRadius: 3,
+                ),
+              ]
+            : AppTheme.fieldShadow,
+      ),
+      child: Row(
+        children: [
+          if (widget.icon != null) ...[
+            widget.icon!,
+            const SizedBox(width: 12),
+          ],
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              focusNode: _focus,
+              obscureText: widget.obscure,
+              keyboardType: widget.keyboardType,
+              textInputAction: widget.textInputAction,
+              onChanged: widget.onChanged,
+              enabled: widget.enabled,
+              cursorColor: AppTheme.action,
+              style: AppTheme.font(
+                size: 15,
+                weight: FontWeight.w500,
+                color: AppTheme.ink,
+              ),
+              decoration: InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                hintText: widget.hint,
+                hintStyle: AppTheme.font(
+                  size: 15,
+                  weight: FontWeight.w500,
+                  color: AppTheme.placeholder,
+                ),
+              ),
+            ),
+          ),
+          if (widget.trailing != null) ...[
+            const SizedBox(width: 10),
+            widget.trailing!,
+          ],
+        ],
+      ),
+    );
+  }
+}

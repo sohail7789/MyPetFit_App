@@ -1,95 +1,137 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../providers/onboarding_provider.dart';
-import '../screens/welcome/welcome_screen.dart';
-import '../screens/onboarding/onboarding_screen.dart';
+import '../screens/auth/forgot_password_screen.dart';
+import '../screens/auth/reset_password_screen.dart';
 import '../screens/auth/sign_in_screen.dart';
 import '../screens/auth/sign_up_screen.dart';
-import '../screens/auth/forgot_password_screen.dart';
+import '../screens/account/account_screen.dart';
+import '../screens/account/delete_account_screen.dart';
+import '../screens/account/legal_screen.dart';
+import '../screens/account/my_pets_screen.dart';
+import '../screens/account/preferences_screens.dart';
+import '../screens/account/report_history_screen.dart';
+import '../screens/auth/verify_code_screen.dart';
+import '../screens/home/home_dashboard_screen.dart';
 import '../screens/consent/consent_screen.dart';
 import '../screens/pet_info/owner_info_screen.dart';
 import '../screens/pet_info/pet_info_screen.dart';
 import '../screens/quiz/quiz_screen.dart';
 import '../screens/report/report_card_screen.dart';
-import '../screens/products/product_recommendation_screen.dart';
-import '../screens/products/product_list_screen.dart';
-import '../screens/cart/cart_screen.dart';
-import '../screens/cart/checkout_screen.dart';
-import '../screens/cart/order_success_screen.dart';
+import '../screens/report/scoring_screen.dart';
+import '../screens/report/vet_alert_screen.dart';
+import '../screens/shop/cart_screen.dart';
+import '../screens/shop/checkout_screen.dart';
+import '../screens/shop/order_reference.dart';
+import '../screens/shop/order_success_screen.dart';
+import '../screens/shop/order_tracking_screen.dart';
+import '../screens/shop/product_detail_screen.dart';
+import '../screens/shop/shop_screen.dart';
+import '../screens/shop/support_screen.dart';
+import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/shell/app_shell.dart';
-import '../screens/wellness/wellness_hub_screen.dart';
+import '../screens/welcome/welcome_screen.dart';
 
+/// Route table for the redesigned flow.
+///
+/// Screen numbers in comments refer to the approved application design
+/// (screens 01–37).
 class AppRoutes {
-  static const welcome = '/';
-  static const onboarding = '/onboarding';
-  static const signIn = '/sign-in';
-  static const signUp = '/sign-up';
-  static const forgotPassword = '/forgot-password';
-  static const consent = '/consent';
-  static const ownerInfo = '/owner-info';
-  static const petInfo = '/pet-info';
-  static const quiz = '/quiz';
-  static const report = '/report';
-  static const products = '/products';
-  static const allProducts = '/products/all';
-  static const cart = '/cart';
-  static const checkout = '/checkout';
-  static const orderSuccess = '/order-success';
-  static const home = '/home';
-  static const wellness = '/wellness';
-  static const account = '/account';
+  AppRoutes._();
 
-  /// Routes that don't require the user to be signed in.
+  // Pre-auth ------------------------------------------------------------
+  static const welcome = '/'; // 01
+  static const onboarding = '/onboarding'; // 02–04
+  static const signIn = '/sign-in'; // 05
+  static const signUp = '/sign-up'; // 06
+  static const forgotPassword = '/forgot-password'; // 07
+  static const verifyCode = '/verify-code'; // 08
+  static const resetPassword = '/reset-password'; // 09
+
+  // Assessment ----------------------------------------------------------
+  static const consent = '/consent'; // 10
+  static const ownerInfo = '/owner-info'; // 11
+  static const petInfo = '/pet-info'; // 12
+  static const quiz = '/quiz'; // 13–21
+  static const scoring = '/scoring'; // 22
+  static const report = '/report'; // 23
+  static const vetAlert = '/vet-alert'; // 23b
+
+  // Shell tabs ----------------------------------------------------------
+  static const home = '/home'; // 30
+  static const reportHistory = '/report-history'; // 32
+  static const shop = '/shop'; // 24
+  static const account = '/account'; // 31
+
+  // Shop stack ----------------------------------------------------------
+  static const productDetail = '/shop/product'; // 25 (+ /:id)
+  static const cart = '/cart'; // 26
+  static const checkout = '/checkout'; // 27
+  static const orderSuccess = '/order-success'; // 28
+  static const orderTracking = '/order-tracking'; // 29
+  static const support = '/support'; // 29b
+
+  // Account stack -------------------------------------------------------
+  static const inbox = '/account/inbox'; // 31b
+  static const pets = '/account/pets'; // 33
+  static const editPet = '/account/pets/edit';
+  static const orders = '/account/orders';
+  static const reminders = '/account/reminders';
+  static const language = '/account/language';
+  static const terms = '/terms'; // 34
+  static const privacy = '/privacy'; // 35
+  static const deleteAccount = '/account/delete'; // 36
+  static const accountDeleted = '/account/deleted'; // 37
+
+  /// Routes reachable without a signed-in user.
   static const _publicRoutes = <String>{
     welcome,
     onboarding,
     signIn,
     signUp,
     forgotPassword,
+    verifyCode,
+    resetPassword,
   };
 
-  /// Build the router. Called from [MyPetFitApp] with the live providers so
-  /// the router can gate routes based on onboarding + auth state, and
-  /// re-evaluate whenever either provider notifies.
+  static final _shellKey = GlobalKey<NavigatorState>();
+
   static GoRouter build({
     required AuthProvider authProvider,
     required OnboardingProvider onboardingProvider,
   }) {
     return GoRouter(
       initialLocation: welcome,
+      navigatorKey: _shellKey,
       refreshListenable: Listenable.merge([authProvider, onboardingProvider]),
       redirect: (context, state) {
-        // Wait until both providers have finished loading their persisted
-        // state — otherwise the very first frame would redirect the user
-        // to /sign-in only to bounce them to /home a moment later.
+        // Hold still until persisted state has loaded, so the first frame
+        // doesn't bounce the user through /sign-in on its way to /home.
         if (!authProvider.isLoaded || !onboardingProvider.isLoaded) return null;
 
         final location = state.matchedLocation;
         final isPublic = _publicRoutes.contains(location);
 
-        // Not onboarded yet → send to onboarding (except from welcome).
         if (!onboardingProvider.isComplete) {
           if (location == welcome || location == onboarding) return null;
           return onboarding;
         }
 
-        // Already onboarded — don't let them see the onboarding pages again.
         if (location == onboarding) {
           return authProvider.isSignedIn ? home : signIn;
         }
 
-        // Onboarded but not signed in → force auth on protected routes.
         if (!authProvider.isSignedIn) {
-          if (isPublic) return null;
-          return signIn;
+          return isPublic ? null : signIn;
         }
 
-        // Signed in and landing on a public/pre-app route → jump to home.
+        // Signed in and sitting on a pre-auth route → into the app.
         if (isPublic) return home;
         return null;
       },
       routes: [
+        // ---- Pre-auth ---------------------------------------------------
         GoRoute(
           path: welcome,
           builder: (context, state) => const WelcomeScreen(),
@@ -111,6 +153,16 @@ class AppRoutes {
           builder: (context, state) => const ForgotPasswordScreen(),
         ),
         GoRoute(
+          path: verifyCode,
+          builder: (context, state) => const VerifyCodeScreen(),
+        ),
+        GoRoute(
+          path: resetPassword,
+          builder: (context, state) => const ResetPasswordScreen(),
+        ),
+
+        // ---- Assessment -------------------------------------------------
+        GoRoute(
           path: consent,
           builder: (context, state) => const ConsentScreen(),
         ),
@@ -127,16 +179,24 @@ class AppRoutes {
           builder: (context, state) => const QuizScreen(),
         ),
         GoRoute(
+          path: scoring,
+          builder: (context, state) => const ScoringScreen(),
+        ),
+        GoRoute(
           path: report,
           builder: (context, state) => const ReportCardScreen(),
         ),
         GoRoute(
-          path: products,
-          builder: (context, state) => const ProductRecommendationScreen(),
+          path: vetAlert,
+          builder: (context, state) => const VetAlertScreen(),
         ),
+
+        // ---- Shop stack (pushed over the shell) -------------------------
         GoRoute(
-          path: allProducts,
-          builder: (context, state) => const ProductListScreen(),
+          path: '$productDetail/:id',
+          builder: (context, state) => ProductDetailScreen(
+            productId: state.pathParameters['id']!,
+          ),
         ),
         GoRoute(
           path: cart,
@@ -151,14 +211,99 @@ class AppRoutes {
           builder: (context, state) => const OrderSuccessScreen(),
         ),
         GoRoute(
-          path: home,
-          builder: (context, state) => const AppShell(),
+          path: orderTracking,
+          builder: (context, state) => OrderTrackingScreen(
+            order: state.extra as OrderReference?,
+          ),
         ),
         GoRoute(
-          path: wellness,
-          builder: (context, state) => const WellnessHubScreen(),
+          path: support,
+          builder: (context, state) => const SupportScreen(),
+        ),
+
+        // ---- Account stack ----------------------------------------------
+        GoRoute(
+          path: inbox,
+          builder: (context, state) => const InboxScreen(),
+        ),
+        GoRoute(
+          path: pets,
+          builder: (context, state) => const MyPetsScreen(),
+        ),
+        GoRoute(
+          path: editPet,
+          builder: (context, state) => const MyPetsScreen(),
+        ),
+        GoRoute(
+          path: orders,
+          builder: (context, state) => const OrdersScreen(),
+        ),
+        GoRoute(
+          path: reminders,
+          builder: (context, state) => const RemindersScreen(),
+        ),
+        GoRoute(
+          path: language,
+          builder: (context, state) => const LanguageScreen(),
+        ),
+        GoRoute(
+          path: terms,
+          builder: (context, state) => const LegalScreen.terms(),
+        ),
+        GoRoute(
+          path: privacy,
+          builder: (context, state) => const LegalScreen.privacy(),
+        ),
+        GoRoute(
+          path: deleteAccount,
+          builder: (context, state) => const DeleteAccountScreen(),
+        ),
+        GoRoute(
+          path: accountDeleted,
+          builder: (context, state) => const AccountDeletedScreen(),
+        ),
+
+        // ---- Shell ------------------------------------------------------
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) =>
+              AppShell(navigationShell: navigationShell),
+          branches: [
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: home,
+                  builder: (context, state) => const HomeDashboardScreen(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: reportHistory,
+                  builder: (context, state) => const ReportHistoryScreen(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: shop,
+                  builder: (context, state) => const ShopScreen(),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: account,
+                  builder: (context, state) => const AccountScreen(),
+                ),
+              ],
+            ),
+          ],
         ),
       ],
     );
   }
+
 }
