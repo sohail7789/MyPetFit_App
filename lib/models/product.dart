@@ -17,7 +17,24 @@ class Product {
 
   final List<HealthCategory> recommendedFor;
   final String category;
-  final double rating;
+  /// Average review score. Null when no rating has been published — the UI
+  /// hides the rating row rather than showing a made-up number.
+  final double? rating;
+
+  /// One line explaining why the report surfaced this product, shown on the
+  /// shop card and the detail page ("Why it's in Bruno's picks").
+  ///
+  /// Left empty until product copy is written — the UI hides the block rather
+  /// than showing placeholder text.
+  final String whyPicked;
+
+  /// Three short "What it does" claims on the detail page. Empty hides the
+  /// section.
+  final List<String> bullets;
+
+  /// Short uppercase tag on the product image, e.g. "Oral care". Falls back
+  /// to [category] when unset.
+  final String? tag;
 
   const Product({
     required this.id,
@@ -28,8 +45,17 @@ class Product {
     this.imageUrl,
     required this.recommendedFor,
     required this.category,
-    this.rating = 4.0,
+    this.rating,
+    this.whyPicked = '',
+    this.bullets = const [],
+    this.tag,
   });
+
+  /// Label shown on the product image chip.
+  String get displayTag => tag ?? category;
+
+  bool get hasWhy => whyPicked.trim().isNotEmpty;
+  bool get hasBullets => bullets.isNotEmpty;
 
   bool get hasImage => imageUrl != null && imageUrl!.trim().isNotEmpty;
 
@@ -50,7 +76,11 @@ class Product {
             .whereType<HealthCategory>()
             .toList(),
         category: map['category'] as String? ?? 'Other',
-        rating: (map['rating'] as num?)?.toDouble() ?? 4.0,
+        rating: (map['rating'] as num?)?.toDouble(),
+        whyPicked: map['whyPicked'] as String? ?? '',
+        bullets:
+            ((map['bullets'] as List?) ?? const []).whereType<String>().toList(),
+        tag: map['tag'] as String?,
       );
 
   Map<String, dynamic> toMap() => {
@@ -61,6 +91,9 @@ class Product {
         if (imageUrl != null) 'imageUrl': imageUrl,
         'recommendedFor': recommendedFor.map((c) => c.name).toList(),
         'category': category,
-        'rating': rating,
+        if (rating != null) 'rating': rating,
+        if (whyPicked.isNotEmpty) 'whyPicked': whyPicked,
+        if (bullets.isNotEmpty) 'bullets': bullets,
+        if (tag != null) 'tag': tag,
       };
 }
