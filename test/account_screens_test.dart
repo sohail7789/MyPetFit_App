@@ -14,6 +14,8 @@ import 'package:mypetfit_app/screens/account/delete_account_screen.dart';
 import 'package:mypetfit_app/screens/account/legal_screen.dart';
 import 'package:mypetfit_app/screens/account/report_history_screen.dart';
 import 'package:mypetfit_app/screens/home/home_dashboard_screen.dart';
+import 'package:mypetfit_app/screens/report/report_card_screen.dart';
+import 'package:mypetfit_app/widgets/design_video.dart';
 import 'package:mypetfit_app/widgets/app_button.dart';
 import 'support/network_image_stub.dart';
 
@@ -160,6 +162,39 @@ void main() {
       await tester.enterText(find.byType(TextField), 'delete');
       await tester.pump();
       expect(_enabled(tester, 'Delete my account'), isTrue);
+    });
+  });
+
+  group('23 Report card hero', () {
+    testWidgets('celebrates with the clip on a positive band',
+        (tester) async {
+      await tester.pumpWidget(
+        _host(const ReportCardScreen(), quiz: _scored()),
+      );
+      await tester.pump();
+
+      // Excellent band -> motion, not the concerned-puppy still.
+      expect(find.byType(DesignVideo), findsOneWidget);
+      expect(find.bySemanticsLabel('Concerned puppy'), findsNothing);
+    });
+
+    testWidgets('uses the vet-alert still on a low band', (tester) async {
+      final quiz = QuizProvider();
+      for (final category in healthCategories) {
+        for (final question in category.scoredQuestions) {
+          quiz.selectAnswer(
+            question.id,
+            question.answers.reduce((a, b) => b.score < a.score ? b : a),
+          );
+        }
+      }
+      quiz.calculateResult();
+
+      await tester.pumpWidget(_host(const ReportCardScreen(), quiz: quiz));
+      await tester.pump();
+
+      expect(find.byType(DesignVideo), findsNothing);
+      expect(find.bySemanticsLabel('Concerned puppy'), findsOneWidget);
     });
   });
 

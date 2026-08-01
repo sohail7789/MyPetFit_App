@@ -36,6 +36,10 @@ extension ScoreBand on HealthCategory {
         HealthCategory.excellent => Icons.star_rounded,
       };
 
+  /// True for Good and Excellent — the bands the report card celebrates.
+  bool get isPositive =>
+      this == HealthCategory.good || this == HealthCategory.excellent;
+
   /// The lower bands show the concerned puppy; the upper two celebrate.
   String get bandArt => switch (this) {
         HealthCategory.critical ||

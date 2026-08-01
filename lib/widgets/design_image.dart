@@ -54,16 +54,20 @@ class DesignImage extends StatelessWidget {
       image = Stack(
         alignment: Alignment.center,
         children: [
-          Transform.translate(
-            offset: const Offset(0, 18),
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 13, sigmaY: 13),
-              child: ColorFiltered(
-                colorFilter: ColorFilter.mode(
-                  AppTheme.ink.withValues(alpha: 0.28),
-                  BlendMode.srcIn,
+          // The shadow reuses the image widget, so its semantics must be
+          // excluded or the artwork is announced twice.
+          ExcludeSemantics(
+            child: Transform.translate(
+              offset: const Offset(0, 18),
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 13, sigmaY: 13),
+                child: ColorFiltered(
+                  colorFilter: ColorFilter.mode(
+                    AppTheme.ink.withValues(alpha: 0.28),
+                    BlendMode.srcIn,
+                  ),
+                  child: image,
                 ),
-                child: image,
               ),
             ),
           ),

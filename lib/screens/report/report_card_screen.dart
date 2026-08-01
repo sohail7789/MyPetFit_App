@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../models/score_band.dart';
@@ -9,6 +10,7 @@ import '../../providers/quiz_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/design_image.dart';
+import '../../widgets/design_video.dart';
 
 /// Screen 23 — Fitness report card.
 class ReportCardScreen extends StatefulWidget {
@@ -243,7 +245,23 @@ class _BandHero extends StatelessWidget {
       ),
       child: Column(
         children: [
-          DesignImage(band.bandArt, width: 132, shadow: true),
+          // Good and Excellent celebrate with the report-card clip; the
+          // lower bands stay on the still, where motion would read wrong.
+          if (band.isPositive)
+            const DesignVideo(
+              source: AppAssets.reportCardVideo,
+              appleSource: AppAssets.reportCardVideoApple,
+              poster: AppAssets.greatJob,
+              width: 132,
+              semanticLabel: 'Celebrating puppy',
+            )
+          else
+            const DesignImage(
+              AppAssets.vetAlert,
+              width: 132,
+              shadow: true,
+              semanticLabel: 'Concerned puppy',
+            ),
           const SizedBox(height: 12),
           AnimatedBuilder(
             animation: countUp,
