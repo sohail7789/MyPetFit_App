@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../config/routes.dart';
+import '../../config/assets.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/floating_paws_background.dart';
-import '../../widgets/mypetfit_logo.dart';
-import '../../widgets/primary_button.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/app_field.dart';
+import '../../widgets/app_icons.dart';
+import '../../widgets/design_image.dart';
+import '../../widgets/password_strength.dart';
+import '../../widgets/paw_mark.dart';
+import '../../widgets/screen_backdrop.dart';
+import '../../widgets/social_buttons.dart';
 
+/// Screen 06 — Create Account.
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -17,226 +23,185 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  final _formKey = GlobalKey<FormState>();
-  bool _obscurePassword = true;
-  bool _submitting = false;
-  final _usernameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _first = TextEditingController();
+  final _last = TextEditingController();
+  final _username = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  bool _obscure = true;
 
   @override
   void dispose() {
-    _usernameController.dispose();
-    _emailController.dispose();
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _passwordController.dispose();
+    for (final c in [_first, _last, _username, _email, _password]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _submitting = true);
+  Future<void> _signUp() async {
     await context.read<AuthProvider>().signUp(
-          username: _usernameController.text,
-          email: _emailController.text,
-          firstName: _firstNameController.text,
-          lastName: _lastNameController.text,
-          password: _passwordController.text,
+          username: _username.text.trim(),
+          email: _email.text.trim(),
+          password: _password.text,
+          firstName: _first.text.trim(),
+          lastName: _last.text.trim(),
         );
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    context.go(AppRoutes.consent);
+    if (mounted) context.go(AppRoutes.consent);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final muted = AppTheme.mutedText(isDark);
-
     return Scaffold(
-      body: FloatingPawsBackground(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-            child: Form(
-              key: _formKey,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: AppSpacing.xxxl),
-                  // The logo PNG is a full lockup (mark + wordmark +
-                  // tagline); at 56px it collapsed into an illegible smudge.
-                  // The text wordmark stays crisp and is theme-aware.
-                  const MyPetFitLogo.compact(fontSize: 22),
-                  const SizedBox(height: AppSpacing.xxxl),
-                  Text(
-                    'Create your\naccount.',
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      color: AppTheme.heading(isDark),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    'It only takes a minute.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: muted),
-                  ),
-                  const SizedBox(height: AppSpacing.section),
-                  TextFormField(
-                    controller: _usernameController,
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      hintText: 'Username',
-                      prefixIcon: Icon(Icons.person_outline_rounded),
-                    ),
-                    validator: AuthValidators.username,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      hintText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                    validator: AuthValidators.email,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _firstNameController,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            hintText: 'First name',
-                          ),
-                          validator: (v) => AuthValidators.required(v,
-                              field: 'First name'),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _lastNameController,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            hintText: 'Last name',
-                          ),
-                          validator: (v) =>
-                              AuthValidators.required(v, field: 'Last name'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _submit(),
-                    decoration: InputDecoration(
-                      hintText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline_rounded),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off_rounded
-                              : Icons.visibility_rounded,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                    ),
-                    validator: AuthValidators.password,
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  PrimaryButton(
-                    label: 'Sign up',
-                    onPressed: _submitting ? null : _submit,
-                    isLoading: _submitting,
-                  ),
-                  const SizedBox(height: AppSpacing.section),
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: muted.withValues(alpha: 0.2))),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                        child: Text(
-                          'or',
-                          style: theme.textTheme.bodySmall?.copyWith(color: muted),
-                        ),
-                      ),
-                      Expanded(child: Divider(color: muted.withValues(alpha: 0.2))),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Coming soon')),
-                        );
-                      },
-                      icon: Text(
-                        'G',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.interactive(isDark),
-                        ),
-                      ),
-                      label: Text(
-                        'Continue with Google',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: AppTheme.heading(isDark),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.section),
-                  Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Already have an account? ',
-                          style:
-                              theme.textTheme.bodyMedium?.copyWith(color: muted),
-                        ),
-                        TextButton(
-                          onPressed: () => context.go(AppRoutes.signIn),
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(
-                            'Sign in',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.interactive(isDark),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxxl),
-                ],
+      body: ScreenBackdrop(
+        colors: const [
+          Color(0xFFFFFFFF),
+          Color(0xFFFBFAFD),
+          Color(0xFFF4F1F8),
+        ],
+        stops: const [0, 0.62, 1],
+        decoration: const [
+          PawWatermark(
+            top: 96,
+            right: -10,
+            size: 66,
+            color: AppTheme.startLight,
+            opacity: 0.1,
+            rotationDegrees: 16,
+          ),
+          Positioned(
+            bottom: 6,
+            right: -6,
+            child: IgnorePointer(
+              child: DesignImage(
+                AppAssets.signUp,
+                width: 186,
+                shadow: true,
+                semanticLabel: 'Puppy resting with a ball',
               ),
             ),
           ),
+        ],
+        child: Stack(
+          children: [
+            SafeArea(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(26, 20, 26, 34),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: CircleIconButton(
+                          icon: Icons.arrow_back_ios_new_rounded,
+                          size: 44,
+                          floating: true,
+                          semanticLabel: 'Back',
+                          onPressed: () => context.go(AppRoutes.onboarding),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Create Account',
+                        style: AppTheme.h1.copyWith(fontSize: 28),
+                      ),
+                      const SizedBox(height: 8),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 274),
+                        child: Text(
+                          'Join MyPetFit and give your pet the best care possible.',
+                          style: AppTheme.bodyText.copyWith(height: 1.5),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppField(
+                              hint: 'First name',
+                              icon: AppIcon(AppIcons.person(), size: 18),
+                              controller: _first,
+                              height: AppTheme.fieldHeightCompact,
+                              textInputAction: TextInputAction.next,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: AppField(
+                              hint: 'Last name',
+                              controller: _last,
+                              height: AppTheme.fieldHeightCompact,
+                              textInputAction: TextInputAction.next,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      AppField(
+                        hint: 'Username',
+                        icon: AppIcon(AppIcons.username(), size: 19),
+                        controller: _username,
+                        height: AppTheme.fieldHeightCompact,
+                        textInputAction: TextInputAction.next,
+                      ),
+                      const SizedBox(height: 12),
+                      AppField(
+                        hint: 'Email address',
+                        icon: AppIcon(AppIcons.mail(), size: 20),
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        height: AppTheme.fieldHeightCompact,
+                        textInputAction: TextInputAction.next,
+                      ),
+                      const SizedBox(height: 12),
+                      AppField(
+                        hint: 'Password',
+                        icon: AppIcon(AppIcons.lock(), size: 19),
+                        controller: _password,
+                        obscure: _obscure,
+                        height: AppTheme.fieldHeightCompact,
+                        onChanged: (_) => setState(() {}),
+                        trailing: GestureDetector(
+                          onTap: () => setState(() => _obscure = !_obscure),
+                          child: AppIcon(
+                            _obscure ? AppIcons.eyeOff() : AppIcons.eye(),
+                            size: 19,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      PasswordStrength.of(_password.text),
+                      const SizedBox(height: 20),
+                      AppButton(
+                        label: 'Sign Up',
+                        variant: AppButtonVariant.start,
+                        onPressed: _signUp,
+                      ),
+                      const SizedBox(height: 18),
+                      const OrDivider(),
+                      const SizedBox(height: 14),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: SocialRow(height: 52, maxWidth: 210),
+                      ),
+                      const SizedBox(height: 18),
+                      // The puppy sits bottom-right, so this copy is kept
+                      // narrow and left-aligned to clear it.
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 198),
+                        child: InlineLink(
+                          prefix: 'Already have an account?\n',
+                          action: 'Log in',
+                          align: TextAlign.left,
+                          onTap: () => context.go(AppRoutes.signIn),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,126 +1,109 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/routes.dart';
+import '../../config/assets.dart';
 import '../../config/theme.dart';
-import '../../widgets/blob_background.dart';
-import '../../widgets/primary_button.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/design_image.dart';
+import '../../widgets/design_video.dart';
+import '../../widgets/paw_mark.dart';
+import '../../widgets/screen_backdrop.dart';
+import '../../widgets/social_buttons.dart';
 
-class WelcomeScreen extends StatefulWidget {
+/// Screen 01 — Welcome.
+///
+/// The design plays a looping clip here. WebM plays on Android and web; iOS
+/// has no WebM decoder, so it shows the `running.png` still until the
+/// `.mov` encode is supplied.
+class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
-  State<WelcomeScreen> createState() => _WelcomeScreenState();
-}
-
-class _WelcomeScreenState extends State<WelcomeScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _fade;
-  late final Animation<Offset> _slide;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 750),
-    );
-    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.12),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Scaffold(
-      body: BlobBackground(
-        variant: BlobVariant.scattered,
+      body: ScreenBackdrop(
+        colors: const [Color(0xFFFFFFFF), Color(0xFFFAF9FC), Color(0xFFEFECF5)],
+        stops: const [0, 0.48, 1],
+        decoration: const [
+          PawWatermark(
+            top: 78,
+            left: -14,
+            size: 86,
+            color: AppTheme.action,
+            opacity: 0.07,
+            rotationDegrees: -18,
+          ),
+          PawWatermark(
+            top: 150,
+            right: 14,
+            size: 54,
+            color: AppTheme.startLight,
+            opacity: 0.08,
+            rotationDegrees: 14,
+          ),
+        ],
         child: SafeArea(
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppSpacing.xxl + 4),
-            child: Column(
-              children: [
-                const Spacer(flex: 3),
-                FadeTransition(
-                  opacity: _fade,
-                  child: SlideTransition(
-                    position: _slide,
-                    child: Column(
-                      children: [
-                        Image.asset(
-                          'assets/images/logo/mypetfit_logo.png',
-                          width: 176,
-                          height: 176,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, _, _) => const SizedBox(
-                            width: 176,
-                            height: 176,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xxl + 4),
-                        Text(
-                          'Your pet, better\nunderstood.',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.displaySmall?.copyWith(
-                            color: AppTheme.heading(isDark),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.md),
-                          child: Text(
-                            'A gentle daily read on your best friend’s health — assessments, insights, and everything they need in one place.',
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.mutedText(isDark),
-                              height: 1.55,
-                            ),
-                          ),
-                        ),
-                      ],
+          child: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(28, 20, 28, 0),
+                child: DesignImage(
+                  AppAssets.logo,
+                  width: 200,
+                  semanticLabel:
+                      'MyPetFit — Intelligent Care for Lifelong Pet Health',
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: DesignVideo(
+                        source: AppAssets.welcomeVideo,
+                        appleSource: AppAssets.welcomeVideoApple,
+                        poster: AppAssets.welcomePoster,
+                        width: 306,
+                        semanticLabel: 'A puppy running',
+                      ),
                     ),
                   ),
                 ),
-                const Spacer(flex: 4),
-                FadeTransition(
-                  opacity: _fade,
-                  child: Column(
-                    children: [
-                      PrimaryButton(
-                        label: 'Get Started',
-                        onPressed: () => context.go(AppRoutes.onboarding),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      TextButton(
-                        onPressed: () => context.go(AppRoutes.signIn),
-                        child: Text(
-                          'I already have an account',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.interactive(isDark),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(28, 0, 28, 40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Welcome!',
+                      textAlign: TextAlign.center,
+                      style: AppTheme.h1Welcome,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      "Let's keep your pet healthy, happy\nand full of energy.",
+                      textAlign: TextAlign.center,
+                      style: AppTheme.bodyText,
+                    ),
+                    const SizedBox(height: 26),
+                    AppButton(
+                      label: 'Get Started',
+                      variant: AppButtonVariant.start,
+                      onPressed: () => context.go(AppRoutes.onboarding),
+                    ),
+                    const SizedBox(height: 20),
+                    InlineLink(
+                      prefix: 'Already have an account?',
+                      action: 'Log in',
+                      onTap: () => context.go(AppRoutes.signIn),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: AppSpacing.md),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

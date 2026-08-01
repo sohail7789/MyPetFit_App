@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../config/routes.dart';
+import '../../config/assets.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/floating_paws_background.dart';
-import '../../widgets/mypetfit_logo.dart';
-import '../../widgets/primary_button.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/app_field.dart';
+import '../../widgets/app_icons.dart';
+import '../../widgets/design_image.dart';
+import '../../widgets/paw_mark.dart';
+import '../../widgets/screen_backdrop.dart';
+import '../../widgets/social_buttons.dart';
 
+/// Screen 05 — Sign in.
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
 
@@ -17,197 +22,242 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-  final _formKey = GlobalKey<FormState>();
-  bool _obscurePassword = true;
-  bool _submitting = false;
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  bool _remember = true;
+  bool _obscure = true;
 
   @override
   void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
+    _email.dispose();
+    _password.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _submitting = true);
+  Future<void> _signIn() async {
     await context.read<AuthProvider>().signIn(
-          _usernameController.text,
-          _passwordController.text,
+          _email.text.trim(),
+          _password.text,
         );
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    context.go(AppRoutes.consent);
+    if (mounted) context.go(AppRoutes.home);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final muted = AppTheme.mutedText(isDark);
-
     return Scaffold(
-      body: FloatingPawsBackground(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-            child: Form(
-              key: _formKey,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: AppSpacing.xxxl),
-                  // The logo PNG is a full lockup (mark + wordmark +
-                  // tagline); at 56px it collapsed into an illegible smudge.
-                  // The text wordmark stays crisp and is theme-aware.
-                  const MyPetFitLogo.compact(fontSize: 22),
-                  const SizedBox(height: AppSpacing.xxxl),
-                  Text(
-                    'Welcome back.',
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      color: AppTheme.heading(isDark),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    'Sign in to continue where you left off.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: muted),
-                  ),
-                  const SizedBox(height: AppSpacing.xxxl),
-                  TextFormField(
-                    controller: _usernameController,
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      hintText: 'Username',
-                      prefixIcon: Icon(Icons.person_outline_rounded),
-                    ),
-                    validator: AuthValidators.username,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _submit(),
-                    decoration: InputDecoration(
-                      hintText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline_rounded),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off_rounded
-                              : Icons.visibility_rounded,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                    ),
-                    validator: AuthValidators.password,
-                  ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => context.push(AppRoutes.forgotPassword),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'Forgot password?',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.interactive(isDark),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  PrimaryButton(
-                    label: 'Sign in',
-                    onPressed: _submitting ? null : _submit,
-                    isLoading: _submitting,
-                  ),
-                  const SizedBox(height: AppSpacing.section),
-                  Row(
+      backgroundColor: AppTheme.surface,
+      body: Stack(
+        children: [
+          const HeroPanel(
+            height: 340,
+            colors: [Color(0xFFE5E1F1), Color(0xFFF2EFF8), Color(0xFFFFFFFF)],
+          ),
+          const PawWatermark(
+            top: 96,
+            left: 22,
+            size: 62,
+            color: AppTheme.action,
+            opacity: 0.12,
+            rotationDegrees: -14,
+          ),
+          const PawWatermark(
+            top: 206,
+            left: -6,
+            size: 44,
+            color: AppTheme.action,
+            opacity: 0.1,
+            rotationDegrees: 18,
+          ),
+          Positioned(
+            top: 60,
+            right: 96,
+            child: AppIcon(AppIcons.heart(AppTheme.action, 0.16), size: 26),
+          ),
+          SafeArea(
+            child: Stack(
+              children: [
+                SingleChildScrollView(
+                  child: Column(
                     children: [
-                      Expanded(child: Divider(color: muted.withValues(alpha: 0.2))),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                        child: Text(
-                          'or',
-                          style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                      SizedBox(
+                        height: 246,
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: DesignImage(
+                            AppAssets.signIn,
+                            width: 300,
+                            shadow: true,
+                            semanticLabel: 'Waving golden puppy',
+                          ),
                         ),
                       ),
-                      Expanded(child: Divider(color: muted.withValues(alpha: 0.2))),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(26, 14, 26, 34),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Welcome Back! 👋',
+                              textAlign: TextAlign.center,
+                              style: AppTheme.h1,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Login to continue your pet's health journey",
+                              textAlign: TextAlign.center,
+                              style: AppTheme.bodyText.copyWith(height: 1.5),
+                            ),
+                            const SizedBox(height: 24),
+                            AppField(
+                              hint: 'Email address',
+                              icon: AppIcon(AppIcons.mail(), size: 20),
+                              controller: _email,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                            ),
+                            const SizedBox(height: 12),
+                            AppField(
+                              hint: 'Password',
+                              icon: AppIcon(AppIcons.lock(), size: 19),
+                              controller: _password,
+                              obscure: _obscure,
+                              textInputAction: TextInputAction.done,
+                              trailing: GestureDetector(
+                                onTap: () =>
+                                    setState(() => _obscure = !_obscure),
+                                child: AppIcon(
+                                  _obscure
+                                      ? AppIcons.eyeOff()
+                                      : AppIcons.eye(),
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(2, 16, 2, 22),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _RememberMe(
+                                    value: _remember,
+                                    onChanged: (v) =>
+                                        setState(() => _remember = v),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () =>
+                                        context.push(AppRoutes.forgotPassword),
+                                    child: Text(
+                                      'Forgot password?',
+                                      style: AppTheme.font(
+                                        size: 14,
+                                        weight: FontWeight.w600,
+                                        color: AppTheme.action,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            AppButton(label: 'Log In', onPressed: _signIn),
+                            const SizedBox(height: 22),
+                            const OrDivider(),
+                            const SizedBox(height: 16),
+                            const SocialRow(),
+                            const SizedBox(height: 20),
+                            InlineLink(
+                              prefix: "Don't have an account?",
+                              action: 'Sign up',
+                              onTap: () => context.go(AppRoutes.signUp),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Coming soon')),
-                        );
-                      },
-                      icon: Text(
-                        'G',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.interactive(isDark),
-                        ),
-                      ),
-                      label: Text(
-                        'Continue with Google',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: AppTheme.heading(isDark),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.section),
-                  Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Don't have an account? ",
-                          style:
-                              theme.textTheme.bodyMedium?.copyWith(color: muted),
-                        ),
-                        TextButton(
-                          onPressed: () => context.go(AppRoutes.signUp),
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(
-                            'Sign up',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.interactive(isDark),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxxl),
-                ],
-              ),
+                ),
+                const Positioned(top: 8, right: 24, child: _LanguageChip()),
+              ],
             ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Checkbox + label. The design shows it checked by default.
+class _RememberMe extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _RememberMe({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onChanged(!value),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: value ? AppTheme.action : AppTheme.surface,
+              borderRadius: BorderRadius.circular(6),
+              border: value ? null : Border.all(color: AppTheme.dotInactive),
+            ),
+            alignment: Alignment.center,
+            child: value ? AppIcon(AppIcons.check(), size: 12) : null,
+          ),
+          const SizedBox(width: 9),
+          Text(
+            'Remember me',
+            style: AppTheme.font(
+              size: 14,
+              weight: FontWeight.w500,
+              color: AppTheme.bodyStrong,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Floating white "EN" language selector.
+class _LanguageChip extends StatelessWidget {
+  const _LanguageChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: AppTheme.floatShadow,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AppIcon(AppIcons.globe(), size: 15),
+          const SizedBox(width: 6),
+          Text(
+            'EN',
+            style: AppTheme.font(
+              size: 13,
+              weight: FontWeight.w700,
+              color: AppTheme.ink,
+            ),
+          ),
+          const SizedBox(width: 6),
+          AppIcon(AppIcons.chevronDown(), size: 11),
+        ],
       ),
     );
   }

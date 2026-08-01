@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/routes.dart';
+import '../../config/assets.dart';
 import '../../config/theme.dart';
-import '../../providers/auth_provider.dart';
-import '../../widgets/floating_paws_background.dart';
-import '../../widgets/primary_button.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/app_field.dart';
+import '../../widgets/app_icons.dart';
+import '../../widgets/paw_mark.dart';
+import 'widgets/auth_art_layout.dart';
 
+/// Screen 07 — Forgot password.
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -15,145 +18,67 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  bool _submitting = false;
+  final _email = TextEditingController();
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _email.dispose();
     super.dispose();
   }
 
-  void _dismiss() {
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go(AppRoutes.signIn);
-    }
-  }
-
-  Future<void> _submit() async {
-    // Previously this fired regardless of input — an empty or malformed
-    // address would still report "Reset link sent!".
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _submitting = true);
-    HapticFeedback.selectionClick();
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Reset link sent to ${_emailController.text.trim()}'),
-      ),
-    );
-    _dismiss();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Scaffold(
-      body: FloatingPawsBackground(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-            physics: const BouncingScrollPhysics(),
-            child: Form(
-              key: _formKey,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: AppSpacing.lg),
-                  // Back control — matches the circular surface button used
-                  // on the dashboard rather than a solid navy disc that
-                  // fought with the page.
-                  _BackButton(isDark: isDark, onTap: _dismiss),
-                  const SizedBox(height: AppSpacing.xxxl),
-                  Text(
-                    'Forgot password?',
-                    style: theme.textTheme.displaySmall?.copyWith(
-                      color: AppTheme.heading(isDark),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    'Enter your email and we\'ll send you a link to reset your password.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.mutedText(isDark),
-                      height: 1.55,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxxl),
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _submit(),
-                    decoration: const InputDecoration(
-                      hintText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                    validator: AuthValidators.email,
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-                  PrimaryButton(
-                    label: 'Send reset link',
-                    isLoading: _submitting,
-                    onPressed: _submitting ? null : _submit,
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Center(
-                    child: TextButton(
-                      onPressed: _dismiss,
-                      child: Text(
-                        'Back to sign in',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.interactive(isDark),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+    return AuthArtLayout(
+      gradient: const [
+        Color(0xFFFFFFFF),
+        Color(0xFFFBFAFD),
+        Color(0xFFF2EFF7),
+      ],
+      decoration: const [
+        PawWatermark(
+          bottom: 96,
+          left: -10,
+          size: 76,
+          color: AppTheme.action,
+          opacity: 0.07,
+          rotationDegrees: -22,
         ),
-      ),
-    );
-  }
-}
-
-class _BackButton extends StatelessWidget {
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _BackButton({required this.isDark, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppTheme.surface(isDark),
-      shape: CircleBorder(
-        side: BorderSide(color: AppTheme.hairline(isDark), width: 0.5),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: Icon(
-            Icons.arrow_back_rounded,
-            size: 20,
-            color: AppTheme.heading(isDark),
-          ),
+        PawWatermark(
+          bottom: 180,
+          right: 16,
+          size: 50,
+          color: AppTheme.action,
+          opacity: 0.07,
+          rotationDegrees: 16,
         ),
+      ],
+      title: 'Forgot Password?',
+      subtitle: Text(
+        "No worries! Enter your email address and we'll send you a link to reset it.",
+        textAlign: TextAlign.center,
+        style: AppTheme.bodyText,
       ),
+      art: AppAssets.forgotPassword,
+      artWidth: 334,
+      artLabel: 'Puppy holding an envelope',
+      onBack: () => context.pop(),
+      children: [
+        AppField(
+          hint: 'Email address',
+          icon: AppIcon(AppIcons.mail(), size: 20),
+          controller: _email,
+          keyboardType: TextInputType.emailAddress,
+          height: 58,
+        ),
+        const SizedBox(height: 18),
+        AppButton(
+          label: 'Send Reset Link',
+          icon: AppIcon(AppIcons.send(), size: 19),
+          onPressed: () => context.push(AppRoutes.verifyCode),
+        ),
+        const SizedBox(height: 22),
+        BackToLogin(onTap: () => context.go(AppRoutes.signIn)),
+      ],
     );
   }
 }
