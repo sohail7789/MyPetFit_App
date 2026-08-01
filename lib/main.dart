@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
+import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/dashboard_provider.dart';
@@ -10,18 +11,20 @@ import 'providers/onboarding_provider.dart';
 import 'providers/pet_info_provider.dart';
 import 'providers/quiz_provider.dart';
 
-/// Brings up Firebase where it is configured.
+/// Brings up Firebase using the generated per-platform options, so Android,
+/// iOS and web all initialise from the same source of truth.
 ///
-/// Android reads `android/app/google-services.json` automatically. iOS and web
-/// need their own config, which arrives as a generated `firebase_options.dart`
-/// once `flutterfire configure` has been run — until then this is a no-op on
-/// those platforms rather than a crash, so the app still runs.
+/// Failure is caught rather than fatal: a misconfigured or missing Firebase
+/// project should not stop the app from launching, since nothing in the UI
+/// depends on it yet.
 Future<void> _initFirebase() async {
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } catch (error, stack) {
     if (kDebugMode) {
-      debugPrint('Firebase not initialised on this platform: $error');
+      debugPrint('Firebase failed to initialise: $error');
       debugPrintStack(stackTrace: stack);
     }
   }
