@@ -12,7 +12,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   provider: ^6.1.2
   go_router: ^17.2.2
-  google_fonts: ^8.0.2
   smooth_page_indicator: ^2.0.1
   shared_preferences: ^2.3.5
   lottie: ^3.1.2
@@ -29,6 +28,15 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  fonts:
+    # Inter is bundled rather than fetched at runtime: google_fonts with
+    # runtime fetching disabled threw on every text style because the font
+    # was never in the bundle, so the app silently fell back to the system
+    # face. This is the variable build, so one file covers every weight.
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter.ttf
   assets:
     # Artwork exported from the approved design system (see assets/README.md).
     - assets/v3/

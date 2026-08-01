@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Design tokens for the MyPetFit redesign.
 ///
@@ -162,6 +161,9 @@ class AppTheme {
     'Segoe UI Emoji',
   ];
 
+  /// The bundled family name, matching pubspec.yaml.
+  static const String fontFamily = 'Inter';
+
   static TextStyle font({
     double? size,
     FontWeight? weight,
@@ -169,13 +171,15 @@ class AppTheme {
     double? letterSpacing,
     double? height,
   }) =>
-      GoogleFonts.inter(
+      TextStyle(
+        fontFamily: fontFamily,
+        fontFamilyFallback: _emojiFallback,
         fontSize: size,
         fontWeight: weight,
         color: color,
         letterSpacing: letterSpacing,
         height: height,
-      ).copyWith(fontFamilyFallback: _emojiFallback);
+      );
 
   /// 30/800/-1.1 — onboarding and auth page titles.
   static TextStyle get h1 =>
@@ -239,7 +243,9 @@ class AppTheme {
         onSecondary: Colors.white,
         onSurface: ink,
       ),
-      textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
+      textTheme: base.textTheme.apply(
+        fontFamily: fontFamily,
+        fontFamilyFallback: _emojiFallback,
         bodyColor: ink,
         displayColor: ink,
       ),

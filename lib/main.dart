@@ -1,7 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
 import 'providers/auth_provider.dart';
@@ -31,10 +30,6 @@ Future<void> _initFirebase() async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _initFirebase();
-
-  // Prevent Google Fonts from making network requests at runtime.
-  // Fonts are served from the package cache (already bundled by pub get).
-  GoogleFonts.config.allowRuntimeFetching = false;
 
   // IMPORTANT: Do NOT await SharedPreferences before runApp().
   //
