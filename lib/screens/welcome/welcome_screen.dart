@@ -5,7 +5,6 @@ import '../../config/assets.dart';
 import '../../config/theme.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/design_image.dart';
-import '../../widgets/design_video.dart';
 import '../../widgets/paw_mark.dart';
 import '../../widgets/screen_backdrop.dart';
 import '../../widgets/social_buttons.dart';
@@ -61,11 +60,15 @@ class WelcomeScreen extends StatelessWidget {
                     alignment: Alignment.bottomCenter,
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 20),
-                      child: DesignVideo(
-                        source: AppAssets.welcomeVideo,
-                        appleSource: AppAssets.welcomeVideoApple,
-                        poster: AppAssets.welcomePoster,
+                      // Held on the still until an opaque re-export lands:
+                      // video_player renders Android video onto an opaque
+                      // surface, so the clip's alpha composites to black.
+                      // Same 306 width as the clip, so nothing shifts when
+                      // it is swapped back.
+                      child: DesignImage(
+                        AppAssets.welcomePoster,
                         width: 306,
+                        shadow: true,
                         semanticLabel: 'A puppy running',
                       ),
                     ),

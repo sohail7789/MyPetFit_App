@@ -382,7 +382,7 @@ class _ResumeCard extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          DesignImage(AppAssets.categoryFace(3), width: 42, height: 42),
+          DesignImage(AppAssets.categoryFace(3), width: 54, height: 54),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -448,7 +448,7 @@ class _QuickAction extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DesignImage(art, width: 44, height: 44),
+          DesignImage(art, width: 60, height: 60),
           const SizedBox(height: 8),
           Text(
             title,
@@ -495,7 +495,7 @@ class _FocusCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const DesignImage(AppAssets.emoTilt, width: 34, height: 34),
+              const DesignImage(AppAssets.emoTilt, width: 40, height: 40),
               const SizedBox(width: 10),
               Text(
                 "This week's focus",
