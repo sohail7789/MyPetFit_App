@@ -22,7 +22,7 @@ class AppAssets {
   /// Not yet supplied — the Welcome lockup falls back to a placeholder.
   static const String logo = 'assets/v3/logo.png';
 
-  static const String welcomeVideo = 'assets/v3/welcome-screen.webm';
+  static const String welcomeVideo = 'assets/v3/welcome-screen-transparent.webm';
   static const String welcomePoster = 'assets/v3/running.png';
 
   /// Apple-compatible encodes (HEVC-with-alpha .mov, or .mp4 where
