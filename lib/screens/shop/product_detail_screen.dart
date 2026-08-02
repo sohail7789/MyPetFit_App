@@ -35,7 +35,7 @@ class ProductDetailScreen extends StatelessWidget {
 
     final cart = context.watch<CartProvider>();
     final palette = ProductPalette.of(product.category);
-    final inCart = cart.items.any((c) => c.product.id == product.id);
+    final quantity = cart.quantityOf(product.id);
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
@@ -98,22 +98,35 @@ class ProductDetailScreen extends StatelessWidget {
               border: Border(top: BorderSide(color: AppTheme.borderSoft)),
             ),
             padding: const EdgeInsets.fromLTRB(22, 12, 22, 26),
-            child: inCart
+            // Once it's in the cart the bar becomes a stepper plus a way
+            // through to the cart, so the quantity can be corrected here
+            // rather than only on the cart screen.
+            child: quantity == 0
                 ? AppButton(
-                    label: 'In cart · View cart',
-                    variant: AppButtonVariant.tinted,
-                    icon: const Icon(
-                      Icons.check_rounded,
-                      size: 18,
-                      color: AppTheme.action,
-                    ),
-                    height: AppTheme.ctaHeightCompact,
-                    onPressed: () => context.push(AppRoutes.cart),
-                  )
-                : AppButton(
                     label: 'Add to cart · ${formatPrice(product.price)}',
                     height: AppTheme.ctaHeightCompact,
-                    onPressed: () => cart.addProduct(product),
+                    onPressed: () => cart.setQuantity(product, 1),
+                  )
+                : Row(
+                    children: [
+                      SizedBox(
+                        width: 132,
+                        child: QuantityControl(
+                          quantity: quantity,
+                          barHeight: AppTheme.ctaHeightCompact,
+                          onChanged: (q) => cart.setQuantity(product, q),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: AppButton(
+                          label: 'View cart',
+                          variant: AppButtonVariant.tinted,
+                          height: AppTheme.ctaHeightCompact,
+                          onPressed: () => context.push(AppRoutes.cart),
+                        ),
+                      ),
+                    ],
                   ),
           ),
         ],

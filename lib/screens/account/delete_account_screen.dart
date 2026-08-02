@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
+import '../../providers/address_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/pet_info_provider.dart';
@@ -42,11 +43,13 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     final quiz = context.read<QuizProvider>();
     final cart = context.read<CartProvider>();
     final pets = context.read<PetInfoProvider>();
+    final address = context.read<AddressProvider>();
     final auth = context.read<AuthProvider>();
 
     await quiz.resetAll();
     await cart.reset();
     await pets.reset();
+    await address.reset();
     await auth.signOut();
     router.go(AppRoutes.accountDeleted);
   }

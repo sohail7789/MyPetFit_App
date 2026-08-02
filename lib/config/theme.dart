@@ -149,11 +149,11 @@ class AppTheme {
   // Typography
   // ---------------------------------------------------------------------
   //
-  // The design specifies SF Pro Display / SF Pro Text. Inter is the closest
-  // freely-licensed match and renders identically across iOS and Android,
-  // so every text style routes through [font].
+  // Manrope — the face mypetfit.in already uses, so the app matches the
+  // brand rather than approximating it. Bundled, so it renders identically
+  // on iOS and Android; every text style routes through [font].
 
-  /// Inter carries no emoji glyphs, so headings containing them (e.g. the
+  /// Manrope carries no emoji glyphs, so headings containing them (e.g. the
   /// 👋 on sign-in) fall through to the platform emoji font instead of tofu.
   static const List<String> _emojiFallback = [
     'Apple Color Emoji',
@@ -162,7 +162,7 @@ class AppTheme {
   ];
 
   /// The bundled family name, matching pubspec.yaml.
-  static const String fontFamily = 'Inter';
+  static const String fontFamily = 'Manrope';
 
   static TextStyle font({
     double? size,

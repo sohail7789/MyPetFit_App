@@ -35,6 +35,23 @@ class _MyPetFitAppState extends State<MyPetFitApp> {
       // The redesign is light-only; there is no dark variant in the design yet.
       theme: AppTheme.light,
       routerConfig: _router,
+      // Android's Display size and Font size settings both feed textScaler,
+      // and Samsung's One UI ships several steps above 1.0. Every layout here
+      // flexes, but past ~1.3 the dense screens (assessment options, product
+      // grid) stop being readable rather than merely tall — so honour the
+      // user's preference up to that point and hold there.
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(
+            textScaler: media.textScaler.clamp(
+              minScaleFactor: 1,
+              maxScaleFactor: 1.3,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
   }
 }

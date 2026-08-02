@@ -76,8 +76,10 @@ class _AppFieldState extends State<AppField> {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 140),
-      height: widget.height,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      // A floor, not a fixed height — see [LabeledField] for why. The row
+      // still centres at the design's 56px when the font scale is 1.0.
+      constraints: BoxConstraints(minHeight: widget.height),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: AppTheme.surface,
         borderRadius: BorderRadius.circular(AppTheme.radiusField),
@@ -115,6 +117,7 @@ class _AppFieldState extends State<AppField> {
                 size: 15,
                 weight: FontWeight.w500,
                 color: AppTheme.ink,
+                height: 1.3,
               ),
               decoration: InputDecoration(
                 isDense: true,
@@ -124,10 +127,14 @@ class _AppFieldState extends State<AppField> {
                 disabledBorder: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
                 hintText: widget.hint,
+                // Long placeholders ("+91 00000 00000") must ellipsize, not
+                // wrap and drag the field's height with them.
+                hintMaxLines: 1,
                 hintStyle: AppTheme.font(
                   size: 15,
                   weight: FontWeight.w500,
                   color: AppTheme.placeholder,
+                  height: 1.3,
                 ),
               ),
             ),

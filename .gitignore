@@ -50,3 +50,6 @@ android/**/*.keystore
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Regenerable review artefacts from tool/generate_previews.dart.
+tool/previews/

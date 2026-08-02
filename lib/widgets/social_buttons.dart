@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import 'app_icons.dart';
@@ -62,7 +63,8 @@ class SocialButton extends StatelessWidget {
     return GestureDetector(
       onTap: onPressed,
       child: Container(
-        height: height,
+        constraints: BoxConstraints(minHeight: height),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           color: AppTheme.surface,
           borderRadius: BorderRadius.circular(AppTheme.radiusField),
@@ -73,12 +75,16 @@ class SocialButton extends StatelessWidget {
           children: [
             AppIcon(svg, size: iconSize),
             const SizedBox(width: 9),
-            Text(
-              label,
-              style: AppTheme.font(
-                size: 15,
-                weight: FontWeight.w600,
-                color: const Color(0xFF33345E),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.font(
+                  size: 15,
+                  weight: FontWeight.w600,
+                  color: const Color(0xFF33345E),
+                ),
               ),
             ),
           ],
@@ -126,7 +132,14 @@ class SocialRow extends StatelessWidget {
 }
 
 /// "Already have an account? Log in" — caption plus an inline action.
-class InlineLink extends StatelessWidget {
+///
+/// The action is a real [TextSpan] rather than a [WidgetSpan] wrapping a
+/// [Text]. A WidgetSpan is laid out as an opaque box the text engine cannot
+/// see inside, so the link sat off the caption's baseline and never wrapped
+/// with it — which is what made these read as pasted-on rather than as part
+/// of the sentence. It also gave the link a tap target only as tall as the
+/// glyphs; the recognizer below covers the whole run.
+class InlineLink extends StatefulWidget {
   final String prefix;
   final String action;
   final VoidCallback onTap;
@@ -141,30 +154,48 @@ class InlineLink extends StatelessWidget {
   });
 
   @override
+  State<InlineLink> createState() => _InlineLinkState();
+}
+
+class _InlineLinkState extends State<InlineLink> {
+  late final TapGestureRecognizer _recognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _recognizer = TapGestureRecognizer()..onTap = () => widget.onTap();
+  }
+
+  @override
+  void dispose() {
+    _recognizer.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(
-        text: prefix.isEmpty ? null : '$prefix ',
-        style: AppTheme.font(size: 14, color: AppTheme.body),
-        children: [
-          WidgetSpan(
-            alignment: PlaceholderAlignment.baseline,
-            baseline: TextBaseline.alphabetic,
-            child: GestureDetector(
-              onTap: onTap,
-              child: Text(
-                action,
-                style: AppTheme.font(
-                  size: 14,
-                  weight: FontWeight.w700,
-                  color: AppTheme.action,
-                ),
+    return Semantics(
+      link: true,
+      label: '${widget.prefix} ${widget.action}'.trim(),
+      child: Text.rich(
+        TextSpan(
+          text: widget.prefix.isEmpty ? null : '${widget.prefix} ',
+          style: AppTheme.font(size: 14, color: AppTheme.body, height: 1.4),
+          children: [
+            TextSpan(
+              text: widget.action,
+              recognizer: _recognizer,
+              style: AppTheme.font(
+                size: 14,
+                weight: FontWeight.w700,
+                color: AppTheme.action,
+                height: 1.4,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+        textAlign: widget.align,
       ),
-      textAlign: align,
     );
   }
 }

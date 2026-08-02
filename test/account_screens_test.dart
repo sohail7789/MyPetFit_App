@@ -5,8 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mypetfit_app/config/theme.dart';
 import 'package:mypetfit_app/data/legal_content.dart';
 import 'package:mypetfit_app/data/questions_data.dart';
+import 'package:mypetfit_app/providers/address_provider.dart';
 import 'package:mypetfit_app/providers/auth_provider.dart';
 import 'package:mypetfit_app/providers/cart_provider.dart';
+import 'package:mypetfit_app/providers/locale_provider.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';
 import 'package:mypetfit_app/providers/quiz_provider.dart';
 import 'package:mypetfit_app/screens/account/account_screen.dart';
@@ -15,7 +17,6 @@ import 'package:mypetfit_app/screens/account/legal_screen.dart';
 import 'package:mypetfit_app/screens/account/report_history_screen.dart';
 import 'package:mypetfit_app/screens/home/home_dashboard_screen.dart';
 import 'package:mypetfit_app/screens/report/report_card_screen.dart';
-import 'package:mypetfit_app/widgets/design_video.dart';
 import 'package:mypetfit_app/widgets/app_button.dart';
 import 'support/network_image_stub.dart';
 
@@ -25,6 +26,8 @@ Widget _host(Widget child, {QuizProvider? quiz}) => MultiProvider(
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => PetInfoProvider()),
+        ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => AddressProvider()),
       ],
       child: MaterialApp(theme: AppTheme.light, home: child),
     );
@@ -166,15 +169,16 @@ void main() {
   });
 
   group('23 Report card hero', () {
-    testWidgets('celebrates with the clip on a positive band',
-        (tester) async {
+    testWidgets('celebrates on a positive band', (tester) async {
       await tester.pumpWidget(
         _host(const ReportCardScreen(), quiz: _scored()),
       );
       await tester.pump();
 
-      // Excellent band -> motion, not the concerned-puppy still.
-      expect(find.byType(DesignVideo), findsOneWidget);
+      // Excellent band -> the celebrating puppy, not the concerned one.
+      // Both are stills: Android composites video onto an opaque surface,
+      // so the transparent WebM rendered as a black box on device.
+      expect(find.bySemanticsLabel('Celebrating puppy'), findsOneWidget);
       expect(find.bySemanticsLabel('Concerned puppy'), findsNothing);
     });
 
@@ -193,7 +197,7 @@ void main() {
       await tester.pumpWidget(_host(const ReportCardScreen(), quiz: quiz));
       await tester.pump();
 
-      expect(find.byType(DesignVideo), findsNothing);
+      expect(find.bySemanticsLabel('Celebrating puppy'), findsNothing);
       expect(find.bySemanticsLabel('Concerned puppy'), findsOneWidget);
     });
   });

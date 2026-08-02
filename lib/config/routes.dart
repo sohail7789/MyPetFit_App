@@ -7,9 +7,11 @@ import '../screens/auth/reset_password_screen.dart';
 import '../screens/auth/sign_in_screen.dart';
 import '../screens/auth/sign_up_screen.dart';
 import '../screens/account/account_screen.dart';
+import '../screens/account/address_screen.dart';
 import '../screens/account/delete_account_screen.dart';
 import '../screens/account/legal_screen.dart';
 import '../screens/account/my_pets_screen.dart';
+import '../screens/account/pet_profile_screen.dart';
 import '../screens/account/preferences_screens.dart';
 import '../screens/account/report_history_screen.dart';
 import '../screens/auth/verify_code_screen.dart';
@@ -75,8 +77,21 @@ class AppRoutes {
   // Account stack -------------------------------------------------------
   static const inbox = '/account/inbox'; // 31b
   static const pets = '/account/pets'; // 33
-  static const editPet = '/account/pets/edit';
+
+  /// Add a pet from My pets — saves and lands on the new pet's profile,
+  /// rather than pushing straight into the assessment the way the
+  /// first-run [petInfo] step does.
+  static const addPet = '/account/pets/new';
+
+  /// A saved pet's profile — `$pets/:index`. Use [petProfile] to build one.
+  static String petProfile(int index) => '$pets/$index';
+
+  /// Edit form for a saved pet — `$pets/:index/edit`.
+  static String petEdit(int index) => '$pets/$index/edit';
   static const orders = '/account/orders';
+
+  /// Delivery address form — shared by checkout and account settings.
+  static const address = '/account/address';
   static const reminders = '/account/reminders';
   static const language = '/account/language';
   static const terms = '/terms'; // 34
@@ -230,13 +245,35 @@ class AppRoutes {
           path: pets,
           builder: (context, state) => const MyPetsScreen(),
         ),
+        // Declared before ':index' so "new" isn't swallowed as an index.
         GoRoute(
-          path: editPet,
-          builder: (context, state) => const MyPetsScreen(),
+          path: addPet,
+          builder: (context, state) =>
+              const PetInfoScreen(mode: PetFormMode.add),
+        ),
+        GoRoute(
+          path: '$pets/:index',
+          builder: (context, state) => PetProfileScreen(
+            petIndex: int.tryParse(state.pathParameters['index'] ?? '') ?? -1,
+          ),
+          routes: [
+            GoRoute(
+              path: 'edit',
+              builder: (context, state) => PetInfoScreen(
+                mode: PetFormMode.edit,
+                petIndex:
+                    int.tryParse(state.pathParameters['index'] ?? '') ?? -1,
+              ),
+            ),
+          ],
         ),
         GoRoute(
           path: orders,
           builder: (context, state) => const OrdersScreen(),
+        ),
+        GoRoute(
+          path: address,
+          builder: (context, state) => const AddressScreen(),
         ),
         GoRoute(
           path: reminders,

@@ -5,10 +5,12 @@ import '../../config/routes.dart';
 import '../../config/assets.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_field.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/design_image.dart';
+import '../../widgets/language_picker.dart';
 import '../../widgets/paw_mark.dart';
 import '../../widgets/screen_backdrop.dart';
 import '../../widgets/social_buttons.dart';
@@ -136,9 +138,16 @@ class _SignInScreenState extends State<SignInScreen> {
                             Padding(
                               padding:
                                   const EdgeInsets.fromLTRB(2, 16, 2, 22),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                              // Wrap, not Row: at larger font scales the two
+                              // labels no longer fit on one line, and a Row
+                              // overflows them into each other ("Remember
+                              // meForgot password?"). This spaces them apart
+                              // when they fit and stacks them when they don't.
+                              child: Wrap(
+                                alignment: WrapAlignment.spaceBetween,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 12,
+                                runSpacing: 12,
                                 children: [
                                   _RememberMe(
                                     value: _remember,
@@ -146,6 +155,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                         setState(() => _remember = v),
                                   ),
                                   GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
                                     onTap: () =>
                                         context.push(AppRoutes.forgotPassword),
                                     child: Text(
@@ -229,35 +239,46 @@ class _RememberMe extends StatelessWidget {
   }
 }
 
-/// Floating white "EN" language selector.
+/// Floating white language selector. Opens the same sheet as the Language
+/// row in account settings, so the two always show the same choice.
 class _LanguageChip extends StatelessWidget {
   const _LanguageChip();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.floatShadow,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppIcon(AppIcons.globe(), size: 15),
-          const SizedBox(width: 6),
-          Text(
-            'EN',
-            style: AppTheme.font(
-              size: 13,
-              weight: FontWeight.w700,
-              color: AppTheme.ink,
-            ),
+    final language = context.watch<LocaleProvider>().current;
+
+    return Semantics(
+      button: true,
+      label: 'Language: ${language.name}',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => showLanguagePicker(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: AppTheme.floatShadow,
           ),
-          const SizedBox(width: 6),
-          AppIcon(AppIcons.chevronDown(), size: 11),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppIcon(AppIcons.globe(), size: 15),
+              const SizedBox(width: 6),
+              Text(
+                language.glyph,
+                style: AppTheme.font(
+                  size: 13,
+                  weight: FontWeight.w700,
+                  color: AppTheme.ink,
+                ),
+              ),
+              const SizedBox(width: 6),
+              AppIcon(AppIcons.chevronDown(), size: 11),
+            ],
+          ),
+        ),
       ),
     );
   }

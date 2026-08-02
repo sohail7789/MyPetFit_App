@@ -24,6 +24,9 @@ dependencies:
   cloud_firestore: ^6.0.1
   firebase_storage: ^13.0.1
   google_sign_in: ^7.1.1
+  pdf: ^3.12.0
+  share_plus: ^13.3.0
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:
@@ -34,13 +37,19 @@ flutter:
   uses-material-design: true
 
   fonts:
-    # Inter is bundled rather than fetched at runtime: google_fonts with
+    # Manrope is the face mypetfit.in uses, so the app and the site read as
+    # one brand. Bundled rather than fetched at runtime: google_fonts with
     # runtime fetching disabled threw on every text style because the font
     # was never in the bundle, so the app silently fell back to the system
-    # face. This is the variable build, so one file covers every weight.
-    - family: Inter
+    # face. This is the variable build (200–800), so one file covers every
+    # weight the design calls for.
+    - family: Manrope
       fonts:
-        - asset: assets/fonts/Inter.ttf
+        - asset: assets/fonts/Manrope.ttf
   assets:
     # Artwork exported from the approved design system (see assets/README.md).
     - assets/v3/
+    # Static Manrope instances for the shared report PDF. The pdf package
+    # embeds a single weight per Font, so it cannot use the variable build the
+    # UI uses — these are wght=400 and wght=800 cut from the same file.
+    - assets/pdf/

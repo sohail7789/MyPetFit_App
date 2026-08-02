@@ -69,6 +69,24 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sets [product]'s quantity outright, adding it if it isn't in the cart
+  /// yet and removing it at zero. The quantity steppers drive this, so they
+  /// don't have to care whether the row already exists.
+  void setQuantity(Product product, int quantity) {
+    if (quantity <= 0) {
+      removeProduct(product.id);
+      return;
+    }
+    final idx = _items.indexWhere((item) => item.product.id == product.id);
+    if (idx >= 0) {
+      _items[idx] = _items[idx].copyWith(quantity: quantity);
+    } else {
+      _items.add(CartItem(product: product, quantity: quantity));
+    }
+    _persist();
+    notifyListeners();
+  }
+
   void updateQuantity(String productId, int quantity) {
     if (quantity <= 0) {
       removeProduct(productId);

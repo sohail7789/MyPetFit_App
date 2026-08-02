@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
+import '../../providers/address_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
 import '../../widgets/app_button.dart';
@@ -21,10 +23,14 @@ class AccountScreen extends StatelessWidget {
     final router = GoRouter.of(context);
     final quiz = context.read<QuizProvider>();
     final cart = context.read<CartProvider>();
+    final address = context.read<AddressProvider>();
     final auth = context.read<AuthProvider>();
 
     await quiz.resetAll();
     await cart.reset();
+    // The delivery address is per-user; leaving it behind would hand the
+    // next person to sign in on this device someone else's home address.
+    await address.reset();
     await auth.signOut();
     router.go(AppRoutes.signIn);
   }
@@ -74,13 +80,19 @@ class AccountScreen extends StatelessWidget {
                         onTap: () => context.push(AppRoutes.orders),
                       ),
                       SettingsTile(
+                        icon: Icons.location_on_outlined,
+                        label: 'Delivery address',
+                        onTap: () => context.push(AppRoutes.address),
+                      ),
+                      SettingsTile(
                         icon: Icons.notifications_none_rounded,
                         label: 'Reminders & notifications',
                         onTap: () => context.push(AppRoutes.reminders),
                       ),
                       SettingsTile(
                         icon: Icons.language_rounded,
-                        label: 'Language — English',
+                        label: 'Language — '
+                            '${context.watch<LocaleProvider>().current.name}',
                         onTap: () => context.push(AppRoutes.language),
                       ),
                     ],

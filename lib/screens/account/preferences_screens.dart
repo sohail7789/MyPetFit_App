@@ -5,9 +5,11 @@ import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/design_image.dart';
+import '../../widgets/language_picker.dart';
 import '../../widgets/settings_tile.dart';
 import 'account_screen.dart' show SectionLabelText;
 
@@ -110,50 +112,45 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
 // ─── Language ──────────────────────────────────────────────────────────────
 
-/// The design offers English and Hindi. Only the selection is stored — the
-/// app is not localised yet.
-class LanguageScreen extends StatefulWidget {
+/// Language preference. Backed by [LocaleProvider], the same source the
+/// sign-in chip reads, so the two can never show different selections.
+class LanguageScreen extends StatelessWidget {
   const LanguageScreen({super.key});
 
   @override
-  State<LanguageScreen> createState() => _LanguageScreenState();
-}
-
-class _LanguageScreenState extends State<LanguageScreen> {
-  String _selected = 'en';
-
-  static const _languages = [
-    (code: 'en', glyph: 'En', name: 'English', native: 'Default'),
-    (code: 'hi', glyph: 'हि', name: 'Hindi', native: 'हिन्दी'),
-  ];
-
-  @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
+
     return Scaffold(
       backgroundColor: AppTheme.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ScreenHeader(title: 'Language', onBack: () => context.backOr(AppRoutes.account)),
+            ScreenHeader(
+              title: 'Language',
+              onBack: () => context.backOr(AppRoutes.account),
+            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 18, 22, 24),
                 children: [
-                  for (final language in _languages) ...[
-                    _LanguageRow(
-                      glyph: language.glyph,
-                      name: language.name,
-                      native: language.native,
-                      selected: _selected == language.code,
-                      onTap: () => setState(() => _selected = language.code),
+                  for (final language in LocaleProvider.supported) ...[
+                    LanguageRow(
+                      language: language,
+                      selected: locale.code == language.code,
+                      onTap: language.available
+                          ? () => context
+                              .read<LocaleProvider>()
+                              .select(language.code)
+                          : null,
                     ),
                     const SizedBox(height: 12),
                   ],
                   const SizedBox(height: 4),
                   Text(
-                    'Translations are not shipped yet — the app currently '
-                    'displays in English regardless of this setting.',
+                    'Hindi and Marathi are being translated — including all 45 '
+                    'assessment questions — and will switch on here once ready.',
                     style: AppTheme.font(
                       size: 12.5,
                       color: AppTheme.muted,
@@ -162,105 +159,6 @@ class _LanguageScreenState extends State<LanguageScreen> {
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LanguageRow extends StatelessWidget {
-  final String glyph;
-  final String name;
-  final String native;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _LanguageRow({
-    required this.glyph,
-    required this.name,
-    required this.native,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: selected ? AppTheme.tintPanel : AppTheme.surface,
-          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-          border: Border.all(
-            color: selected ? AppTheme.action : AppTheme.border,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F1F9),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                glyph,
-                style: AppTheme.font(
-                  size: 15,
-                  weight: FontWeight.w800,
-                  color: AppTheme.action,
-                ),
-              ),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: AppTheme.font(
-                      size: 14.5,
-                      weight: FontWeight.w700,
-                      color: AppTheme.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    native,
-                    style: AppTheme.font(size: 12.5, color: AppTheme.body),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: selected ? AppTheme.action : AppTheme.surface,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected ? AppTheme.action : AppTheme.dotInactive,
-                  width: 1.5,
-                ),
-              ),
-              alignment: Alignment.center,
-              child: selected
-                  ? Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                    )
-                  : null,
             ),
           ],
         ),

@@ -28,6 +28,8 @@ void main() {
 
     expect(find.text('Welcome!'), findsOneWidget);
     expect(find.text('Get Started'), findsOneWidget);
-    expect(find.text('Log in'), findsOneWidget);
+    // The link is a TextSpan inside the caption's Text.rich rather than its
+    // own Text widget, so match on the run instead of an exact widget.
+    expect(find.textContaining('Log in'), findsOneWidget);
   });
 }

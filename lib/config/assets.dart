@@ -8,10 +8,13 @@
 /// Anything still missing resolves to a path with no file on disk;
 /// `DesignImage` renders its placeholder for those rather than throwing.
 ///
-/// Filenames deliberately contain no spaces. Flutter's image loader tolerates
-/// them, but video_player on Android resolves assets through ExoPlayer's
-/// AssetDataSource, which fails with FileNotFoundException on any path
-/// containing a space — so the videos silently fell back to their posters.
+/// There are no motion assets here any more. Android's video_player composites
+/// onto an opaque surface, so every transparent WebM in the original export
+/// rendered as a black box on device; the clips were dropped in favour of the
+/// stills they used to fall back to. When replacement encodes arrive, add them
+/// back here and swap the affected screens to `DesignVideo`, which is still in
+/// the tree for that purpose. Keep filenames free of spaces — ExoPlayer's
+/// AssetDataSource throws FileNotFoundException on any path containing one.
 ///
 /// These are `const` so screens can stay in const constructors.
 class AppAssets {
@@ -22,13 +25,7 @@ class AppAssets {
   /// Not yet supplied — the Welcome lockup falls back to a placeholder.
   static const String logo = 'assets/v3/logo.png';
 
-  static const String welcomeVideo = 'assets/v3/welcome-screen-transparent.webm';
   static const String welcomePoster = 'assets/v3/running.png';
-
-  /// Apple-compatible encodes (HEVC-with-alpha .mov, or .mp4 where
-  /// transparency isn't needed). iOS cannot decode WebM, so these are what
-  /// play there; until they exist the poster still is shown.
-  static const String welcomeVideoApple = 'assets/v3/welcome-screen.mov';
 
   static const String onboarding1 = 'assets/v3/onboard-1.png';
   static const String onboarding2 = 'assets/v3/onboard-2.png';
@@ -44,14 +41,10 @@ class AppAssets {
 
   static const String ownerDetails = 'assets/v3/owner-details.png';
 
-  /// Still frame behind the scoring interstitial, and its motion version.
+  /// Shown behind the scoring interstitial.
   static const String analyzing = 'assets/v3/analyzing.png';
-  static const String scoringVideo = 'assets/v3/scoring-your-answers.webm';
-  static const String scoringVideoApple = 'assets/v3/scoring-your-answers.mov';
 
-  /// Report card celebration — motion plus the still it falls back to.
-  static const String reportCardVideo = 'assets/v3/fitness-report-card.webm';
-  static const String reportCardVideoApple = 'assets/v3/fitness-report-card.mov';
+  /// Report card celebration.
   static const String greatJob = 'assets/v3/great-job.png';
 
   /// Shown for the Critical band on screen 23b.

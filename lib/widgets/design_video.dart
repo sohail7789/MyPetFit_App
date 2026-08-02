@@ -10,6 +10,14 @@ import 'design_image.dart';
 /// `.mov` or an H.264 `.mp4`) is used there when supplied. If no source plays —
 /// missing file, unsupported codec, decode error — the [poster] still is shown
 /// instead, which is also what the design specifies as the video's poster.
+///
+/// **Currently unused.** Every screen that played a clip was moved to its
+/// still, because Android's video_player composites onto an opaque surface and
+/// the transparent WebM exports rendered as black boxes on device. This widget
+/// is kept for when replacement encodes land — either with the background
+/// baked in, or HEVC-with-alpha for Apple. Restore by adding the paths back to
+/// [AppAssets] and swapping the `DesignImage` on Welcome, ScoringScreen and
+/// ReportCardScreen back to this.
 class DesignVideo extends StatefulWidget {
   /// WebM source, used on Android and web.
   final String source;

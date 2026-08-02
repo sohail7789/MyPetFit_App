@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
 import 'firebase_options.dart';
+import 'providers/address_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/dashboard_provider.dart';
+import 'providers/locale_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'providers/pet_info_provider.dart';
 import 'providers/quiz_provider.dart';
@@ -45,6 +47,8 @@ Future<void> main() async {
   final petInfoProvider = PetInfoProvider();
   final quizProvider = QuizProvider();
   final cartProvider = CartProvider();
+  final localeProvider = LocaleProvider();
+  final addressProvider = AddressProvider();
 
   runApp(
     MultiProvider(
@@ -54,6 +58,8 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: petInfoProvider),
         ChangeNotifierProvider.value(value: quizProvider),
         ChangeNotifierProvider.value(value: cartProvider),
+        ChangeNotifierProvider.value(value: localeProvider),
+        ChangeNotifierProvider.value(value: addressProvider),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
       ],
       child: const MyPetFitApp(),
@@ -68,5 +74,7 @@ Future<void> main() async {
     petInfoProvider.init();
     quizProvider.init();
     cartProvider.init();
+    localeProvider.init();
+    addressProvider.init();
   });
 }

@@ -15,10 +15,10 @@ List<String> _referencedPaths() {
 void main() {
   group('asset paths', () {
     test('contain no spaces', () {
-      // video_player on Android resolves assets through ExoPlayer's
-      // AssetDataSource, which throws FileNotFoundException on any path with
-      // a space. Images tolerate it, so the videos failed silently and fell
-      // back to their posters.
+      // Images tolerate spaces, but video_player on Android resolves assets
+      // through ExoPlayer's AssetDataSource, which throws
+      // FileNotFoundException on any path containing one — so a clip added
+      // back later would fail silently. Cheap to keep enforcing now.
       final offenders =
           _referencedPaths().where((p) => p.contains(' ')).toList();
 
@@ -35,29 +35,57 @@ void main() {
       expect(pubspec, contains('assets/v3/'));
     });
 
-    test('the bundled font is present and is a real font file', () {
-      final font = File('assets/fonts/Inter.ttf');
-      expect(font.existsSync(), isTrue, reason: 'Inter must be bundled — '
-          'without it every text style falls back to the system face.');
+    test('the bundled fonts are present and are real font files', () {
+      // The UI face, plus the two static instances the report PDF embeds —
+      // the pdf package takes one weight per Font and cannot read the
+      // variable build the app itself uses.
+      const fonts = [
+        'assets/fonts/Manrope.ttf',
+        'assets/pdf/Manrope-Regular.ttf',
+        'assets/pdf/Manrope-ExtraBold.ttf',
+      ];
 
-      // sfnt magic number, so a stray HTML error page cannot pass as a font.
-      final magic = font.readAsBytesSync().sublist(0, 4);
-      expect(magic, anyOf([
-        equals([0x00, 0x01, 0x00, 0x00]),
-        equals('true'.codeUnits),
-        equals('OTTO'.codeUnits),
-      ]));
+      for (final path in fonts) {
+        final font = File(path);
+        expect(font.existsSync(), isTrue,
+            reason: '$path must be bundled — without it every text style '
+                'falls back to the system face.');
+
+        // sfnt magic number, so a stray HTML error page (a 404 from a font
+        // CDN, say) cannot pass as a font.
+        final magic = font.readAsBytesSync().sublist(0, 4);
+        expect(magic, anyOf([
+          equals([0x00, 0x01, 0x00, 0x00]),
+          equals('true'.codeUnits),
+          equals('OTTO'.codeUnits),
+        ]), reason: '$path is not a font file.');
+      }
     });
 
-    test('every referenced image and webm exists on disk', () {
-      // The .mov encodes for Apple platforms are still outstanding; they are
-      // expected to be absent and fall back to their posters.
-      final missing = _referencedPaths()
-          .where((p) => !p.endsWith('.mov'))
-          .where((p) => !File(p).existsSync())
-          .toList();
+    test('every referenced asset exists on disk', () {
+      // No exemptions any more: the outstanding .mov encodes and the WebM
+      // clips they were meant to replace are all gone from AppAssets, so
+      // every path it names should resolve to a real file.
+      final missing =
+          _referencedPaths().where((p) => !File(p).existsSync()).toList();
 
       expect(missing, isEmpty, reason: 'Missing assets:\n${missing.join('\n')}');
+    });
+
+    test('bundles no video, which Android cannot composite transparently', () {
+      final clips = Directory('assets/v3')
+          .listSync()
+          .map((e) => e.path)
+          .where((p) => p.endsWith('.webm') || p.endsWith('.mov'))
+          .toList();
+
+      expect(
+        clips,
+        isEmpty,
+        reason: 'These ship in the APK but nothing plays them:\n'
+            '${clips.join('\n')}\n'
+            'See DesignVideo for how to reinstate motion properly.',
+      );
     });
   });
 }

@@ -108,7 +108,10 @@ class _AppButtonState extends State<AppButton> {
 
   @override
   Widget build(BuildContext context) {
-    final radius = widget.height / 2;
+    // A pill at every height. Using height/2 turned into a rounded rectangle
+    // once the button grew past its resting size at larger font scales;
+    // an oversized radius is clamped back to a stadium by RRect.
+    const radius = 999.0;
 
     final content = Row(
       mainAxisSize: widget.expand ? MainAxisSize.max : MainAxisSize.min,
@@ -121,10 +124,17 @@ class _AppButtonState extends State<AppButton> {
         Flexible(
           child: Text(
             widget.label,
+            textAlign: TextAlign.center,
+            // Two lines before ellipsizing: labels like "Place order ·
+            // ₹2,298" and "Start the assessment" stop fitting on one line at
+            // a large font scale, and a truncated price is worse than a
+            // taller button.
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: AppTheme.button.copyWith(
               color: _foreground,
               fontSize: widget.variant == AppButtonVariant.outline ? 15 : 17,
+              height: 1.2,
             ),
           ),
         ),
@@ -141,11 +151,14 @@ class _AppButtonState extends State<AppButton> {
         duration: const Duration(milliseconds: 90),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          height: widget.height,
+          // Minimum, not fixed — a two-line label at a large font scale has
+          // to be able to make the button taller rather than be cut off.
+          constraints: BoxConstraints(minHeight: widget.height),
           width: widget.expand ? double.infinity : null,
-          padding: widget.expand
-              ? null
-              : const EdgeInsets.symmetric(horizontal: 22),
+          padding: EdgeInsets.symmetric(
+            horizontal: widget.expand ? 16 : 22,
+            vertical: 10,
+          ),
           decoration: BoxDecoration(
             color: _background,
             borderRadius: BorderRadius.circular(radius),

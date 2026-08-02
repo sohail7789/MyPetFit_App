@@ -93,16 +93,21 @@ class ProductThumb extends StatelessWidget {
 /// One card in the two-column recommendations grid.
 class ProductTile extends StatelessWidget {
   final Product product;
-  final bool inCart;
+
+  /// How many of this product are in the cart. Zero renders the Add button.
+  final int quantity;
+
   final VoidCallback onOpen;
-  final VoidCallback onAdd;
+
+  /// Called with the requested new quantity. Zero removes the product.
+  final ValueChanged<int> onQuantityChanged;
 
   const ProductTile({
     super.key,
     required this.product,
-    required this.inCart,
+    required this.quantity,
     required this.onOpen,
-    required this.onAdd,
+    required this.onQuantityChanged,
   });
 
   @override
@@ -152,50 +157,75 @@ class ProductTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: onOpen,
-                    child: Text(
-                      product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTheme.font(
-                        size: 13.5,
-                        weight: FontWeight.w700,
-                        color: AppTheme.ink,
-                        height: 1.25,
+                  // Expanded rather than a trailing Spacer: this block both
+                  // absorbs slack and gives up height when the grid row is
+                  // tighter than the copy would like, so the price and
+                  // stepper below can never be pushed past the card's edge.
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: onOpen,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // The name is unconstrained so it always gets both
+                          // its lines in full. Only the secondary "why" copy
+                          // below is Flexible, so when the row is tight that
+                          // is what gives way — a half-cropped product name
+                          // is the one thing here a shopper can't work with.
+                          Text(
+                            product.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTheme.font(
+                              size: 13.5,
+                              weight: FontWeight.w700,
+                              color: AppTheme.ink,
+                              height: 1.25,
+                            ),
+                          ),
+                          // The design shows a "why" line here; hidden until
+                          // the catalog carries that copy.
+                          if (product.hasWhy) ...[
+                            const SizedBox(height: 6),
+                            Flexible(
+                              child: Text(
+                                product.whyPicked,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTheme.font(
+                                  size: 11.5,
+                                  color: AppTheme.body,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ),
-                  // The design shows a "why" line here; hidden until the
-                  // catalog carries that copy.
-                  if (product.hasWhy) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      product.whyPicked,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTheme.font(
-                        size: 11.5,
-                        color: AppTheme.body,
-                        height: 1.4,
-                      ),
+                  const SizedBox(height: 8),
+                  // Price above the control rather than beside it. Sharing a
+                  // row meant the price got whatever width the button left
+                  // over, and "₹799" broke across two lines as "₹79 / 9" the
+                  // moment the button widened. Stacking also gives the
+                  // stepper a full-width, thumb-sized target.
+                  Text(
+                    formatPrice(product.price),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.font(
+                      size: 15,
+                      weight: FontWeight.w800,
+                      color: AppTheme.ink,
+                      height: 1.25,
                     ),
-                  ],
-                  const Spacer(),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          formatPrice(product.price),
-                          style: AppTheme.font(
-                            size: 15,
-                            weight: FontWeight.w800,
-                            color: AppTheme.ink,
-                          ),
-                        ),
-                      ),
-                      _AddButton(inCart: inCart, onTap: onAdd),
-                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  QuantityControl(
+                    quantity: quantity,
+                    onChanged: onQuantityChanged,
                   ),
                 ],
               ),
@@ -234,41 +264,141 @@ class _Tag extends StatelessWidget {
   }
 }
 
-class _AddButton extends StatelessWidget {
-  final bool inCart;
-  final VoidCallback onTap;
+/// Add button that becomes a −/+ stepper once the product is in the cart.
+///
+/// Previously the tile only ever offered "Add": tapping again re-added, and
+/// there was no way back out except the cart screen. Both states occupy the
+/// same 38px-tall strip so the tile doesn't reflow when it flips.
+class QuantityControl extends StatelessWidget {
+  final int quantity;
+  final ValueChanged<int> onChanged;
 
-  const _AddButton({required this.inCart, required this.onTap});
+  /// Overrides the strip height so the control can sit level with a CTA on
+  /// the product detail bar. Defaults to the grid tile's [height].
+  final double? barHeight;
+
+  /// Largest quantity the stepper will reach. Deliberately modest — these are
+  /// supplements, and a mis-tap shouldn't order twenty tins.
+  static const int maxQuantity = 10;
+
+  /// The strip's height, in both states. Exposed so grid delegates can budget
+  /// for it instead of hardcoding a matching number.
+  static const double height = 38;
+
+  const QuantityControl({
+    super.key,
+    required this.quantity,
+    required this.onChanged,
+    this.barHeight,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        height: 32,
-        padding: EdgeInsets.symmetric(horizontal: inCart ? 12 : 14),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: inCart ? AppTheme.tint : AppTheme.action,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (inCart) ...[
-              const Icon(Icons.check_rounded, size: 13, color: AppTheme.action),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              inCart ? 'Added' : 'Add',
+    final strip = barHeight ?? height;
+
+    if (quantity <= 0) {
+      return Semantics(
+        button: true,
+        label: 'Add to cart',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => onChanged(1),
+          child: Container(
+            height: strip,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppTheme.action,
+              borderRadius: BorderRadius.circular(strip / 2),
+            ),
+            child: Text(
+              'Add',
               style: AppTheme.font(
-                size: 12,
+                size: 13,
                 weight: FontWeight.w800,
-                color: inCart ? AppTheme.action : Colors.white,
+                color: Colors.white,
               ),
             ),
-          ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      height: strip,
+      decoration: BoxDecoration(
+        color: AppTheme.tint,
+        borderRadius: BorderRadius.circular(strip / 2),
+        border: Border.all(color: AppTheme.action.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          _StepButton(
+            size: strip,
+            icon: quantity == 1
+                ? Icons.delete_outline_rounded
+                : Icons.remove_rounded,
+            semanticLabel: quantity == 1 ? 'Remove from cart' : 'Decrease',
+            onTap: () => onChanged(quantity - 1),
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                '$quantity',
+                maxLines: 1,
+                style: AppTheme.font(
+                  size: 14,
+                  weight: FontWeight.w800,
+                  color: AppTheme.action,
+                ),
+              ),
+            ),
+          ),
+          _StepButton(
+            size: strip,
+            icon: Icons.add_rounded,
+            semanticLabel: 'Increase',
+            onTap: quantity >= maxQuantity
+                ? null
+                : () => onChanged(quantity + 1),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepButton extends StatelessWidget {
+  final IconData icon;
+  final String semanticLabel;
+  final VoidCallback? onTap;
+  final double size;
+
+  const _StepButton({
+    required this.icon,
+    required this.semanticLabel,
+    required this.onTap,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: semanticLabel,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Icon(
+            icon,
+            size: 17,
+            color: onTap == null
+                ? AppTheme.action.withValues(alpha: 0.35)
+                : AppTheme.action,
+          ),
         ),
       ),
     );

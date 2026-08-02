@@ -6,11 +6,12 @@ import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../models/score_band.dart';
 import '../../models/score_result.dart';
+import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
+import '../../services/report_pdf.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/design_image.dart';
-import '../../widgets/design_video.dart';
 
 /// Screen 23 — Fitness report card.
 class ReportCardScreen extends StatefulWidget {
@@ -28,11 +29,46 @@ class _ReportCardScreenState extends State<ReportCardScreen>
   );
 
   bool _remind = true;
+  bool _sharing = false;
 
   @override
   void initState() {
     super.initState();
     _countUp.forward();
+  }
+
+  /// Renders the report card to PDF and opens the system share sheet, so it
+  /// can go to the vet over WhatsApp, mail, Drive — whatever the owner uses.
+  Future<void> _shareReport(ScoreResult result) async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
+
+    final pets = context.read<PetInfoProvider>();
+    // Captured before the await: on iPad the share sheet needs the rect of
+    // the control that opened it or it throws.
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box == null
+        ? null
+        : box.localToGlobal(Offset.zero) & box.size;
+
+    try {
+      await ReportPdf.share(
+        result: result,
+        pet: pets.activePet,
+        owner: pets.ownerInfo,
+        origin: origin,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Couldn't prepare the report: $error"),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
   }
 
   @override
@@ -156,7 +192,10 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                     ),
                   ),
                   const SizedBox(height: 12),
-                  _ShareButton(onPressed: () {}),
+                  _ShareButton(
+                    busy: _sharing,
+                    onPressed: _sharing ? null : () => _shareReport(result),
+                  ),
                   const SizedBox(height: 12),
                   _RemindToggle(
                     value: _remind,
@@ -245,14 +284,14 @@ class _BandHero extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Good and Excellent celebrate with the report-card clip; the
-          // lower bands stay on the still, where motion would read wrong.
+          // Good and Excellent celebrate; the lower bands show the vet still,
+          // where motion would read wrong. Both are stills for now — see
+          // ScoringScreen for why the clips are parked.
           if (band.isPositive)
-            const DesignVideo(
-              source: AppAssets.reportCardVideo,
-              appleSource: AppAssets.reportCardVideoApple,
-              poster: AppAssets.greatJob,
+            const DesignImage(
+              AppAssets.greatJob,
               width: 132,
+              shadow: true,
               semanticLabel: 'Celebrating puppy',
             )
           else
@@ -504,39 +543,68 @@ class _BreakdownRow extends StatelessWidget {
 }
 
 class _ShareButton extends StatelessWidget {
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
-  const _ShareButton({required this.onPressed});
+  /// Swaps the icon for a spinner while the PDF renders. Generating and
+  /// writing the file takes a beat on a mid-range phone, and without this the
+  /// button reads as dead — which is how it behaved before it did anything
+  /// at all.
+  final bool busy;
+
+  const _ShareButton({required this.onPressed, this.busy = false});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        height: 50,
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(color: AppTheme.action, width: 1.5),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.ios_share_rounded,
-              size: 17,
-              color: AppTheme.action,
-            ),
-            const SizedBox(width: 9),
-            Text(
-              'Share report with your vet',
-              style: AppTheme.font(
-                size: 15,
-                weight: FontWeight.w700,
-                color: AppTheme.action,
+    return Semantics(
+      button: true,
+      enabled: onPressed != null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onPressed,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 50),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: AppTheme.action, width: 1.5),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (busy)
+                const SizedBox(
+                  width: 17,
+                  height: 17,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.action),
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.ios_share_rounded,
+                  size: 17,
+                  color: AppTheme.action,
+                ),
+              const SizedBox(width: 9),
+              Flexible(
+                child: Text(
+                  busy
+                      ? 'Preparing report…'
+                      : 'Share report with your vet',
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  style: AppTheme.font(
+                    size: 15,
+                    weight: FontWeight.w700,
+                    color: AppTheme.action,
+                    height: 1.25,
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

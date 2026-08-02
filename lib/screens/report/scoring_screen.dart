@@ -7,7 +7,6 @@ import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../providers/quiz_provider.dart';
 import '../../widgets/design_image.dart';
-import '../../widgets/design_video.dart';
 
 /// Screen 22 — "Scoring your answers", plus the celebratory interstitial the
 /// design shows on the way to a strong report.
@@ -94,10 +93,13 @@ class _Scoring extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const DesignVideo(
-            source: AppAssets.scoringVideo,
-            appleSource: AppAssets.scoringVideoApple,
-            poster: AppAssets.analyzing,
+          // Held on the still: Android's video_player composites onto an
+          // opaque surface, so a transparent WebM's alpha resolves to a black
+          // box behind the puppy. Swap back to DesignVideo once an encode
+          // with baked-in background (or HEVC-with-alpha) is supplied — the
+          // width matches the clip's, so nothing shifts.
+          const DesignImage(
+            AppAssets.analyzing,
             width: 330,
             semanticLabel: 'Puppy analysing the answers',
           ),

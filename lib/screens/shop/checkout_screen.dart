@@ -3,8 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
+import '../../models/address.dart';
+import '../../providers/address_provider.dart';
 import '../../providers/cart_provider.dart';
-import '../../providers/pet_info_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import 'cart_screen.dart' show SummaryRow;
@@ -30,7 +31,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
-    final owner = context.watch<PetInfoProvider>().ownerInfo;
+    final address = context.watch<AddressProvider>().address;
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
@@ -59,12 +60,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SectionLabel('Deliver to'),
                   const SizedBox(height: 14),
                   _AddressCard(
-                    name: owner?.name.trim().isNotEmpty == true
-                        ? owner!.name
-                        : 'Add a delivery address',
-                    address: (owner?.address?.trim().isNotEmpty ?? false)
-                        ? owner!.address!
-                        : 'No address on file yet.',
+                    address: address,
+                    onTap: () => context.push(AppRoutes.address),
                   ),
                   const SizedBox(height: 18),
                   const SectionLabel('Payment'),
@@ -132,13 +129,32 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 border: Border(top: BorderSide(color: AppTheme.borderSoft)),
               ),
               padding: const EdgeInsets.fromLTRB(22, 12, 22, 26),
-              child: AppButton(
-                label: 'Place order · ${formatPrice(cart.totalPrice)}',
-                variant: AppButtonVariant.start,
-                height: AppTheme.ctaHeightCompact,
-                onPressed: cart.isEmpty
-                    ? null
-                    : () => context.push(AppRoutes.orderSuccess),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (address == null && !cart.isEmpty) ...[
+                    Text(
+                      'Add a delivery address to place this order.',
+                      textAlign: TextAlign.center,
+                      style: AppTheme.font(
+                        size: 12.5,
+                        weight: FontWeight.w600,
+                        color: AppTheme.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  AppButton(
+                    label: 'Place order · ${formatPrice(cart.totalPrice)}',
+                    variant: AppButtonVariant.start,
+                    height: AppTheme.ctaHeightCompact,
+                    // An order with nowhere to ship to is not an order —
+                    // better to block it here than to fail after payment.
+                    onPressed: cart.isEmpty || address == null
+                        ? null
+                        : () => context.push(AppRoutes.orderSuccess),
+                  ),
+                ],
               ),
             ),
           ],
@@ -148,67 +164,87 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 }
 
+/// The delivery address card. Tapping it opens the address form whether or
+/// not one is saved — before, this was static text with a "Change" label that
+/// did nothing, so checkout dead-ended for anyone without an address.
 class _AddressCard extends StatelessWidget {
-  final String name;
-  final String address;
+  final Address? address;
+  final VoidCallback onTap;
 
-  const _AddressCard({required this.name, required this.address});
+  const _AddressCard({required this.address, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: AppTheme.tintPanel,
-        borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
-        border: Border.all(color: AppTheme.action, width: 1.5),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
-            child: Icon(
-              Icons.location_on_outlined,
-              size: 20,
-              color: AppTheme.action,
-            ),
+    final saved = address;
+
+    return Semantics(
+      button: true,
+      label: saved == null
+          ? 'Add a delivery address'
+          : 'Change delivery address',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          decoration: BoxDecoration(
+            color: AppTheme.tintPanel,
+            borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
+            border: Border.all(color: AppTheme.action, width: 1.5),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: AppTheme.font(
-                    size: 14,
-                    weight: FontWeight.w800,
-                    color: AppTheme.ink,
-                  ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: Icon(
+                  Icons.location_on_outlined,
+                  size: 20,
+                  color: AppTheme.action,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  address,
-                  style: AppTheme.font(
-                    size: 13,
-                    color: AppTheme.body,
-                    height: 1.5,
-                  ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      saved == null
+                          ? 'Add a delivery address'
+                          : saved.fullName,
+                      style: AppTheme.font(
+                        size: 14,
+                        weight: FontWeight.w800,
+                        color: AppTheme.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      saved == null
+                          ? 'No address on file yet.'
+                          : '${saved.multiline}\n${saved.phone}',
+                      style: AppTheme.font(
+                        size: 13,
+                        color: AppTheme.body,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                saved == null ? 'Add' : 'Change',
+                style: AppTheme.font(
+                  size: 13,
+                  weight: FontWeight.w700,
+                  color: AppTheme.action,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Text(
-            'Change',
-            style: AppTheme.font(
-              size: 13,
-              weight: FontWeight.w700,
-              color: AppTheme.action,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

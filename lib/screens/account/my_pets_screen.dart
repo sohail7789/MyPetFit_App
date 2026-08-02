@@ -29,7 +29,7 @@ class MyPetsScreen extends StatelessWidget {
             ScreenHeader(title: 'My pets', onBack: () => context.backOr(AppRoutes.account)),
             Expanded(
               child: pets.pets.isEmpty
-                  ? _Empty(onAdd: () => context.push(AppRoutes.petInfo))
+                  ? _Empty(onAdd: () => context.push(AppRoutes.addPet))
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
                       children: [
@@ -37,7 +37,8 @@ class MyPetsScreen extends StatelessWidget {
                           _PetCard(
                             pet: pets.pets[i],
                             isActive: i == pets.activePetIndex,
-                            onEdit: () => context.push(AppRoutes.editPet),
+                            onOpen: () =>
+                                context.push(AppRoutes.petProfile(i)),
                           ),
                           const SizedBox(height: 12),
                         ],
@@ -46,7 +47,7 @@ class MyPetsScreen extends StatelessWidget {
                             label: 'Add another pet',
                             variant: AppButtonVariant.outline,
                             height: 52,
-                            onPressed: () => context.push(AppRoutes.petInfo),
+                            onPressed: () => context.push(AppRoutes.addPet),
                           )
                         else
                           Text(
@@ -103,12 +104,12 @@ class _Empty extends StatelessWidget {
 class _PetCard extends StatelessWidget {
   final PetInfo pet;
   final bool isActive;
-  final VoidCallback onEdit;
+  final VoidCallback onOpen;
 
   const _PetCard({
     required this.pet,
     required this.isActive,
-    required this.onEdit,
+    required this.onOpen,
   });
 
   String get _meta {
@@ -125,7 +126,7 @@ class _PetCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      onTap: onEdit,
+      onTap: onOpen,
       child: Row(
         children: [
           Container(
