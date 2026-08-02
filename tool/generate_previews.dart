@@ -89,6 +89,28 @@ void main() {
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(host(screen, scale));
+
+    // Asset images decode asynchronously, and widget tests run with a fake
+    // async zone that never lets that finish — so a plain pump captures
+    // whatever happened to be ready and silently omits the rest. That is not
+    // a harmless cosmetic gap: it renders as artwork *missing* from the
+    // preview, which reads exactly like an asset regression. Force every
+    // image to load before the shot.
+    await tester.runAsync(() async {
+      for (final element in find.byType(Image).evaluate()) {
+        final image = element.widget as Image;
+        // Bundled artwork only. Product photos are Image.network, and under
+        // runAsync those make a real request that the test binding answers
+        // with a 400 — the app already falls back to its paw motif for that,
+        // which is what the preview should show anyway.
+        if (image.image is! AssetImage && image.image is! ExactAssetImage) {
+          continue;
+        }
+        await precacheImage(image.image, element);
+      }
+    });
+
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
     await expectLater(
