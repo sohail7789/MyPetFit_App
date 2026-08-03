@@ -13,9 +13,20 @@ import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/design_image.dart';
 
-/// Screen 23 — Fitness report card.
+/// Screen 23 — Fitness report card, and 23b/32b when opened from history.
+///
+/// One screen serves both because a past report card is the same document
+/// with a different [ScoreResult] behind it. [historyIndex] selects which:
+/// null renders the live result, an index reads that entry out of
+/// [QuizProvider.assessmentHistory].
 class ReportCardScreen extends StatefulWidget {
-  const ReportCardScreen({super.key});
+  /// Index into [QuizProvider.assessmentHistory]. Null means the current
+  /// result — the one just calculated, or the last one completed.
+  final int? historyIndex;
+
+  const ReportCardScreen({super.key, this.historyIndex});
+
+  bool get isHistorical => historyIndex != null;
 
   @override
   State<ReportCardScreen> createState() => _ReportCardScreenState();
@@ -77,20 +88,28 @@ class _ReportCardScreenState extends State<ReportCardScreen>
     super.dispose();
   }
 
-  String get _today {
+  /// The date the report being shown was completed — not today's date. A
+  /// past report card opened from history has to carry its own date, and for
+  /// a freshly calculated one the two are the same anyway.
+  static String _dateOf(ScoreResult result) {
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
-    final now = DateTime.now();
-    return '${now.day.toString().padLeft(2, '0')} '
-        '${months[now.month - 1]} ${now.year}';
+    final d = result.completedAt;
+    return '${d.day.toString().padLeft(2, '0')} '
+        '${months[d.month - 1]} ${d.year}';
   }
 
   @override
   Widget build(BuildContext context) {
     final quiz = context.watch<QuizProvider>();
-    final result = quiz.result;
+    final history = quiz.assessmentHistory;
+    final index = widget.historyIndex;
+
+    final result = index == null
+        ? quiz.result
+        : (index >= 0 && index < history.length ? history[index] : null);
 
     if (result == null) {
       // Reached without a completed assessment — send them to take one.
@@ -143,7 +162,7 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                     style: AppTheme.overline.copyWith(letterSpacing: 1.2),
                   ),
                   Text(
-                    _today,
+                    _dateOf(result),
                     style: AppTheme.font(
                       size: 12,
                       weight: FontWeight.w700,
@@ -160,7 +179,7 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                   _BandHero(
                     result: result,
                     countUp: _countUp,
-                    previous: _previousScore(quiz),
+                    previous: _previousScore(history),
                   ),
                   const SizedBox(height: 18),
                   _Breakdown(scores: result.categoryScores),
@@ -196,11 +215,15 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                     busy: _sharing,
                     onPressed: _sharing ? null : () => _shareReport(result),
                   ),
-                  const SizedBox(height: 12),
-                  _RemindToggle(
-                    value: _remind,
-                    onChanged: (v) => setState(() => _remind = v),
-                  ),
+                  // The reminder is a forward-looking setting, so it belongs
+                  // on the live report rather than on an archived one.
+                  if (!widget.isHistorical) ...[
+                    const SizedBox(height: 12),
+                    _RemindToggle(
+                      value: _remind,
+                      onChanged: (v) => setState(() => _remind = v),
+                    ),
+                  ],
                   const SizedBox(height: 6),
                 ],
               ),
@@ -222,15 +245,26 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                   Row(
                     children: [
                       Expanded(
-                        child: AppButton(
-                          label: 'Retake',
-                          variant: AppButtonVariant.outline,
-                          height: 50,
-                          onPressed: () {
-                            context.read<QuizProvider>().reset();
-                            context.go(AppRoutes.quiz);
-                          },
-                        ),
+                        // An archived report is a record, not a starting
+                        // point — offering "Retake" here reads as though it
+                        // would redo *that* assessment.
+                        child: widget.isHistorical
+                            ? AppButton(
+                                label: 'All reports',
+                                variant: AppButtonVariant.outline,
+                                height: 50,
+                                onPressed: () =>
+                                    context.backOr(AppRoutes.reportHistory),
+                              )
+                            : AppButton(
+                                label: 'Retake',
+                                variant: AppButtonVariant.outline,
+                                height: 50,
+                                onPressed: () {
+                                  context.read<QuizProvider>().reset();
+                                  context.go(AppRoutes.quiz);
+                                },
+                              ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -252,11 +286,14 @@ class _ReportCardScreenState extends State<ReportCardScreen>
     );
   }
 
-  /// The score before this one, when there is any history to compare against.
-  int? _previousScore(QuizProvider quiz) {
-    final history = quiz.assessmentHistory;
-    if (history.length < 2) return null;
-    return history[1].percentageScore;
+  /// The score recorded before the one being shown, when there is one to
+  /// compare against. History runs newest-first, so the entry after the one
+  /// on screen is the older score — which for a past report card means
+  /// comparing against what preceded *it*, not against today.
+  int? _previousScore(List<ScoreResult> history) {
+    final older = (widget.historyIndex ?? 0) + 1;
+    if (older >= history.length) return null;
+    return history[older].percentageScore;
   }
 }
 

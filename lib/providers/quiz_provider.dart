@@ -189,12 +189,18 @@ class QuizProvider extends ChangeNotifier {
 
   /// Clears the in-progress assessment. History and the last result are kept
   /// so the dashboard and report still show prior scores.
+  ///
+  /// This is called when a retake *starts*, so it must not touch [_result].
+  /// It used to null it, which meant beginning a retake wiped the current
+  /// score before a replacement existed — abandon the quiz part-way and the
+  /// dashboard fell back to "Not assessed yet" even though a perfectly good
+  /// report was still sitting in history. [calculateResult] replaces the
+  /// result on completion, which is the only point at which it should change.
   void reset() {
     _currentCategoryIndex = 0;
     _selectedAnswers.clear();
     _multiAnswers.clear();
     _textFieldValues.clear();
-    _result = null;
     _persistProgress();
     notifyListeners();
   }

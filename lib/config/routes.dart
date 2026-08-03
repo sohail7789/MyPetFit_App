@@ -58,6 +58,10 @@ class AppRoutes {
   static const quiz = '/quiz'; // 13–21
   static const scoring = '/scoring'; // 22
   static const report = '/report'; // 23
+
+  /// A stored report card — `$report/history/:index` into
+  /// QuizProvider.assessmentHistory. Design screen 32b.
+  static String pastReport(int index) => '$report/history/$index';
   static const vetAlert = '/vet-alert'; // 23b
 
   // Shell tabs ----------------------------------------------------------
@@ -200,6 +204,15 @@ class AppRoutes {
         GoRoute(
           path: report,
           builder: (context, state) => const ReportCardScreen(),
+          routes: [
+            GoRoute(
+              path: 'history/:index',
+              builder: (context, state) => ReportCardScreen(
+                historyIndex:
+                    int.tryParse(state.pathParameters['index'] ?? '') ?? -1,
+              ),
+            ),
+          ],
         ),
         GoRoute(
           path: vetAlert,

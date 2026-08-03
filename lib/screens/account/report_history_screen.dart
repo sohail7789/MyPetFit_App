@@ -52,9 +52,13 @@ class ReportHistoryScreen extends StatelessWidget {
                             result: history[i],
                             date: _date(history[i].completedAt),
                             isCurrent: i == 0,
-                            onTap: i == 0
-                                ? () => context.push(AppRoutes.report)
-                                : null,
+                            // Every row opens its own report card, matching
+                            // the design (all rows carry a chevron). Older
+                            // rows used to have no handler at all, so the
+                            // history was a list you could look at but never
+                            // open.
+                            onTap: () =>
+                                context.push(AppRoutes.pastReport(i)),
                           ),
                           const SizedBox(height: 12),
                         ],
