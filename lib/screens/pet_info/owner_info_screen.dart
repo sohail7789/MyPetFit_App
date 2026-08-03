@@ -41,6 +41,7 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
   final _phone = TextEditingController();
   final _email = TextEditingController();
   final _vet = TextEditingController();
+  final _vetPhone = TextEditingController();
 
   String? _error;
 
@@ -54,12 +55,14 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
       _name.text = owner.name;
       _phone.text = owner.contactNumber;
       _email.text = owner.email;
+      _vet.text = owner.vetName ?? '';
+      _vetPhone.text = owner.vetContact ?? '';
     }
   }
 
   @override
   void dispose() {
-    for (final c in [_name, _phone, _email, _vet]) {
+    for (final c in [_name, _phone, _email, _vet, _vetPhone]) {
       c.dispose();
     }
     super.dispose();
@@ -81,27 +84,20 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
       return;
     }
 
-    context.read<PetInfoProvider>().setOwnerInfo(
-          OwnerInfo(
-            name: name,
-            contactNumber: _phone.text.trim(),
-            email: _email.text.trim(),
-            // Address is captured at checkout, not here; preserve anything
-            // already saved so continuing past this step never wipes it.
-            address: context.read<PetInfoProvider>().ownerInfo?.address,
-          ),
-        );
-
-    // The vet field is free text ("Dr. name, phone") and belongs to the pet
-    // record, so it is stored against the active pet when there is one.
-    final vet = _vet.text.trim();
     final pets = context.read<PetInfoProvider>();
-    if (vet.isNotEmpty && pets.activePet != null) {
-      pets.updatePet(
-        pets.activePetIndex,
-        pets.activePet!.copyWith(vetName: vet),
-      );
-    }
+    pets.setOwnerInfo(
+      OwnerInfo(
+        name: name,
+        contactNumber: _phone.text.trim(),
+        email: _email.text.trim(),
+        // Address is captured at checkout, not here; preserve anything
+        // already saved so continuing past this step never wipes it.
+        address: pets.ownerInfo?.address,
+        vetName: _vet.text.trim().isEmpty ? null : _vet.text.trim(),
+        vetContact:
+            _vetPhone.text.trim().isEmpty ? null : _vetPhone.text.trim(),
+      ),
+    );
 
     if (widget.isEditing) {
       // backOr, not pop: reached from a deep link or after a stack
@@ -206,18 +202,26 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                     ),
-                    // Assessment-only: the vet belongs to a pet record, and
-                    // editing the owner profile has no single pet in view, so
-                    // asking for "the" vet there would be ambiguous.
-                    if (!widget.isEditing) ...[
                     const SizedBox(height: 12),
                     LabeledField(
-                      label: 'Veterinarian name & contact',
+                      label: 'Veterinarian name',
                       labelNote: 'optional',
-                      hint: 'Dr. name, phone',
+                      hint: 'Dr. name',
                       controller: _vet,
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 12),
+                    LabeledField(
+                      label: 'Vet contact',
+                      labelNote: 'optional',
+                      hint: '+91 00000 00000',
+                      controller: _vetPhone,
+                      keyboardType: TextInputType.phone,
                       textInputAction: TextInputAction.done,
                     ),
+                    // Artwork is assessment-only; the editor is a settings
+                    // screen and a mascot there is noise.
+                    if (!widget.isEditing) ...[
                     const SizedBox(height: 6),
                     const DesignImage(
                       AppAssets.ownerDetails,

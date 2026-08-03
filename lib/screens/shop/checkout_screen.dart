@@ -61,7 +61,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SizedBox(height: 14),
                   _AddressCard(
                     address: address,
-                    onTap: () => context.push(AppRoutes.address),
+                    // Straight to the form when nothing is saved, otherwise
+                    // to the list so another saved address can be picked.
+                    onTap: () => context.push(
+                      address == null
+                          ? AppRoutes.addressNew
+                          : AppRoutes.addresses,
+                    ),
                   ),
                   const SizedBox(height: 18),
                   const SectionLabel('Payment'),
@@ -212,7 +218,7 @@ class _AddressCard extends StatelessWidget {
                     Text(
                       saved == null
                           ? 'Add a delivery address'
-                          : saved.fullName,
+                          : '${saved.label.display} · ${saved.fullName}',
                       style: AppTheme.font(
                         size: 14,
                         weight: FontWeight.w800,

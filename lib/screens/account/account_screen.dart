@@ -89,7 +89,7 @@ class AccountScreen extends StatelessWidget {
                       SettingsTile(
                         icon: Icons.location_on_outlined,
                         label: 'Delivery address',
-                        onTap: () => context.push(AppRoutes.address),
+                        onTap: () => context.push(AppRoutes.addresses),
                       ),
                       SettingsTile(
                         icon: Icons.notifications_none_rounded,

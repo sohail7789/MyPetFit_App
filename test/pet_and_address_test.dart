@@ -156,7 +156,7 @@ void main() {
           gender: PetGender.male,
           weightKg: 12,
           heightCm: 40,
-          vetName: 'Dr Rao',
+          microchipNumber: '900 000 123 456',
         ),
       );
 
@@ -176,9 +176,9 @@ void main() {
 
       expect(pets.pets, hasLength(1));
       expect(pets.pets.single.name, 'Bruno Jr');
-      // Fields this form doesn't collect must survive the round trip.
-      expect(pets.pets.single.vetName, 'Dr Rao');
+      // Editing must not change the record's identity.
       expect(pets.pets.single.id, 'p1');
+      expect(pets.pets.single.microchipNumber, '900 000 123 456');
     });
   });
 
@@ -207,7 +207,9 @@ void main() {
       expect(find.text('Bruno'), findsWidgets);
       expect(find.text('No assessment yet'), findsOneWidget);
       expect(find.text('Start the assessment'), findsOneWidget);
-      expect(find.text('Edit details'), findsOneWidget);
+      // Edit moved into the header, matching the design.
+      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Report history'), findsOneWidget);
     });
 
     testWidgets('degrades gracefully when the pet is gone', (tester) async {
@@ -236,7 +238,7 @@ void main() {
       );
       await tester.pump();
 
-      await tapButton(tester, 'Save address');
+      await tapButton(tester, 'Add address');
 
       expect(address.hasAddress, isFalse);
       expect(find.text('Indian PIN codes are 6 digits.'), findsOneWidget);
@@ -265,12 +267,122 @@ void main() {
       await tester.enterText(fields.at(7), '411001');
       await tester.pump();
 
-      await tapButton(tester, 'Save address');
+      await tapButton(tester, 'Add address');
       await tester.pump();
 
       expect(address.hasAddress, isTrue);
       expect(address.address!.city, 'Pune');
       expect(address.address!.pincode, '411001');
+      // The first address saved is the default by definition.
+      expect(address.defaultId, address.address!.id);
+    });
+  });
+
+  group('multiple addresses', () {
+    Address make(String id, {AddressLabel label = AddressLabel.home}) =>
+        Address(
+          id: id,
+          label: label,
+          fullName: 'Sohail',
+          phone: '9000011111',
+          line1: '12B, MG Road',
+          city: 'Pune',
+          state: 'Maharashtra',
+          pincode: '411001',
+        );
+
+    test('the first address saved becomes the default on its own', () async {
+      final provider = AddressProvider();
+      await provider.init();
+
+      await provider.save(make('a1'));
+
+      expect(provider.addresses, hasLength(1));
+      expect(provider.defaultId, 'a1');
+      expect(provider.address!.id, 'a1');
+    });
+
+    test('later addresses do not steal the default unless asked', () async {
+      final provider = AddressProvider();
+      await provider.init();
+
+      await provider.save(make('a1'));
+      await provider.save(make('a2', label: AddressLabel.work));
+
+      expect(provider.addresses, hasLength(2));
+      expect(provider.defaultId, 'a1');
+
+      await provider.setDefault('a2');
+      expect(provider.address!.label, AddressLabel.work);
+    });
+
+    test('saving with makeDefault moves the default', () async {
+      final provider = AddressProvider();
+      await provider.init();
+
+      await provider.save(make('a1'));
+      await provider.save(make('a2'), makeDefault: true);
+
+      expect(provider.defaultId, 'a2');
+    });
+
+    test('editing an entry updates in place rather than duplicating',
+        () async {
+      final provider = AddressProvider();
+      await provider.init();
+
+      await provider.save(make('a1'));
+      await provider.save(make('a1').copyWith(city: 'Mumbai'));
+
+      expect(provider.addresses, hasLength(1));
+      expect(provider.address!.city, 'Mumbai');
+    });
+
+    test('removing the default hands the role to what is left', () async {
+      final provider = AddressProvider();
+      await provider.init();
+
+      await provider.save(make('a1'));
+      await provider.save(make('a2'));
+      expect(provider.defaultId, 'a1');
+
+      await provider.remove('a1');
+
+      // Checkout must never point at nothing while addresses still exist.
+      expect(provider.addresses, hasLength(1));
+      expect(provider.defaultId, 'a2');
+    });
+
+    test('removing the last address leaves nothing selected', () async {
+      final provider = AddressProvider();
+      await provider.init();
+
+      await provider.save(make('a1'));
+      await provider.remove('a1');
+
+      expect(provider.hasAddress, isFalse);
+      expect(provider.address, isNull);
+      expect(provider.defaultId, isNull);
+    });
+
+    test('a stale default pointer still resolves to something', () {
+      // Can happen if a write is interrupted between list and pointer.
+      const book = AddressBook(
+        addresses: [
+          Address(
+            id: 'a1',
+            fullName: 'Sohail',
+            phone: '9000011111',
+            line1: '12B',
+            city: 'Pune',
+            state: 'Maharashtra',
+            pincode: '411001',
+          ),
+        ],
+        defaultId: 'gone',
+      );
+
+      expect(book.defaultAddress!.id, 'a1');
     });
   });
 
@@ -280,6 +392,8 @@ void main() {
       final repository = LocalAddressRepository();
 
       const address = Address(
+        id: 'a1',
+        label: AddressLabel.work,
         fullName: 'Sohail',
         phone: '+91 90000 11111',
         line1: '12B, MG Road',
@@ -289,23 +403,43 @@ void main() {
         landmark: 'Near the blue gate',
       );
 
-      await repository.save(address);
+      await repository.save(
+        const AddressBook(addresses: [address], defaultId: 'a1'),
+      );
       final loaded = await repository.load();
 
-      expect(loaded, isNotNull);
-      expect(loaded!.formatted, address.formatted);
-      expect(loaded.landmark, 'Near the blue gate');
+      expect(loaded.addresses, hasLength(1));
+      expect(loaded.defaultAddress!.formatted, address.formatted);
+      expect(loaded.defaultAddress!.landmark, 'Near the blue gate');
+      expect(loaded.defaultAddress!.label, AddressLabel.work);
 
       await repository.clear();
-      expect(await repository.load(), isNull);
+      expect((await repository.load()).isEmpty, isTrue);
     });
 
     test('a corrupt payload reads as no address rather than throwing',
         () async {
       SharedPreferences.setMockInitialValues({
-        'delivery_address': 'not json at all',
+        'address_book': 'not json at all',
       });
-      expect(await LocalAddressRepository().load(), isNull);
+      expect((await LocalAddressRepository().load()).isEmpty, isTrue);
+    });
+
+    test('promotes a pre-multi-address save into a one-entry book', () async {
+      // Written by the build that supported exactly one address — no id, no
+      // label. Upgrading must not silently drop it.
+      SharedPreferences.setMockInitialValues({
+        'delivery_address': '{"fullName":"Sohail","phone":"9000011111",'
+            '"line1":"12B, MG Road","line2":"","city":"Pune",'
+            '"state":"Maharashtra","pincode":"411001","landmark":""}',
+      });
+
+      final book = await LocalAddressRepository().load();
+
+      expect(book.addresses, hasLength(1));
+      expect(book.defaultAddress!.city, 'Pune');
+      // And it is now the default, since it is the only one.
+      expect(book.defaultId, book.addresses.single.id);
     });
   });
 }

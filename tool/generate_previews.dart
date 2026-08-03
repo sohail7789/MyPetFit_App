@@ -13,6 +13,8 @@ import 'package:mypetfit_app/providers/cart_provider.dart';
 import 'package:mypetfit_app/providers/locale_provider.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';
 import 'package:mypetfit_app/providers/quiz_provider.dart';
+import 'package:mypetfit_app/models/address.dart';
+import 'package:mypetfit_app/screens/account/address_list_screen.dart';
 import 'package:mypetfit_app/screens/account/owner_profile_screen.dart';
 import 'package:mypetfit_app/screens/auth/sign_in_screen.dart';
 import 'package:mypetfit_app/screens/pet_info/owner_info_screen.dart';
@@ -46,6 +48,8 @@ void main() {
 
   const phone = Size(411, 914);
 
+  final addresses = AddressProvider();
+
   Widget host(Widget child, double scale) {
     final pets = PetInfoProvider()
       ..setOwnerInfo(
@@ -63,7 +67,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
-        ChangeNotifierProvider(create: (_) => AddressProvider()),
+        ChangeNotifierProvider.value(value: addresses),
       ],
       child: MaterialApp(
         theme: AppTheme.light,
@@ -151,6 +155,34 @@ void main() {
       const OwnerInfoScreen(mode: OwnerFormMode.edit),
       1.3,
     );
+  });
+
+  testWidgets('address list at 1.3', (t) async {
+    await addresses.save(
+      const Address(
+        id: 'a1',
+        fullName: 'Sohail Inamdar',
+        phone: '+91 90000 11111',
+        line1: '12B, MG Road',
+        line2: 'Koregaon Park',
+        city: 'Pune',
+        state: 'Maharashtra',
+        pincode: '411001',
+      ),
+    );
+    await addresses.save(
+      const Address(
+        id: 'a2',
+        label: AddressLabel.work,
+        fullName: 'Sohail Inamdar',
+        phone: '+91 90000 22222',
+        line1: 'Tower B, Cyber City',
+        city: 'Pune',
+        state: 'Maharashtra',
+        pincode: '411014',
+      ),
+    );
+    await capture(t, 'address-list-1.3', const AddressListScreen(), 1.3);
   });
 
   testWidgets('shop at 1.0', (t) async {

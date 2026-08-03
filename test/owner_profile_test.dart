@@ -8,6 +8,7 @@ import 'package:mypetfit_app/models/address.dart';
 import 'package:mypetfit_app/models/pet_info.dart';
 import 'package:mypetfit_app/providers/address_provider.dart';
 import 'package:mypetfit_app/providers/auth_provider.dart';
+import 'package:mypetfit_app/providers/locale_provider.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';
 import 'package:mypetfit_app/screens/account/owner_profile_screen.dart';
 import 'package:mypetfit_app/screens/pet_info/owner_info_screen.dart';
@@ -48,6 +49,7 @@ void main() {
         ChangeNotifierProvider.value(value: pets),
         ChangeNotifierProvider.value(value: address ?? AddressProvider()),
         ChangeNotifierProvider.value(value: auth ?? AuthProvider()),
+        ChangeNotifierProvider(create: (_) => LocaleProvider()),
       ],
       child: MaterialApp.router(
         theme: AppTheme.light,
@@ -73,7 +75,8 @@ void main() {
       expect(find.text('Sohail Inamdar'), findsWidgets);
       expect(find.text('+91 90000 11111'), findsOneWidget);
       expect(find.text('owner@example.com'), findsOneWidget);
-      expect(find.text('Edit profile'), findsOneWidget);
+      // Edit moved into the header, matching the design.
+      expect(find.text('Edit'), findsOneWidget);
     });
 
     testWidgets('marks missing details rather than showing blanks',
@@ -85,8 +88,10 @@ void main() {
       );
       await tester.pump();
 
-      // Full name, contact and email all unset.
-      expect(find.text('Not set'), findsNWidgets(3));
+      // Full name, contact, email, vet name and vet contact are all unset;
+      // Language always resolves, so it is never "Not set".
+      expect(find.text('Not set'), findsNWidgets(5));
+      expect(find.text('English'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -95,6 +100,7 @@ void main() {
       final address = AddressProvider();
       await address.save(
         const Address(
+          id: 'a1',
           fullName: 'Sohail',
           phone: '9000011111',
           line1: '12B, MG Road',
@@ -180,21 +186,29 @@ void main() {
       expect(pets.ownerInfo!.email, 'owner@example.com');
     });
 
-    testWidgets('hides the vet field, which belongs to a pet', (tester) async {
+    testWidgets('edits the vet, which the design puts on the owner',
+        (tester) async {
       useTallSurface(tester);
+      final pets = PetInfoProvider()..setOwnerInfo(owner);
 
       await tester.pumpWidget(
-        host(
-          const OwnerInfoScreen(mode: OwnerFormMode.edit),
-          pets: PetInfoProvider(),
-        ),
+        host(const OwnerInfoScreen(mode: OwnerFormMode.edit), pets: pets),
       );
       await tester.pump();
 
-      expect(
-        find.textContaining('VETERINARIAN NAME & CONTACT'),
-        findsNothing,
-      );
+      expect(find.textContaining('VETERINARIAN NAME'), findsOneWidget);
+      expect(find.textContaining('VET CONTACT'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField).at(3), 'Dr Rao');
+      await tester.enterText(find.byType(TextField).at(4), '+91 90000 00000');
+      await tester.tap(find.widgetWithText(AppButton, 'Save changes'));
+      await tester.pump();
+      await tester.pump();
+
+      // Stored against the owner, not a pet — one practice covers the
+      // household, so per-pet copies would have to be edited twice.
+      expect(pets.ownerInfo!.vetName, 'Dr Rao');
+      expect(pets.ownerInfo!.vetContact, '+91 90000 00000');
     });
 
     testWidgets('the assessment step is unchanged', (tester) async {
@@ -211,10 +225,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Continue'), findsOneWidget);
-      expect(
-        find.textContaining('VETERINARIAN NAME & CONTACT'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('VETERINARIAN NAME'), findsOneWidget);
     });
   });
 }

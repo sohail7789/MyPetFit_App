@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../models/pet_info.dart';
+import '../../models/score_band.dart';
 import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
 import '../../widgets/app_button.dart';
@@ -65,15 +66,23 @@ class PetProfileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Edit sits in the header, matching the design and the owner
+            // profile beside it.
             ScreenHeader(
               title: pet.name.trim().isEmpty ? 'Pet' : pet.name.trim(),
               onBack: () => context.backOr(AppRoutes.pets),
+              trailing: _HeaderAction(
+                label: 'Edit',
+                onTap: () => context.push(AppRoutes.petEdit(petIndex)),
+              ),
             ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
                 children: [
                   _Header(pet: pet, isActive: isActive),
+                  const SizedBox(height: 14),
+                  const _ScoreChip(),
                   const SizedBox(height: 18),
                   AppCard(
                     padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
@@ -102,6 +111,10 @@ class PetProfileScreen extends StatelessWidget {
                         _DetailRow(
                           label: 'Microchip',
                           value: pet.microchipNumber ?? '',
+                        ),
+                        _DetailRow(
+                          label: 'Last assessed',
+                          value: _lastAssessed(context),
                           last: true,
                         ),
                       ],
@@ -111,11 +124,10 @@ class PetProfileScreen extends StatelessWidget {
                   _AssessmentCard(pet: pet),
                   const SizedBox(height: 14),
                   AppButton(
-                    label: 'Edit details',
+                    label: 'Report history',
                     variant: AppButtonVariant.outline,
                     height: 52,
-                    onPressed: () =>
-                        context.push('${AppRoutes.pets}/$petIndex/edit'),
+                    onPressed: () => context.push(AppRoutes.reportHistory),
                   ),
                   if (!isActive) ...[
                     const SizedBox(height: 10),
@@ -141,6 +153,18 @@ class PetProfileScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// When the most recent assessment was completed, or a dash.
+  static String _lastAssessed(BuildContext context) {
+    final result = context.read<QuizProvider>().result;
+    if (result == null) return '';
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final d = result.completedAt;
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
 
   Future<void> _confirmRemove(BuildContext context, PetInfo pet) async {
@@ -188,6 +212,87 @@ class PetProfileScreen extends StatelessWidget {
     if (confirmed != true || !context.mounted) return;
     context.read<PetInfoProvider>().removePet(petIndex);
     context.backOr(AppRoutes.pets);
+  }
+}
+
+/// The design's header-level "Edit" link.
+class _HeaderAction extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _HeaderAction({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          child: Text(
+            label,
+            style: AppTheme.font(
+              size: 14,
+              weight: FontWeight.w700,
+              color: AppTheme.action,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "FITNESS SCORE 72 · GOOD" — the band strip the design shows under the
+/// pet's name. Hidden until there is a score to show.
+class _ScoreChip extends StatelessWidget {
+  const _ScoreChip();
+
+  @override
+  Widget build(BuildContext context) {
+    final result = context.watch<QuizProvider>().result;
+    if (result == null) return const SizedBox.shrink();
+
+    final band = result.category;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: band.bandTint,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
+        border: Border.all(color: band.bandLine),
+      ),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        runSpacing: 4,
+        children: [
+          Text(
+            'FITNESS SCORE',
+            style: AppTheme.overline.copyWith(color: AppTheme.muted),
+          ),
+          Text(
+            '${result.percentageScore}',
+            style: AppTheme.font(
+              size: 16,
+              weight: FontWeight.w800,
+              color: AppTheme.ink,
+            ),
+          ),
+          Text(
+            '· ${band.label.toUpperCase()}',
+            style: AppTheme.font(
+              size: 12,
+              weight: FontWeight.w800,
+              color: band.bandColor,
+              letterSpacing: 0.6,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

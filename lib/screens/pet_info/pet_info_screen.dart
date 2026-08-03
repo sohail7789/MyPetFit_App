@@ -136,7 +136,7 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
       };
 
   /// Builds a [PetInfo] from the form, keeping fields this screen doesn't
-  /// collect (vet details, photo) when editing.
+  /// collect (the photo) when editing. The vet lives on the owner.
   PetInfo _collect() {
     final base = _editing;
     return PetInfo(
@@ -152,8 +152,6 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
       heightCm: double.tryParse(_height.text.trim()) ?? 0,
       microchipNumber:
           _microchip.text.trim().isEmpty ? null : _microchip.text.trim(),
-      vetName: base?.vetName,
-      vetContact: base?.vetContact,
       photoPath: base?.photoPath,
     );
   }

@@ -1,9 +1,32 @@
+/// What an address is for. The design offers exactly these three.
+enum AddressLabel {
+  home,
+  work,
+  other;
+
+  String get display => switch (this) {
+        AddressLabel.home => 'Home',
+        AddressLabel.work => 'Work',
+        AddressLabel.other => 'Other',
+      };
+
+  static AddressLabel fromName(String? name) => AddressLabel.values.firstWhere(
+        (l) => l.name == name,
+        orElse: () => AddressLabel.home,
+      );
+}
+
 /// A delivery address.
 ///
-/// Split into fields rather than one free-text blob so it can be validated,
-/// formatted consistently, and handed to a courier API later without
-/// re-parsing what the user typed.
+/// City, state and PIN are separate fields rather than the single
+/// "City, PIN, state" line the design draws. It reads the same on screen, but
+/// a six-digit PIN can be validated and a courier or shipping API can consume
+/// the parts — neither is possible once they are one free-text string.
 class Address {
+  /// Stable across edits, so the default pointer and the list stay in sync.
+  final String id;
+
+  final AddressLabel label;
   final String fullName;
   final String phone;
   final String line1;
@@ -16,6 +39,8 @@ class Address {
   final String landmark;
 
   const Address({
+    required this.id,
+    this.label = AddressLabel.home,
     required this.fullName,
     required this.phone,
     required this.line1,
@@ -26,7 +51,7 @@ class Address {
     this.landmark = '',
   });
 
-  /// The address as a courier would read it, one line.
+  /// The address as a courier would read it, on one line.
   String get formatted => [
         line1,
         line2,
@@ -35,7 +60,7 @@ class Address {
         [state, pincode].where((p) => p.trim().isNotEmpty).join(' '),
       ].map((p) => p.trim()).where((p) => p.isNotEmpty).join(', ');
 
-  /// The address over several lines, for the checkout card.
+  /// The address over several lines, for cards and list rows.
   String get multiline => [
         [line1, line2].where((p) => p.trim().isNotEmpty).join(', '),
         if (landmark.trim().isNotEmpty) landmark.trim(),
@@ -46,6 +71,8 @@ class Address {
       ].map((p) => p.trim()).where((p) => p.isNotEmpty).join('\n');
 
   Address copyWith({
+    String? id,
+    AddressLabel? label,
     String? fullName,
     String? phone,
     String? line1,
@@ -56,6 +83,8 @@ class Address {
     String? landmark,
   }) =>
       Address(
+        id: id ?? this.id,
+        label: label ?? this.label,
         fullName: fullName ?? this.fullName,
         phone: phone ?? this.phone,
         line1: line1 ?? this.line1,
@@ -67,6 +96,8 @@ class Address {
       );
 
   Map<String, dynamic> toJson() => {
+        'id': id,
+        'label': label.name,
         'fullName': fullName,
         'phone': phone,
         'line1': line1,
@@ -77,7 +108,14 @@ class Address {
         'landmark': landmark,
       };
 
-  factory Address.fromJson(Map<String, dynamic> json) => Address(
+  /// [fallbackId] covers rows written before addresses carried one — see
+  /// the migration in [LocalAddressRepository].
+  factory Address.fromJson(Map<String, dynamic> json, {String? fallbackId}) =>
+      Address(
+        id: json['id'] as String? ??
+            fallbackId ??
+            'addr_${DateTime.now().microsecondsSinceEpoch}',
+        label: AddressLabel.fromName(json['label'] as String?),
         fullName: json['fullName'] as String? ?? '',
         phone: json['phone'] as String? ?? '',
         line1: json['line1'] as String? ?? '',
@@ -87,4 +125,25 @@ class Address {
         pincode: json['pincode'] as String? ?? '',
         landmark: json['landmark'] as String? ?? '',
       );
+}
+
+/// The saved addresses plus which one deliveries default to.
+class AddressBook {
+  final List<Address> addresses;
+
+  /// Id of the default entry. Null when the book is empty.
+  final String? defaultId;
+
+  const AddressBook({this.addresses = const [], this.defaultId});
+
+  bool get isEmpty => addresses.isEmpty;
+
+  /// The default entry, falling back to the first when the pointer is stale.
+  Address? get defaultAddress {
+    if (addresses.isEmpty) return null;
+    for (final a in addresses) {
+      if (a.id == defaultId) return a;
+    }
+    return addresses.first;
+  }
 }

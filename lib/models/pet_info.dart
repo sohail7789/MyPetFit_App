@@ -34,11 +34,19 @@ class OwnerInfo {
   final String email;
   final String? address;
 
+  /// The owner's vet, not a pet's. The design carries these on the owner
+  /// profile and its editor: households generally use one practice for all
+  /// their animals, so duplicating it per pet would mean editing it twice.
+  final String? vetName;
+  final String? vetContact;
+
   const OwnerInfo({
     required this.name,
     required this.contactNumber,
     required this.email,
     this.address,
+    this.vetName,
+    this.vetContact,
   });
 
   OwnerInfo copyWith({
@@ -46,12 +54,16 @@ class OwnerInfo {
     String? contactNumber,
     String? email,
     String? address,
+    String? vetName,
+    String? vetContact,
   }) =>
       OwnerInfo(
         name: name ?? this.name,
         contactNumber: contactNumber ?? this.contactNumber,
         email: email ?? this.email,
         address: address ?? this.address,
+        vetName: vetName ?? this.vetName,
+        vetContact: vetContact ?? this.vetContact,
       );
 
   Map<String, dynamic> toJson() => {
@@ -59,6 +71,8 @@ class OwnerInfo {
         'contactNumber': contactNumber,
         'email': email,
         if (address != null) 'address': address,
+        if (vetName != null) 'vetName': vetName,
+        if (vetContact != null) 'vetContact': vetContact,
       };
 
   factory OwnerInfo.fromJson(Map<String, dynamic> json) => OwnerInfo(
@@ -66,6 +80,8 @@ class OwnerInfo {
         contactNumber: json['contactNumber'] as String? ?? '',
         email: json['email'] as String? ?? '',
         address: json['address'] as String?,
+        vetName: json['vetName'] as String?,
+        vetContact: json['vetContact'] as String?,
       );
 }
 
@@ -80,8 +96,6 @@ class PetInfo {
   final double weightKg;
   final double heightCm;
   final String? microchipNumber;
-  final String? vetName;
-  final String? vetContact;
   final String? photoPath;
 
   const PetInfo({
@@ -95,8 +109,6 @@ class PetInfo {
     required this.weightKg,
     required this.heightCm,
     this.microchipNumber,
-    this.vetName,
-    this.vetContact,
     this.photoPath,
   });
 
@@ -111,8 +123,6 @@ class PetInfo {
     double? weightKg,
     double? heightCm,
     String? microchipNumber,
-    String? vetName,
-    String? vetContact,
     String? photoPath,
   }) =>
       PetInfo(
@@ -126,8 +136,6 @@ class PetInfo {
         weightKg: weightKg ?? this.weightKg,
         heightCm: heightCm ?? this.heightCm,
         microchipNumber: microchipNumber ?? this.microchipNumber,
-        vetName: vetName ?? this.vetName,
-        vetContact: vetContact ?? this.vetContact,
         photoPath: photoPath ?? this.photoPath,
       );
 
@@ -148,8 +156,6 @@ class PetInfo {
         'weightKg': weightKg,
         'heightCm': heightCm,
         if (microchipNumber != null) 'microchipNumber': microchipNumber,
-        if (vetName != null) 'vetName': vetName,
-        if (vetContact != null) 'vetContact': vetContact,
         if (photoPath != null) 'photoPath': photoPath,
       };
 
@@ -170,8 +176,6 @@ class PetInfo {
         weightKg: (json['weightKg'] as num?)?.toDouble() ?? 0,
         heightCm: (json['heightCm'] as num?)?.toDouble() ?? 0,
         microchipNumber: json['microchipNumber'] as String?,
-        vetName: json['vetName'] as String?,
-        vetContact: json['vetContact'] as String?,
         photoPath: json['photoPath'] as String?,
       );
 }

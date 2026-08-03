@@ -39,13 +39,15 @@ void main() {
         gender: PetGender.male,
         weightKg: 24,
         heightCm: 56,
-        vetName: 'Dr Rao',
-        vetContact: '+91 90000 00000',
       ),
       owner: const OwnerInfo(
         name: 'Sohail',
         contactNumber: '+91 90000 11111',
         email: 'owner@example.com',
+        // The vet belongs to the owner, not a pet — one practice usually
+        // covers the whole household.
+        vetName: 'Dr Rao',
+        vetContact: '+91 90000 00000',
       ),
     );
 

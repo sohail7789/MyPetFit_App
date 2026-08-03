@@ -7,6 +7,7 @@ import '../screens/auth/reset_password_screen.dart';
 import '../screens/auth/sign_in_screen.dart';
 import '../screens/auth/sign_up_screen.dart';
 import '../screens/account/account_screen.dart';
+import '../screens/account/address_list_screen.dart';
 import '../screens/account/address_screen.dart';
 import '../screens/account/delete_account_screen.dart';
 import '../screens/account/legal_screen.dart';
@@ -95,8 +96,13 @@ class AppRoutes {
   static String petEdit(int index) => '$pets/$index/edit';
   static const orders = '/account/orders';
 
-  /// Delivery address form — shared by checkout and account settings.
-  static const address = '/account/address';
+  /// Saved delivery addresses (design 33d), plus the add/edit form. The
+  /// list is what checkout and account settings link to; the form is
+  /// reached from it.
+  static const addresses = '/account/addresses';
+  static const addressNew = '/account/addresses/new';
+
+  static String addressEdit(String id) => '$addresses/$id/edit';
 
   /// Owner profile (design 33c) and its editor (33e). The editor reuses the
   /// assessment's owner form in [OwnerFormMode.edit] rather than duplicating
@@ -292,8 +298,19 @@ class AppRoutes {
           builder: (context, state) => const OrdersScreen(),
         ),
         GoRoute(
-          path: address,
+          path: addresses,
+          builder: (context, state) => const AddressListScreen(),
+        ),
+        // Declared before ':id' so "new" isn't swallowed as an id.
+        GoRoute(
+          path: addressNew,
           builder: (context, state) => const AddressScreen(),
+        ),
+        GoRoute(
+          path: '$addresses/:id/edit',
+          builder: (context, state) => AddressScreen(
+            addressId: state.pathParameters['id'],
+          ),
         ),
         GoRoute(
           path: ownerProfile,

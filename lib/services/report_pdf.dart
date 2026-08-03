@@ -257,10 +257,10 @@ class ReportPdf {
         ['Contact', _orDash(owner.contactNumber)],
         ['Email', _orDash(owner.email)],
       ],
-      if (pet?.vetName?.trim().isNotEmpty ?? false)
+      if (owner?.vetName?.trim().isNotEmpty ?? false)
         [
           'Veterinarian',
-          [pet!.vetName!.trim(), pet.vetContact?.trim()]
+          [owner!.vetName!.trim(), owner.vetContact?.trim()]
               .where((v) => v != null && v.isNotEmpty)
               .join(' · '),
         ],

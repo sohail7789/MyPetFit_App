@@ -10,13 +10,16 @@ import '../../widgets/app_button.dart';
 import '../../widgets/labeled_field.dart';
 import '../../widgets/settings_tile.dart';
 
-/// Delivery address form.
+/// Screen 33d's editor — add or edit one delivery address.
 ///
-/// Reached from the checkout address card and from account settings; both
-/// edit the same saved address, so there is one place a wrong pincode gets
-/// fixed.
+/// [addressId] null means "add"; otherwise the entry with that id is loaded
+/// and updated in place.
 class AddressScreen extends StatefulWidget {
-  const AddressScreen({super.key});
+  final String? addressId;
+
+  const AddressScreen({super.key, this.addressId});
+
+  bool get isEditing => addressId != null;
 
   @override
   State<AddressScreen> createState() => _AddressScreenState();
@@ -36,27 +39,43 @@ class _AddressScreenState extends State<AddressScreen> {
   /// rather than as one banner listing everything that is wrong.
   final Map<String, String> _errors = {};
 
+  AddressLabel _label = AddressLabel.home;
+  bool _makeDefault = false;
   bool _saving = false;
+
+  /// Preserved so an edit keeps the entry's identity rather than creating a
+  /// duplicate.
+  String? _editingId;
 
   @override
   void initState() {
     super.initState();
 
-    final saved = context.read<AddressProvider>().address;
-    if (saved != null) {
-      _name.text = saved.fullName;
-      _phone.text = saved.phone;
-      _line1.text = saved.line1;
-      _line2.text = saved.line2;
-      _landmark.text = saved.landmark;
-      _city.text = saved.city;
-      _state.text = saved.state;
-      _pincode.text = saved.pincode;
+    final provider = context.read<AddressProvider>();
+    final existing =
+        widget.addressId == null ? null : provider.byId(widget.addressId!);
+
+    if (existing != null) {
+      _editingId = existing.id;
+      _label = existing.label;
+      _makeDefault = provider.defaultId == existing.id;
+      _name.text = existing.fullName;
+      _phone.text = existing.phone;
+      _line1.text = existing.line1;
+      _line2.text = existing.line2;
+      _landmark.text = existing.landmark;
+      _city.text = existing.city;
+      _state.text = existing.state;
+      _pincode.text = existing.pincode;
       return;
     }
 
-    // First time through, seed the name and phone from the owner details
-    // already captured in the assessment rather than asking twice.
+    // The first address is the default whether or not the switch is on, so
+    // show that honestly rather than offering a choice that isn't one.
+    _makeDefault = !provider.hasAddress;
+
+    // Seed the recipient from the owner details already captured in the
+    // assessment rather than asking twice.
     final owner = context.read<PetInfoProvider>().ownerInfo;
     if (owner != null) {
       _name.text = owner.name;
@@ -82,8 +101,7 @@ class _AddressScreenState extends State<AddressScreen> {
   }
 
   /// Digits only, ignoring spaces and a +91 prefix.
-  static String _digits(String value) =>
-      value.replaceAll(RegExp(r'\D'), '');
+  static String _digits(String value) => value.replaceAll(RegExp(r'\D'), '');
 
   bool _validate() {
     final errors = <String, String>{};
@@ -105,8 +123,7 @@ class _AddressScreenState extends State<AddressScreen> {
     if (_city.text.trim().isEmpty) errors['city'] = 'City is required.';
     if (_state.text.trim().isEmpty) errors['state'] = 'State is required.';
 
-    final pin = _digits(_pincode.text);
-    if (pin.length != 6) {
+    if (_digits(_pincode.text).length != 6) {
       errors['pincode'] = 'Indian PIN codes are 6 digits.';
     }
 
@@ -122,7 +139,12 @@ class _AddressScreenState extends State<AddressScreen> {
     if (_saving || !_validate()) return;
     setState(() => _saving = true);
 
+    final addresses = context.read<AddressProvider>();
+    final pets = context.read<PetInfoProvider>();
+
     final address = Address(
+      id: _editingId ?? 'addr_${DateTime.now().microsecondsSinceEpoch}',
+      label: _label,
       fullName: _name.text.trim(),
       phone: _phone.text.trim(),
       line1: _line1.text.trim(),
@@ -133,23 +155,19 @@ class _AddressScreenState extends State<AddressScreen> {
       pincode: _digits(_pincode.text),
     );
 
-    // Both providers are resolved before the await so nothing reaches for a
-    // context that may have been unmounted by the time the write lands.
-    final addresses = context.read<AddressProvider>();
-    final pets = context.read<PetInfoProvider>();
+    await addresses.save(address, makeDefault: _makeDefault);
 
-    await addresses.save(address);
-
-    // Mirror onto the owner record so the shared report and any future
-    // invoice have the same address without a second lookup.
+    // Mirror the default onto the owner record so the shared report and any
+    // future invoice read the same address without a second lookup.
     final owner = pets.ownerInfo;
-    if (owner != null) {
-      pets.setOwnerInfo(owner.copyWith(address: address.formatted));
+    final fallback = addresses.address;
+    if (owner != null && fallback != null) {
+      pets.setOwnerInfo(owner.copyWith(address: fallback.formatted));
     }
 
     if (!mounted) return;
     setState(() => _saving = false);
-    context.backOr(AppRoutes.account);
+    context.backOr(AppRoutes.addresses);
   }
 
   void _clearError(String key) {
@@ -158,7 +176,7 @@ class _AddressScreenState extends State<AddressScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hasSaved = context.watch<AddressProvider>().hasAddress;
+    final isFirst = !context.watch<AddressProvider>().hasAddress;
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
@@ -167,16 +185,33 @@ class _AddressScreenState extends State<AddressScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             ScreenHeader(
-              title: hasSaved ? 'Delivery address' : 'Add address',
-              onBack: () => context.backOr(AppRoutes.account),
+              title: widget.isEditing ? 'Edit address' : 'Add address',
+              onBack: () => context.backOr(AppRoutes.addresses),
             ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 14, 22, 12),
                 children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 8),
+                    child: Text('Label', style: AppTheme.overline),
+                  ),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      for (final option in AddressLabel.values)
+                        _LabelChip(
+                          label: option.display,
+                          selected: _label == option,
+                          onTap: () => setState(() => _label = option),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   _field(
                     key: 'name',
-                    label: 'Full name',
+                    label: 'Recipient name',
                     hint: 'Who receives the parcel',
                     controller: _name,
                     action: TextInputAction.next,
@@ -248,6 +283,14 @@ class _AddressScreenState extends State<AddressScreen> {
                       ),
                     ],
                   ),
+                  _DefaultSwitch(
+                    value: _makeDefault || isFirst,
+                    // The first address saved is the default by definition,
+                    // so the switch is locked on rather than pretending to
+                    // offer a choice.
+                    enabled: !isFirst,
+                    onChanged: (v) => setState(() => _makeDefault = v),
+                  ),
                 ],
               ),
             ),
@@ -257,10 +300,25 @@ class _AddressScreenState extends State<AddressScreen> {
                 border: Border(top: BorderSide(color: AppTheme.borderSoft)),
               ),
               padding: const EdgeInsets.fromLTRB(22, 12, 22, 26),
-              child: AppButton(
-                label: _saving ? 'Saving…' : 'Save address',
-                height: AppTheme.ctaHeightCompact,
-                onPressed: _saving ? null : _save,
+              child: Column(
+                children: [
+                  AppButton(
+                    label: _saving
+                        ? 'Saving…'
+                        : (widget.isEditing ? 'Save changes' : 'Add address'),
+                    height: AppTheme.ctaHeightCompact,
+                    onPressed: _saving ? null : _save,
+                  ),
+                  const SizedBox(height: 10),
+                  AppButton(
+                    label: 'Cancel',
+                    variant: AppButtonVariant.outline,
+                    height: 48,
+                    onPressed: _saving
+                        ? null
+                        : () => context.backOr(AppRoutes.addresses),
+                  ),
+                ],
               ),
             ),
           ],
@@ -310,6 +368,120 @@ class _AddressScreenState extends State<AddressScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _LabelChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _LabelChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          constraints: const BoxConstraints(minHeight: 42),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? AppTheme.tint : AppTheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? AppTheme.action : AppTheme.border,
+            ),
+          ),
+          child: Text(
+            label,
+            style: AppTheme.font(
+              size: 14,
+              weight: FontWeight.w700,
+              color: selected ? AppTheme.action : AppTheme.body,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DefaultSwitch extends StatelessWidget {
+  final bool value;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  const _DefaultSwitch({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: enabled ? 1 : 0.6,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: enabled ? () => onChanged(!value) : null,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 58),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppTheme.tintPanel,
+            borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
+            border: Border.all(color: AppTheme.border),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  enabled
+                      ? 'Set as default delivery address'
+                      : 'This will be your default address',
+                  style: AppTheme.font(
+                    size: 13.5,
+                    weight: FontWeight.w700,
+                    color: AppTheme.ink,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 42,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: value ? AppTheme.action : AppTheme.dotInactive,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment:
+                    value ? Alignment.centerRight : Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

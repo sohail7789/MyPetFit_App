@@ -6,8 +6,8 @@ import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../providers/address_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../providers/pet_info_provider.dart';
-import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/design_image.dart';
 import '../../widgets/settings_tile.dart';
@@ -42,9 +42,15 @@ class OwnerProfileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // The design puts Edit in the header rather than as a button
+            // below the details.
             ScreenHeader(
               title: 'Owner profile',
               onBack: () => context.backOr(AppRoutes.account),
+              trailing: _HeaderAction(
+                label: 'Edit',
+                onTap: () => context.push(AppRoutes.ownerEdit),
+              ),
             ),
             Expanded(
               child: ListView(
@@ -98,11 +104,7 @@ class OwnerProfileScreen extends StatelessWidget {
                           label: 'Contact number',
                           value: owner?.contactNumber ?? '',
                         ),
-                        _Row(
-                          label: 'Email',
-                          value: owner?.email ?? '',
-                          last: auth.email.trim().isEmpty,
-                        ),
+                        _Row(label: 'Email', value: owner?.email ?? ''),
                         // Only worth showing when it differs from the contact
                         // email — otherwise it just reads as a duplicate row.
                         if (auth.email.trim().isNotEmpty &&
@@ -112,16 +114,22 @@ class OwnerProfileScreen extends StatelessWidget {
                             label: 'Sign-in email',
                             value: auth.email,
                             note: 'Managed by your account',
-                            last: true,
                           ),
+                        _Row(
+                          label: 'Veterinarian',
+                          value: owner?.vetName ?? '',
+                        ),
+                        _Row(
+                          label: 'Vet contact',
+                          value: owner?.vetContact ?? '',
+                        ),
+                        _Row(
+                          label: 'Language',
+                          value: context.watch<LocaleProvider>().current.name,
+                          last: true,
+                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  AppButton(
-                    label: 'Edit profile',
-                    height: 52,
-                    onPressed: () => context.push(AppRoutes.ownerEdit),
                   ),
                   const SizedBox(height: 18),
                   const Padding(
@@ -136,7 +144,7 @@ class OwnerProfileScreen extends StatelessWidget {
                         label: address == null
                             ? 'Add a delivery address'
                             : 'Delivery address',
-                        onTap: () => context.push(AppRoutes.address),
+                        onTap: () => context.push(AppRoutes.addresses),
                       ),
                       SettingsTile(
                         icon: Icons.pets_rounded,
@@ -163,6 +171,36 @@ class OwnerProfileScreen extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The design's header-level "Edit" link.
+class _HeaderAction extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _HeaderAction({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          child: Text(
+            label,
+            style: AppTheme.font(
+              size: 14,
+              weight: FontWeight.w700,
+              color: AppTheme.action,
+            ),
+          ),
         ),
       ),
     );
