@@ -181,6 +181,102 @@ void main() {
     });
   });
 
+  group('in-progress answers are scoped to a pet', () {
+    /// Answers just the first category, leaving the assessment part-done.
+    void startAssessment(QuizProvider quiz) {
+      final first = healthCategories.first.questions.first;
+      quiz.selectAnswer(first.id, first.answers.first);
+    }
+
+    test('a part-finished assessment does not follow you to another pet', () {
+      final quiz = QuizProvider()..bindPet('pet_a');
+      startAssessment(quiz);
+      expect(quiz.answeredCount, 1);
+
+      quiz.bindPet('pet_b');
+
+      // The reported wart: the other pet's resume card offered progress that
+      // was never theirs.
+      expect(quiz.answeredCount, 0);
+      expect(quiz.hasResumableProgress, isFalse);
+
+      quiz.bindPet('pet_a');
+      expect(quiz.answeredCount, 1);
+    });
+
+    test('each pet keeps its own place in the questionnaire', () {
+      final quiz = QuizProvider()..bindPet('pet_a');
+      quiz.goToCategory(4);
+      expect(quiz.currentCategoryIndex, 4);
+
+      quiz.bindPet('pet_b');
+      expect(quiz.currentCategoryIndex, 0);
+
+      quiz.bindPet('pet_a');
+      expect(quiz.currentCategoryIndex, 4);
+    });
+
+    test('retaking clears only the pet being retaken', () {
+      final quiz = QuizProvider()..bindPet('pet_a');
+      startAssessment(quiz);
+      quiz.bindPet('pet_b');
+      startAssessment(quiz);
+
+      quiz.reset();
+      expect(quiz.answeredCount, 0);
+
+      quiz.bindPet('pet_a');
+      expect(quiz.answeredCount, 1);
+    });
+
+    test('removing a pet drops their part-finished assessment too', () {
+      final quiz = QuizProvider()..bindPet('pet_a');
+      startAssessment(quiz);
+
+      quiz.clearResultsFor('pet_a');
+
+      expect(quiz.answeredCount, 0);
+    });
+
+    test('progress survives a reload against the right pet', () async {
+      final quiz = QuizProvider()..bindPet('pet_a');
+      startAssessment(quiz);
+      quiz.goToCategory(2);
+
+      final reloaded = QuizProvider();
+      await reloaded.init();
+
+      reloaded.bindPet('pet_b');
+      expect(reloaded.answeredCount, 0);
+
+      reloaded.bindPet('pet_a');
+      expect(reloaded.answeredCount, 1);
+      expect(reloaded.currentCategoryIndex, 2);
+    });
+
+    test('a part-finished assessment from before pets is claimed once',
+        () async {
+      final first = healthCategories.first.questions.first;
+      SharedPreferences.setMockInitialValues({
+        'quiz_state': jsonEncode({
+          'categoryIndex': 3,
+          'answers': {first.id: first.answers.first.id},
+        }),
+      });
+
+      final quiz = QuizProvider();
+      await quiz.init();
+      quiz.bindPet('pet_a');
+
+      expect(quiz.answeredCount, 1);
+      expect(quiz.currentCategoryIndex, 3);
+
+      // Not handed to every other pet as a side effect.
+      quiz.bindPet('pet_b');
+      expect(quiz.answeredCount, 0);
+    });
+  });
+
   group('persistence', () {
     test('survives a reload with its pet intact', () async {
       final quiz = QuizProvider()..bindPet('pet_a');

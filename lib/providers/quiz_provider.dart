@@ -5,6 +5,73 @@ import '../data/questions_data.dart';
 import '../models/question.dart';
 import '../models/score_result.dart';
 
+/// One pet's in-progress assessment.
+///
+/// Answers are held per pet for the same reason results are: switching pets
+/// mid-questionnaire used to carry the part-finished answers across, so the
+/// other pet's resume card offered progress that was never theirs.
+class _QuizDraft {
+  _QuizDraft();
+
+  int categoryIndex = 0;
+  final Map<String, Answer> answers = {};
+  final Map<String, Set<String>> multi = {};
+  final Map<String, String> texts = {};
+
+  bool get isEmpty =>
+      categoryIndex == 0 && answers.isEmpty && multi.isEmpty && texts.isEmpty;
+
+  Map<String, dynamic> toJson() => {
+        'categoryIndex': categoryIndex,
+        'answers': answers.map((k, v) => MapEntry(k, v.id)),
+        'multi': multi.map((k, v) => MapEntry(k, v.toList())),
+        'texts': texts,
+      };
+
+  /// Also parses the pre-per-pet payload, which carried these same keys at
+  /// the top level of the saved state.
+  factory _QuizDraft.fromJson(Map<String, dynamic> json) {
+    final draft = _QuizDraft();
+
+    draft.categoryIndex = (json['categoryIndex'] as num?)?.toInt().clamp(
+              0,
+              healthCategories.length - 1,
+            ) ??
+        0;
+
+    // Answers persist by option id and are resolved back against the
+    // questionnaire, so a changed question simply drops its old answer.
+    final answers = json['answers'] as Map<String, dynamic>?;
+    if (answers != null) {
+      for (final question in allQuestions) {
+        final id = answers[question.id];
+        if (id is! String) continue;
+        for (final option in question.answers) {
+          if (option.id == id) {
+            draft.answers[question.id] = option;
+            break;
+          }
+        }
+      }
+    }
+
+    final multi = json['multi'] as Map<String, dynamic>?;
+    if (multi != null) {
+      for (final entry in multi.entries) {
+        final ids = (entry.value as List?)?.whereType<String>().toSet();
+        if (ids != null && ids.isNotEmpty) draft.multi[entry.key] = ids;
+      }
+    }
+
+    final texts = json['texts'] as Map<String, dynamic>?;
+    texts?.forEach((k, v) {
+      if (v is String) draft.texts[k] = v;
+    });
+
+    return draft;
+  }
+}
+
 /// Holds assessment progress and computes the fitness index.
 ///
 /// Scoring follows the design exactly: an unanswered scored question counts as
@@ -14,13 +81,25 @@ class QuizProvider extends ChangeNotifier {
   static const int maxHistory = 5;
   static const _key = 'quiz_state';
 
-  int _currentCategoryIndex = 0;
-  final Map<String, Answer> _selectedAnswers = {};
+  /// In-progress answers, one draft per pet.
+  final Map<String, _QuizDraft> _drafts = {};
+
+  /// Key for progress recorded before any pet existed.
+  static const String _noPet = '';
+
+  _QuizDraft get _draft =>
+      _drafts.putIfAbsent(_activePetId ?? _noPet, _QuizDraft.new);
+
+  // The rest of the class reads progress through these, so scoping it per
+  // pet did not have to touch every question-handling method.
+  int get _currentCategoryIndex => _draft.categoryIndex;
+  set _currentCategoryIndex(int value) => _draft.categoryIndex = value;
+  Map<String, Answer> get _selectedAnswers => _draft.answers;
 
   /// Selected option ids for multi-select questions.
-  final Map<String, Set<String>> _multiAnswers = {};
+  Map<String, Set<String>> get _multiAnswers => _draft.multi;
 
-  final Map<String, String> _textFieldValues = {};
+  Map<String, String> get _textFieldValues => _draft.texts;
 
   /// Every completed assessment, newest first, across all pets. The public
   /// getters filter this down to the bound pet.
@@ -134,6 +213,15 @@ class QuizProvider extends ChangeNotifier {
         changed = true;
       }
     }
+
+    // A part-finished assessment from before pets were tracked belongs to
+    // the same pet as the history it sits beside.
+    final orphan = _drafts.remove(_noPet);
+    if (orphan != null && !orphan.isEmpty && !_drafts.containsKey(petId)) {
+      _drafts[petId] = orphan;
+      changed = true;
+    }
+
     return changed;
   }
 
@@ -264,10 +352,7 @@ class QuizProvider extends ChangeNotifier {
   /// report was still sitting in history. [calculateResult] replaces the
   /// result on completion, which is the only point at which it should change.
   void reset() {
-    _currentCategoryIndex = 0;
-    _selectedAnswers.clear();
-    _multiAnswers.clear();
-    _textFieldValues.clear();
+    _drafts.remove(_activePetId ?? _noPet);
     _persistProgress();
     notifyListeners();
   }
@@ -277,17 +362,15 @@ class QuizProvider extends ChangeNotifier {
   void clearResultsFor(String petId) {
     final before = _allHistory.length;
     _allHistory.removeWhere((r) => r.petId == petId);
-    if (_allHistory.length == before) return;
+    final hadDraft = _drafts.remove(petId) != null;
+    if (_allHistory.length == before && !hadDraft) return;
     _persist();
     notifyListeners();
   }
 
   /// Wipes both in-memory state and the persisted key. Called on sign-out.
   Future<void> resetAll() async {
-    _currentCategoryIndex = 0;
-    _selectedAnswers.clear();
-    _multiAnswers.clear();
-    _textFieldValues.clear();
+    _drafts.clear();
     _allHistory.clear();
     _activePetId = null;
     _stampedLegacy = false;
@@ -318,44 +401,19 @@ class QuizProvider extends ChangeNotifier {
           _allHistory.add(ScoreResult.fromJson(resultJson));
         }
 
-        _currentCategoryIndex =
-            (json['categoryIndex'] as num?)?.toInt().clamp(
-                      0,
-                      healthCategories.length - 1,
-                    ) ??
-                0;
-
-        // Answers persist by option id and are resolved back against the
-        // questionnaire, so a changed question simply drops its old answer.
-        final answers = json['answers'] as Map<String, dynamic>?;
-        if (answers != null) {
-          for (final question in allQuestions) {
-            final id = answers[question.id];
-            if (id is! String) continue;
-            for (final option in question.answers) {
-              if (option.id == id) {
-                _selectedAnswers[question.id] = option;
-                break;
-              }
+        final draftsJson = json['drafts'] as Map<String, dynamic>?;
+        if (draftsJson != null) {
+          draftsJson.forEach((key, value) {
+            if (value is Map<String, dynamic>) {
+              _drafts[key] = _QuizDraft.fromJson(value);
             }
-          }
-        }
-
-        final multi = json['multi'] as Map<String, dynamic>?;
-        if (multi != null) {
-          for (final entry in multi.entries) {
-            final ids = (entry.value as List?)?.whereType<String>().toSet();
-            if (ids != null && ids.isNotEmpty) {
-              _multiAnswers[entry.key] = ids;
-            }
-          }
-        }
-
-        final texts = json['texts'] as Map<String, dynamic>?;
-        if (texts != null) {
-          texts.forEach((k, v) {
-            if (v is String) _textFieldValues[k] = v;
           });
+        } else {
+          // Pre-per-pet payload: progress sat at the top level. The draft
+          // parser reads those keys directly, and the first bind with a real
+          // pet claims it — see [_claimLegacyFor].
+          final legacy = _QuizDraft.fromJson(json);
+          if (!legacy.isEmpty) _drafts[_noPet] = legacy;
         }
       } catch (_) {
         // Corrupt payload — start empty.
@@ -367,10 +425,11 @@ class QuizProvider extends ChangeNotifier {
 
   Map<String, dynamic> _snapshot() => {
         'history': _allHistory.map((r) => r.toJson()).toList(),
-        'categoryIndex': _currentCategoryIndex,
-        'answers': _selectedAnswers.map((k, v) => MapEntry(k, v.id)),
-        'multi': _multiAnswers.map((k, v) => MapEntry(k, v.toList())),
-        'texts': _textFieldValues,
+        // Empty drafts are dropped rather than written as noise.
+        'drafts': {
+          for (final entry in _drafts.entries)
+            if (!entry.value.isEmpty) entry.key: entry.value.toJson(),
+        },
       };
 
   Future<void> _persist() async {
