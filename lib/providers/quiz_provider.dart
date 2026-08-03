@@ -21,8 +21,17 @@ class QuizProvider extends ChangeNotifier {
   final Map<String, Set<String>> _multiAnswers = {};
 
   final Map<String, String> _textFieldValues = {};
-  ScoreResult? _result;
-  final List<ScoreResult> _assessmentHistory = [];
+
+  /// Every completed assessment, newest first, across all pets. The public
+  /// getters filter this down to the bound pet.
+  final List<ScoreResult> _allHistory = [];
+
+  /// Whose results the getters report. Set by [bindPet] from the active pet.
+  String? _activePetId;
+
+  /// Guards the one-time stamping of pre-per-pet records.
+  bool _stampedLegacy = false;
+
   bool _isLoaded = false;
 
   // --- Getters ---------------------------------------------------------
@@ -71,14 +80,62 @@ class QuizProvider extends ChangeNotifier {
 
   bool get canGoBack => _currentCategoryIndex > 0;
 
-  ScoreResult? get result => _result;
+  /// The bound pet's most recent result.
+  ///
+  /// Derived from history rather than held separately. The two used to be
+  /// independent fields, which let them disagree — that is exactly how
+  /// starting a retake managed to blank the current score while a perfectly
+  /// good report sat in history.
+  ScoreResult? get result =>
+      assessmentHistory.isEmpty ? null : assessmentHistory.first;
 
-  /// Last 5 completed assessments, newest first.
-  List<ScoreResult> get assessmentHistory =>
-      List.unmodifiable(_assessmentHistory);
+  /// The bound pet's last [maxHistory] assessments, newest first.
+  List<ScoreResult> get assessmentHistory => List.unmodifiable(
+        _allHistory.where((r) => r.petId == _activePetId),
+      );
 
-  bool get hasCompletedAssessment =>
-      _result != null || _assessmentHistory.isNotEmpty;
+  bool get hasCompletedAssessment => assessmentHistory.isNotEmpty;
+
+  /// [petId]'s assessments, newest first, regardless of which pet is bound.
+  ///
+  /// The pet profile can show a pet that isn't the active one, so it cannot
+  /// go through the bound getters without reporting another pet's score.
+  List<ScoreResult> historyFor(String petId) =>
+      List.unmodifiable(_allHistory.where((r) => r.petId == petId));
+
+  /// [petId]'s most recent result, or null if they have never been assessed.
+  ScoreResult? resultFor(String petId) {
+    final theirs = historyFor(petId);
+    return theirs.isEmpty ? null : theirs.first;
+  }
+
+  /// Points the getters at [petId]'s results.
+  ///
+  /// Wired to the active pet in `main.dart`. Records written before results
+  /// were scoped carry no pet id; the first bind with a real pet claims them,
+  /// so a single-pet user keeps their history rather than appearing to have
+  /// never taken the assessment.
+  void bindPet(String? petId) {
+    final claimed = _claimLegacyFor(petId);
+    if (_activePetId == petId && !claimed) return;
+    _activePetId = petId;
+    if (claimed) _persist();
+    notifyListeners();
+  }
+
+  bool _claimLegacyFor(String? petId) {
+    if (_stampedLegacy || petId == null) return false;
+    _stampedLegacy = true;
+
+    var changed = false;
+    for (var i = 0; i < _allHistory.length; i++) {
+      if (_allHistory[i].petId == null) {
+        _allHistory[i] = _allHistory[i].copyWith(petId: petId);
+        changed = true;
+      }
+    }
+    return changed;
+  }
 
   Answer? selectedAnswerFor(String questionId) => _selectedAnswers[questionId];
 
@@ -168,21 +225,31 @@ class QuizProvider extends ChangeNotifier {
         if (c.maxScore > 0) c.name: categoryPercent(c),
     };
 
-    _result = ScoreResult.calculate(
+    final result = ScoreResult.calculate(
       rawScore: rawScore,
       minPossibleScore: assessmentMinScore,
       maxPossibleScore: assessmentMaxScore,
       categoryScores: catScores,
+      petId: _activePetId,
     );
 
-    _assessmentHistory.insert(0, _result!);
-    if (_assessmentHistory.length > maxHistory) {
-      _assessmentHistory.removeLast();
-    }
+    _allHistory.insert(0, result);
+    _trimHistoryFor(_activePetId);
 
     _persist();
     notifyListeners();
-    return _result!;
+    return result;
+  }
+
+  /// Keeps [maxHistory] per pet rather than across the whole list, so a
+  /// household with several pets doesn't push one pet's reports out by
+  /// assessing another.
+  void _trimHistoryFor(String? petId) {
+    final theirs = _allHistory.where((r) => r.petId == petId).toList();
+    if (theirs.length <= maxHistory) return;
+    for (final stale in theirs.sublist(maxHistory)) {
+      _allHistory.remove(stale);
+    }
   }
 
   // --- Lifecycle -------------------------------------------------------
@@ -205,14 +272,25 @@ class QuizProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Discards every result for [petId]. Called when a pet is removed, so a
+  /// deleted pet's reports don't linger against an id nothing points at.
+  void clearResultsFor(String petId) {
+    final before = _allHistory.length;
+    _allHistory.removeWhere((r) => r.petId == petId);
+    if (_allHistory.length == before) return;
+    _persist();
+    notifyListeners();
+  }
+
   /// Wipes both in-memory state and the persisted key. Called on sign-out.
   Future<void> resetAll() async {
     _currentCategoryIndex = 0;
     _selectedAnswers.clear();
     _multiAnswers.clear();
     _textFieldValues.clear();
-    _result = null;
-    _assessmentHistory.clear();
+    _allHistory.clear();
+    _activePetId = null;
+    _stampedLegacy = false;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_key);
     notifyListeners();
@@ -227,13 +305,17 @@ class QuizProvider extends ChangeNotifier {
       try {
         final json = jsonDecode(raw) as Map<String, dynamic>;
 
-        final resultJson = json['result'] as Map<String, dynamic>?;
-        if (resultJson != null) _result = ScoreResult.fromJson(resultJson);
-
         final historyJson = json['history'] as List?;
         if (historyJson != null) {
-          _assessmentHistory.addAll(historyJson
+          _allHistory.addAll(historyJson
               .map((e) => ScoreResult.fromJson(e as Map<String, dynamic>)));
+        }
+
+        // Older saves kept the newest result outside the history list. If it
+        // somehow isn't in there, fold it in rather than dropping it.
+        final resultJson = json['result'] as Map<String, dynamic>?;
+        if (resultJson != null && _allHistory.isEmpty) {
+          _allHistory.add(ScoreResult.fromJson(resultJson));
         }
 
         _currentCategoryIndex =
@@ -284,8 +366,7 @@ class QuizProvider extends ChangeNotifier {
   }
 
   Map<String, dynamic> _snapshot() => {
-        if (_result != null) 'result': _result!.toJson(),
-        'history': _assessmentHistory.map((r) => r.toJson()).toList(),
+        'history': _allHistory.map((r) => r.toJson()).toList(),
         'categoryIndex': _currentCategoryIndex,
         'answers': _selectedAnswers.map((k, v) => MapEntry(k, v.id)),
         'multi': _multiAnswers.map((k, v) => MapEntry(k, v.toList())),

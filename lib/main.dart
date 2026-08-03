@@ -66,13 +66,23 @@ Future<void> main() async {
     ),
   );
 
+  // Assessment results are stored per pet, so the quiz has to know which pet
+  // is active. Wired here rather than inside either provider so the
+  // dependency is visible in one place: pets own the selection, the quiz
+  // follows it.
+  void bindActivePet() =>
+      quizProvider.bindPet(petInfoProvider.activePet?.id);
+  petInfoProvider.addListener(bindActivePet);
+
   // Kick off persisted-state loads after the first frame has been scheduled.
   // The router re-evaluates its redirect when these land (see AppRoutes.build).
   WidgetsBinding.instance.addPostFrameCallback((_) {
     onboardingProvider.init();
     authProvider.init();
     petInfoProvider.init();
-    quizProvider.init();
+    // Pets first, then the quiz binds to whichever is active. Both loads are
+    // async, and the listener above covers whichever settles last.
+    quizProvider.init().then((_) => bindActivePet());
     cartProvider.init();
     localeProvider.init();
     addressProvider.init();

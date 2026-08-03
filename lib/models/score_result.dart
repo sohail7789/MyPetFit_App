@@ -55,6 +55,10 @@ class ScoreResult {
   final Map<String, double> categoryScores;
   final DateTime completedAt;
 
+  /// Which pet was assessed. Null on records written before results were
+  /// scoped per pet — [QuizProvider] stamps those once on first load.
+  final String? petId;
+
   const ScoreResult({
     required this.rawScore,
     required this.maxPossibleScore,
@@ -62,13 +66,25 @@ class ScoreResult {
     required this.category,
     this.categoryScores = const {},
     required this.completedAt,
+    this.petId,
   });
+
+  ScoreResult copyWith({String? petId}) => ScoreResult(
+        rawScore: rawScore,
+        maxPossibleScore: maxPossibleScore,
+        percentageScore: percentageScore,
+        category: category,
+        categoryScores: categoryScores,
+        completedAt: completedAt,
+        petId: petId ?? this.petId,
+      );
 
   factory ScoreResult.calculate({
     required int rawScore,
     required int minPossibleScore,
     required int maxPossibleScore,
     Map<String, double> categoryScores = const {},
+    String? petId,
   }) {
     // Normalised the way the design does it: the floor is the score you get
     // by picking the worst option everywhere, not zero.
@@ -83,6 +99,7 @@ class ScoreResult {
       category: _categoryFromScore(percentage),
       categoryScores: categoryScores,
       completedAt: DateTime.now(),
+      petId: petId,
     );
   }
 
@@ -102,6 +119,7 @@ class ScoreResult {
         'category': category.name,
         'categoryScores': categoryScores,
         'completedAt': completedAt.toIso8601String(),
+        if (petId != null) 'petId': petId,
       };
 
   factory ScoreResult.fromJson(Map<String, dynamic> json) => ScoreResult(
@@ -117,5 +135,6 @@ class ScoreResult {
             const {},
         completedAt: DateTime.tryParse(json['completedAt'] as String? ?? '') ??
             DateTime.now(),
+        petId: json['petId'] as String?,
       );
 }

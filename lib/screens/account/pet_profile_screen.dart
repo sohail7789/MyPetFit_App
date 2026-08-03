@@ -82,7 +82,7 @@ class PetProfileScreen extends StatelessWidget {
                 children: [
                   _Header(pet: pet, isActive: isActive),
                   const SizedBox(height: 14),
-                  const _ScoreChip(),
+                  _ScoreChip(petId: pet.id),
                   const SizedBox(height: 18),
                   AppCard(
                     padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
@@ -114,7 +114,7 @@ class PetProfileScreen extends StatelessWidget {
                         ),
                         _DetailRow(
                           label: 'Last assessed',
-                          value: _lastAssessed(context),
+                          value: _lastAssessed(context, pet.id),
                           last: true,
                         ),
                       ],
@@ -155,9 +155,10 @@ class PetProfileScreen extends StatelessWidget {
     );
   }
 
-  /// When the most recent assessment was completed, or a dash.
-  static String _lastAssessed(BuildContext context) {
-    final result = context.read<QuizProvider>().result;
+  /// When this pet was last assessed. Scoped by id rather than reading the
+  /// bound result, because this screen can show a pet that isn't active.
+  static String _lastAssessed(BuildContext context, String petId) {
+    final result = context.watch<QuizProvider>().resultFor(petId);
     if (result == null) return '';
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -178,8 +179,8 @@ class PetProfileScreen extends StatelessWidget {
         ),
         title: Text('Remove $name?', style: AppTheme.h3),
         content: Text(
-          'Their profile is deleted from this device. Assessment history is '
-          'not affected.',
+          "Their profile and report cards are deleted from this device. "
+          "Your other pets are not affected.",
           style: AppTheme.bodyText,
         ),
         actions: [
@@ -210,6 +211,9 @@ class PetProfileScreen extends StatelessWidget {
     );
 
     if (confirmed != true || !context.mounted) return;
+    // Reports are keyed by pet id, so they go with the pet — otherwise they
+    // would sit in storage against an id nothing points at.
+    context.read<QuizProvider>().clearResultsFor(pet.id);
     context.read<PetInfoProvider>().removePet(petIndex);
     context.backOr(AppRoutes.pets);
   }
@@ -248,11 +252,13 @@ class _HeaderAction extends StatelessWidget {
 /// "FITNESS SCORE 72 · GOOD" — the band strip the design shows under the
 /// pet's name. Hidden until there is a score to show.
 class _ScoreChip extends StatelessWidget {
-  const _ScoreChip();
+  final String petId;
+
+  const _ScoreChip({required this.petId});
 
   @override
   Widget build(BuildContext context) {
-    final result = context.watch<QuizProvider>().result;
+    final result = context.watch<QuizProvider>().resultFor(petId);
     if (result == null) return const SizedBox.shrink();
 
     final band = result.category;
@@ -380,7 +386,7 @@ class _AssessmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final result = context.watch<QuizProvider>().result;
+    final result = context.watch<QuizProvider>().resultFor(pet.id);
     final name = pet.name.trim().isEmpty ? 'this pet' : pet.name.trim();
 
     return AppCard(
