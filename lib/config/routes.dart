@@ -11,6 +11,7 @@ import '../screens/account/address_screen.dart';
 import '../screens/account/delete_account_screen.dart';
 import '../screens/account/legal_screen.dart';
 import '../screens/account/my_pets_screen.dart';
+import '../screens/account/owner_profile_screen.dart';
 import '../screens/account/pet_profile_screen.dart';
 import '../screens/account/preferences_screens.dart';
 import '../screens/account/report_history_screen.dart';
@@ -96,6 +97,12 @@ class AppRoutes {
 
   /// Delivery address form — shared by checkout and account settings.
   static const address = '/account/address';
+
+  /// Owner profile (design 33c) and its editor (33e). The editor reuses the
+  /// assessment's owner form in [OwnerFormMode.edit] rather than duplicating
+  /// four identical fields.
+  static const ownerProfile = '/account/owner';
+  static const ownerEdit = '/account/owner/edit';
   static const reminders = '/account/reminders';
   static const language = '/account/language';
   static const terms = '/terms'; // 34
@@ -287,6 +294,17 @@ class AppRoutes {
         GoRoute(
           path: address,
           builder: (context, state) => const AddressScreen(),
+        ),
+        GoRoute(
+          path: ownerProfile,
+          builder: (context, state) => const OwnerProfileScreen(),
+          routes: [
+            GoRoute(
+              path: 'edit',
+              builder: (context, state) =>
+                  const OwnerInfoScreen(mode: OwnerFormMode.edit),
+            ),
+          ],
         ),
         GoRoute(
           path: reminders,

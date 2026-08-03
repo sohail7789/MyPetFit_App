@@ -110,21 +110,29 @@ void main() {
       await tester.pumpWidget(_host(const AccountScreen()));
       await tester.pump();
 
+      expect(find.text('Owner profile'), findsOneWidget);
       expect(find.text('My pets'), findsOneWidget);
       expect(find.text('Orders'), findsOneWidget);
+      expect(find.text('Delivery address'), findsOneWidget);
       expect(find.text('Reminders & notifications'), findsOneWidget);
-      expect(find.text('LEGAL & DATA'), findsOneWidget);
-      expect(find.text('Terms of Service'), findsOneWidget);
-      expect(find.text('Privacy Policy'), findsOneWidget);
-      expect(find.text('Delete account'), findsOneWidget);
 
-      // The list is taller than the test viewport.
-      await tester.scrollUntilVisible(
-        find.text('Log out'),
-        140,
-        scrollable: find.byType(Scrollable).last,
-      );
-      expect(find.text('Log out'), findsOneWidget);
+      // The list is taller than the test viewport and lazily built, so the
+      // legal group has to be scrolled to before it exists to assert on.
+      final scrollable = find.byType(Scrollable).last;
+      for (final label in [
+        'LEGAL & DATA',
+        'Terms of Service',
+        'Privacy Policy',
+        'Delete account',
+        'Log out',
+      ]) {
+        await tester.scrollUntilVisible(
+          find.text(label),
+          140,
+          scrollable: scrollable,
+        );
+        expect(find.text(label), findsOneWidget);
+      }
     });
   });
 

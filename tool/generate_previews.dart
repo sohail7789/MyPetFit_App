@@ -13,6 +13,7 @@ import 'package:mypetfit_app/providers/cart_provider.dart';
 import 'package:mypetfit_app/providers/locale_provider.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';
 import 'package:mypetfit_app/providers/quiz_provider.dart';
+import 'package:mypetfit_app/screens/account/owner_profile_screen.dart';
 import 'package:mypetfit_app/screens/auth/sign_in_screen.dart';
 import 'package:mypetfit_app/screens/pet_info/owner_info_screen.dart';
 import 'package:mypetfit_app/screens/shop/shop_screen.dart';
@@ -133,6 +134,23 @@ void main() {
 
   testWidgets('owner details at 1.3', (t) async {
     await capture(t, 'owner-1.3', const OwnerInfoScreen(), 1.3);
+  });
+
+  testWidgets('owner profile at 1.0', (t) async {
+    await capture(t, 'owner-profile-1.0', const OwnerProfileScreen(), 1);
+  });
+
+  testWidgets('owner profile at 1.3', (t) async {
+    await capture(t, 'owner-profile-1.3', const OwnerProfileScreen(), 1.3);
+  });
+
+  testWidgets('edit owner at 1.3', (t) async {
+    await capture(
+      t,
+      'owner-edit-1.3',
+      const OwnerInfoScreen(mode: OwnerFormMode.edit),
+      1.3,
+    );
   });
 
   testWidgets('shop at 1.0', (t) async {

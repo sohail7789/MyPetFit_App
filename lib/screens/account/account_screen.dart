@@ -64,11 +64,18 @@ class AccountScreen extends StatelessWidget {
                       if (auth.email.isNotEmpty) auth.email,
                       '$petCount ${petCount == 1 ? 'pet' : 'pets'}',
                     ].join(' · '),
-                    onEdit: () => context.push(AppRoutes.pets),
+                    // The design's profile card carries an "Edit" link; it
+                    // belongs on the owner profile, not My pets.
+                    onEdit: () => context.push(AppRoutes.ownerProfile),
                   ),
                   const SizedBox(height: 14),
                   SettingsGroup(
                     children: [
+                      SettingsTile(
+                        icon: Icons.person_outline_rounded,
+                        label: 'Owner profile',
+                        onTap: () => context.push(AppRoutes.ownerProfile),
+                      ),
                       SettingsTile(
                         icon: Icons.pets_rounded,
                         label: 'My pets',

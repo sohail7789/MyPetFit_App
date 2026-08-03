@@ -10,9 +10,27 @@ import '../../widgets/app_button.dart';
 import '../../widgets/design_image.dart';
 import '../../widgets/labeled_field.dart';
 
-/// Screen 11 — Owner details.
+/// Which flow this form is serving.
+///
+/// Same reasoning as [PetFormMode]: inside the assessment this is step 2 of
+/// 3 and continues to pet details, but from the owner profile it is an
+/// editor that saves and returns. The fields are identical, so the form is
+/// shared rather than duplicated.
+enum OwnerFormMode {
+  /// Step 2 of the first-run assessment. Saves, then continues to pet details.
+  onboarding,
+
+  /// Editing from the owner profile (design screen 33e). Saves and returns.
+  edit,
+}
+
+/// Screen 11 — Owner details, and 33e when opened from the owner profile.
 class OwnerInfoScreen extends StatefulWidget {
-  const OwnerInfoScreen({super.key});
+  final OwnerFormMode mode;
+
+  const OwnerInfoScreen({super.key, this.mode = OwnerFormMode.onboarding});
+
+  bool get isEditing => mode == OwnerFormMode.edit;
 
   @override
   State<OwnerInfoScreen> createState() => _OwnerInfoScreenState();
@@ -57,6 +75,12 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
       return;
     }
 
+    final email = _email.text.trim();
+    if (email.isNotEmpty && !_emailLooksValid(email)) {
+      setState(() => _error = 'That email address looks wrong.');
+      return;
+    }
+
     context.read<PetInfoProvider>().setOwnerInfo(
           OwnerInfo(
             name: name,
@@ -79,8 +103,21 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
       );
     }
 
+    if (widget.isEditing) {
+      // backOr, not pop: reached from a deep link or after a stack
+      // replacement there is nothing to pop, and go_router throws.
+      context.backOr(AppRoutes.ownerProfile);
+      return;
+    }
+
     context.push(AppRoutes.petInfo);
   }
+
+  /// Deliberately permissive — this is a contact field, not a login, and a
+  /// regex strict enough to be worth arguing about would reject real
+  /// addresses. It only catches obvious typos.
+  static bool _emailLooksValid(String value) =>
+      RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value);
 
   @override
   Widget build(BuildContext context) {
@@ -99,16 +136,23 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                     icon: Icons.arrow_back_ios_new_rounded,
                     size: 44,
                     semanticLabel: 'Back',
-                    onPressed: () => context.backOr(AppRoutes.home),
+                    onPressed: () => context.backOr(
+                      widget.isEditing
+                          ? AppRoutes.ownerProfile
+                          : AppRoutes.home,
+                    ),
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    'Owner details',
+                    widget.isEditing ? 'Edit profile' : 'Owner details',
                     style: AppTheme.h1.copyWith(fontSize: 26, letterSpacing: -1),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Step 2 of 3 · so your report can reach you.',
+                    widget.isEditing
+                        ? 'These details go on the report you share with '
+                            'your vet.'
+                        : 'Step 2 of 3 · so your report can reach you.',
                     style: AppTheme.font(
                       size: 14,
                       color: AppTheme.body,
@@ -162,6 +206,10 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                     ),
+                    // Assessment-only: the vet belongs to a pet record, and
+                    // editing the owner profile has no single pet in view, so
+                    // asking for "the" vet there would be ambiguous.
+                    if (!widget.isEditing) ...[
                     const SizedBox(height: 12),
                     LabeledField(
                       label: 'Veterinarian name & contact',
@@ -177,6 +225,7 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                       shadow: true,
                       semanticLabel: 'Waving puppy',
                     ),
+                    ],
                   ],
                 ),
               ),
@@ -184,7 +233,7 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(26, 16, 26, 30),
               child: AppButton(
-                label: 'Continue',
+                label: widget.isEditing ? 'Save changes' : 'Continue',
                 height: AppTheme.ctaHeightCompact,
                 onPressed: _continue,
               ),
