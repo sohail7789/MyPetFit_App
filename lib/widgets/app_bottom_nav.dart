@@ -28,9 +28,9 @@ class AppBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
-        border: Border(top: BorderSide(color: AppTheme.borderSoft)),
+      decoration: BoxDecoration(
+        color: context.c.surface,
+        border: Border(top: BorderSide(color: context.c.borderSoft)),
       ),
       child: SafeArea(
         top: false,
@@ -86,7 +86,7 @@ class _NavItem extends StatelessWidget {
           height: 40,
           padding: EdgeInsets.symmetric(horizontal: active ? 16 : 12),
           decoration: BoxDecoration(
-            color: active ? AppTheme.tint : Colors.transparent,
+            color: active ? context.c.tint : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -95,7 +95,7 @@ class _NavItem extends StatelessWidget {
               Icon(
                 icon,
                 size: 21,
-                color: active ? AppTheme.action : AppTheme.muted,
+                color: active ? context.c.actionText : context.c.muted,
               ),
               // Only the active tab carries a label, per the design.
               if (active) ...[
@@ -105,7 +105,7 @@ class _NavItem extends StatelessWidget {
                   style: AppTheme.font(
                     size: 12.5,
                     weight: FontWeight.w800,
-                    color: AppTheme.action,
+                    color: context.c.actionText,
                   ),
                 ),
               ],

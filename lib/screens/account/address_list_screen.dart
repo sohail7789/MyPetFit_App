@@ -22,7 +22,7 @@ class AddressListScreen extends StatelessWidget {
     final addresses = provider.addresses;
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -72,14 +72,14 @@ class AddressListScreen extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: context.c.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusCard),
         ),
-        title: Text('Remove this address?', style: AppTheme.h3),
+        title: Text('Remove this address?', style: context.t.h3),
         content: Text(
           '${address.label.display} · ${address.formatted}',
-          style: AppTheme.bodyText,
+          style: context.t.bodyText,
         ),
         actions: [
           TextButton(
@@ -89,7 +89,7 @@ class AddressListScreen extends StatelessWidget {
               style: AppTheme.font(
                 size: 14,
                 weight: FontWeight.w700,
-                color: AppTheme.body,
+                color: context.c.body,
               ),
             ),
           ),
@@ -100,7 +100,7 @@ class AddressListScreen extends StatelessWidget {
               style: AppTheme.font(
                 size: 14,
                 weight: FontWeight.w700,
-                color: AppTheme.danger,
+                color: context.c.dangerText,
               ),
             ),
           ),
@@ -126,19 +126,19 @@ class _Empty extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.location_off_outlined,
               size: 48,
-              color: AppTheme.dotInactive,
+              color: context.c.dotInactive,
             ),
             const SizedBox(height: 14),
-            Text('No addresses yet', style: AppTheme.h2),
+            Text('No addresses yet', style: context.t.h2),
             const SizedBox(height: 10),
             Text(
               'Add one so orders have somewhere to go. You can save a few '
               'and pick between them at checkout.',
               textAlign: TextAlign.center,
-              style: AppTheme.bodyText,
+              style: context.t.bodyText,
             ),
             const SizedBox(height: 22),
             AppButton(label: 'Add an address', onPressed: onAdd),
@@ -177,10 +177,10 @@ class _AddressCard extends StatelessWidget {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
           decoration: BoxDecoration(
-            color: isDefault ? AppTheme.tintPanel : AppTheme.surface,
+            color: isDefault ? context.c.tintPanel : context.c.surface,
             borderRadius: BorderRadius.circular(AppTheme.radiusCard),
             border: Border.all(
-              color: isDefault ? AppTheme.action : AppTheme.border,
+              color: isDefault ? context.c.actionText : context.c.border,
               width: isDefault ? 1.5 : 1,
             ),
           ),
@@ -195,11 +195,11 @@ class _AddressCard extends StatelessWidget {
                     height: 20,
                     margin: const EdgeInsets.only(top: 2),
                     decoration: BoxDecoration(
-                      color: isDefault ? AppTheme.action : AppTheme.surface,
+                      color: isDefault ? context.c.action : context.c.surface,
                       shape: BoxShape.circle,
                       border: Border.all(
                         color:
-                            isDefault ? AppTheme.action : AppTheme.dotInactive,
+                            isDefault ? context.c.actionText : context.c.dotInactive,
                         width: 1.5,
                       ),
                     ),
@@ -208,8 +208,8 @@ class _AddressCard extends StatelessWidget {
                         ? Container(
                             width: 8,
                             height: 8,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
+                            decoration: BoxDecoration(
+                              color: context.c.onAccent,
                               shape: BoxShape.circle,
                             ),
                           )
@@ -231,7 +231,7 @@ class _AddressCard extends StatelessWidget {
                               style: AppTheme.font(
                                 size: 14.5,
                                 weight: FontWeight.w800,
-                                color: AppTheme.ink,
+                                color: context.c.ink,
                               ),
                             ),
                             if (isDefault)
@@ -241,7 +241,7 @@ class _AddressCard extends StatelessWidget {
                                   vertical: 3,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.tint,
+                                  color: context.c.tint,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
@@ -249,7 +249,7 @@ class _AddressCard extends StatelessWidget {
                                   style: AppTheme.font(
                                     size: 10,
                                     weight: FontWeight.w800,
-                                    color: AppTheme.action,
+                                    color: context.c.actionText,
                                     letterSpacing: 0.6,
                                   ),
                                 ),
@@ -262,7 +262,7 @@ class _AddressCard extends StatelessWidget {
                           style: AppTheme.font(
                             size: 13.5,
                             weight: FontWeight.w700,
-                            color: AppTheme.ink,
+                            color: context.c.ink,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -270,7 +270,7 @@ class _AddressCard extends StatelessWidget {
                           address.multiline,
                           style: AppTheme.font(
                             size: 13,
-                            color: AppTheme.body,
+                            color: context.c.body,
                             height: 1.5,
                           ),
                         ),
@@ -280,7 +280,7 @@ class _AddressCard extends StatelessWidget {
                             address.phone,
                             style: AppTheme.font(
                               size: 13,
-                              color: AppTheme.body,
+                              color: context.c.body,
                             ),
                           ),
                         ],
@@ -299,7 +299,7 @@ class _AddressCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   _CardAction(
                     label: 'Remove',
-                    color: AppTheme.danger,
+                    color: context.c.dangerText,
                     onTap: onRemove,
                   ),
                 ],
@@ -314,13 +314,15 @@ class _AddressCard extends StatelessWidget {
 
 class _CardAction extends StatelessWidget {
   final String label;
-  final Color color;
+
+  /// Defaults to the action accent for the active appearance.
+  final Color? color;
   final VoidCallback onTap;
 
   const _CardAction({
     required this.label,
     required this.onTap,
-    this.color = AppTheme.action,
+    this.color,
   });
 
   @override
@@ -337,7 +339,7 @@ class _CardAction extends StatelessWidget {
             style: AppTheme.font(
               size: 13,
               weight: FontWeight.w700,
-              color: color,
+              color: color ?? context.c.actionText,
             ),
           ),
         ),

@@ -7,6 +7,7 @@ import 'package:mypetfit_app/config/theme.dart';
 import 'package:mypetfit_app/models/address.dart';
 import 'package:mypetfit_app/models/pet_info.dart';
 import 'package:mypetfit_app/providers/address_provider.dart';
+import 'package:mypetfit_app/providers/theme_provider.dart';
 import 'package:mypetfit_app/providers/auth_provider.dart';
 import 'package:mypetfit_app/providers/locale_provider.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';
@@ -50,6 +51,7 @@ void main() {
         ChangeNotifierProvider.value(value: address ?? AddressProvider()),
         ChangeNotifierProvider.value(value: auth ?? AuthProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: MaterialApp.router(
         theme: AppTheme.light,

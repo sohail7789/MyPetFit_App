@@ -55,9 +55,9 @@ class _QuestionCardState extends State<QuestionCard> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFCFBFD),
+        color: context.c.surfaceLow,
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: context.c.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -72,7 +72,7 @@ class _QuestionCardState extends State<QuestionCard> {
                   style: AppTheme.font(
                     size: 12,
                     weight: FontWeight.w800,
-                    color: AppTheme.body,
+                    color: context.c.body,
                   ),
                 ),
               ),
@@ -82,7 +82,7 @@ class _QuestionCardState extends State<QuestionCard> {
                   style: AppTheme.font(
                     size: 15,
                     weight: FontWeight.w700,
-                    color: AppTheme.ink,
+                    color: context.c.ink,
                     height: 1.4,
                   ),
                 ),
@@ -149,16 +149,16 @@ class _Option extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 48),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF1EFF8) : AppTheme.surface,
+          color: selected ? context.c.surfaceRaised : context.c.surface,
           borderRadius: BorderRadius.circular(AppTheme.radiusField),
           border: Border.all(
-            color: selected ? AppTheme.action : AppTheme.border,
+            color: selected ? context.c.actionText : context.c.border,
             width: 1.5,
           ),
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: AppTheme.action.withValues(alpha: 0.35),
+                    color: context.c.action.withValues(alpha: 0.35),
                     blurRadius: 14,
                     spreadRadius: -10,
                     offset: const Offset(0, 6),
@@ -172,22 +172,22 @@ class _Option extends StatelessWidget {
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: selected ? AppTheme.action : AppTheme.surface,
+                color: selected ? context.c.action : context.c.surface,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: selected ? AppTheme.action : AppTheme.dotInactive,
+                  color: selected ? context.c.actionText : context.c.dotInactive,
                   width: 1.5,
                 ),
               ),
               alignment: Alignment.center,
               child: selected
-                  ? AppIcon(AppIcons.check(Colors.white, 3.4), size: 11)
+                  ? AppIcon(AppIcons.check(context.c.onAccent, 3.4), size: 11)
                   : Text(
                       mark ?? '',
                       style: AppTheme.font(
                         size: 11,
                         weight: FontWeight.w800,
-                        color: AppTheme.placeholder,
+                        color: context.c.placeholder,
                       ),
                     ),
             ),
@@ -198,7 +198,7 @@ class _Option extends StatelessWidget {
                 style: AppTheme.font(
                   size: 14,
                   weight: FontWeight.w600,
-                  color: selected ? AppTheme.ink : AppTheme.bodyStrong,
+                  color: selected ? context.c.ink : context.c.bodyStrong,
                   height: 1.35,
                 ),
               ),

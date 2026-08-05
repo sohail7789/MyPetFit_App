@@ -57,7 +57,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -71,8 +71,8 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                 padding: const EdgeInsets.fromLTRB(24, 18, 24, 20),
                 children: [
                   AppCard(
-                    background: AppTheme.bandCriticalTint,
-                    borderColor: AppTheme.bandCriticalLine,
+                    background: context.c.bandCriticalTint,
+                    borderColor: context.c.bandCriticalLine,
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,7 +82,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                           style: AppTheme.font(
                             size: 15,
                             weight: FontWeight.w800,
-                            color: AppTheme.critical,
+                            color: context.c.critical,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -94,7 +94,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                           'are retained as required by tax law.',
                           style: AppTheme.font(
                             size: 13,
-                            color: AppTheme.bodyStrong,
+                            color: context.c.bodyStrong,
                             height: 1.65,
                           ),
                         ),
@@ -107,7 +107,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                     style: AppTheme.font(
                       size: 13.5,
                       weight: FontWeight.w700,
-                      color: AppTheme.ink,
+                      color: context.c.ink,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -154,7 +154,7 @@ class AccountDeletedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -173,14 +173,14 @@ class AccountDeletedScreen extends StatelessWidget {
               Text(
                 'Your account is deleted',
                 textAlign: TextAlign.center,
-                style: AppTheme.h1.copyWith(fontSize: 26, letterSpacing: -1),
+                style: context.t.h1.copyWith(fontSize: 26, letterSpacing: -1),
               ),
               const SizedBox(height: 12),
               Text(
                 "We're sorry to see you go. Your profile and health history "
                 'will be fully removed within 30 days.',
                 textAlign: TextAlign.center,
-                style: AppTheme.bodyText,
+                style: context.t.bodyText,
               ),
               const SizedBox(height: 26),
               AppButton(

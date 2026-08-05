@@ -21,14 +21,14 @@ class WelcomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ScreenBackdrop(
-        colors: const [Color(0xFFFFFFFF), Color(0xFFFAF9FC), Color(0xFFEFECF5)],
+        colors: [context.c.surface, context.c.surfaceLow, context.c.tint],
         stops: const [0, 0.48, 1],
-        decoration: const [
+        decoration: [
           PawWatermark(
             top: 78,
             left: -14,
             size: 86,
-            color: AppTheme.action,
+            color: context.c.actionText,
             opacity: 0.07,
             rotationDegrees: -18,
           ),
@@ -36,7 +36,7 @@ class WelcomeScreen extends StatelessWidget {
             top: 150,
             right: 14,
             size: 54,
-            color: AppTheme.startLight,
+            color: context.c.startLight,
             opacity: 0.08,
             rotationDegrees: 14,
           ),
@@ -83,13 +83,13 @@ class WelcomeScreen extends StatelessWidget {
                     Text(
                       'Welcome!',
                       textAlign: TextAlign.center,
-                      style: AppTheme.h1Welcome,
+                      style: context.t.h1Welcome,
                     ),
                     const SizedBox(height: 10),
                     Text(
                       "Let's keep your pet healthy, happy\nand full of energy.",
                       textAlign: TextAlign.center,
-                      style: AppTheme.bodyText,
+                      style: context.t.bodyText,
                     ),
                     const SizedBox(height: 26),
                     AppButton(

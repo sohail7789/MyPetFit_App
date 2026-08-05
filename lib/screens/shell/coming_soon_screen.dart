@@ -18,22 +18,22 @@ class ComingSoonScreen extends StatelessWidget {
     final canPop = context.canPop();
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: Stack(
         children: [
-          const PawWatermark(
+          PawWatermark(
             top: 90,
             left: -14,
             size: 86,
-            color: AppTheme.action,
+            color: context.c.actionText,
             opacity: 0.07,
             rotationDegrees: -18,
           ),
-          const PawWatermark(
+          PawWatermark(
             top: 170,
             right: 10,
             size: 54,
-            color: AppTheme.startLight,
+            color: context.c.startLight,
             opacity: 0.08,
             rotationDegrees: 14,
           ),
@@ -51,16 +51,16 @@ class ComingSoonScreen extends StatelessWidget {
                         child: IconButton(
                           onPressed: () => context.pop(),
                           icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                          color: AppTheme.ink,
+                          color: context.c.ink,
                           iconSize: 20,
                         ),
                       ),
                     ),
                   const Spacer(),
-                  const Center(
+                  Center(
                     child: PawMark(
                       size: 64,
-                      color: AppTheme.action,
+                      color: context.c.actionText,
                       opacity: 0.18,
                     ),
                   ),
@@ -68,13 +68,13 @@ class ComingSoonScreen extends StatelessWidget {
                   Text(
                     title,
                     textAlign: TextAlign.center,
-                    style: AppTheme.h2,
+                    style: context.t.h2,
                   ),
                   const SizedBox(height: 10),
                   Text(
                     detail ?? 'Not rebuilt yet.',
                     textAlign: TextAlign.center,
-                    style: AppTheme.bodyText,
+                    style: context.t.bodyText,
                   ),
                   const Spacer(),
                 ],

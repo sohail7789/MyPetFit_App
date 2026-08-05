@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 
-/// Icon colour used inside form fields across the design.
-const Color kFieldIcon = Color(0xFF8C8CA8);
-
 /// The rounded text field from the design: hairline border, soft lift, a
 /// leading stroke icon, and a focus state that switches the border to the
 /// action colour and adds a 3px translucent ring.
@@ -81,21 +78,21 @@ class _AppFieldState extends State<AppField> {
       constraints: BoxConstraints(minHeight: widget.height),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: context.c.surface,
         borderRadius: BorderRadius.circular(AppTheme.radiusField),
         border: Border.all(
-          color: _focused ? AppTheme.action : AppTheme.border,
+          color: _focused ? context.c.actionText : context.c.border,
         ),
         boxShadow: _focused
             // The design's focus ring: 0 0 0 3px rgba(70,67,127,.1).
             ? [
                 BoxShadow(
-                  color: AppTheme.action.withValues(alpha: 0.1),
+                  color: context.c.action.withValues(alpha: 0.1),
                   blurRadius: 0,
                   spreadRadius: 3,
                 ),
               ]
-            : AppTheme.fieldShadow,
+            : context.c.fieldShadow,
       ),
       child: Row(
         children: [
@@ -112,11 +109,11 @@ class _AppFieldState extends State<AppField> {
               textInputAction: widget.textInputAction,
               onChanged: widget.onChanged,
               enabled: widget.enabled,
-              cursorColor: AppTheme.action,
+              cursorColor: context.c.actionText,
               style: AppTheme.font(
                 size: 15,
                 weight: FontWeight.w500,
-                color: AppTheme.ink,
+                color: context.c.ink,
                 height: 1.3,
               ),
               decoration: InputDecoration(
@@ -133,7 +130,7 @@ class _AppFieldState extends State<AppField> {
                 hintStyle: AppTheme.font(
                   size: 15,
                   weight: FontWeight.w500,
-                  color: AppTheme.placeholder,
+                  color: context.c.placeholder,
                   height: 1.3,
                 ),
               ),

@@ -118,7 +118,7 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -141,7 +141,7 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                   const SizedBox(height: 18),
                   Text(
                     widget.isEditing ? 'Edit profile' : 'Owner details',
-                    style: AppTheme.h1.copyWith(fontSize: 26, letterSpacing: -1),
+                    style: context.t.h1.copyWith(fontSize: 26, letterSpacing: -1),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -151,7 +151,7 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                         : 'Step 2 of 3 · so your report can reach you.',
                     style: AppTheme.font(
                       size: 14,
-                      color: AppTheme.body,
+                      color: context.c.body,
                       height: 1.5,
                     ),
                   ),
@@ -181,7 +181,7 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                           style: AppTheme.font(
                             size: 12.5,
                             weight: FontWeight.w600,
-                            color: AppTheme.danger,
+                            color: context.c.dangerText,
                           ),
                         ),
                       ),

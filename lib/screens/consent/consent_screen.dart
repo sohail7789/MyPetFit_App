@@ -63,7 +63,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -85,7 +85,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
                       children: [
                         Text(
                           'Consent & Use of Data',
-                          style: AppTheme.h3.copyWith(
+                          style: context.t.h3.copyWith(
                             fontSize: 22,
                             letterSpacing: -0.6,
                           ),
@@ -96,7 +96,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
                           style: AppTheme.font(
                             size: 13,
                             weight: FontWeight.w600,
-                            color: AppTheme.muted,
+                            color: context.c.muted,
                           ),
                         ),
                       ],
@@ -112,9 +112,9 @@ class _ConsentScreenState extends State<ConsentScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 20),
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFBFAFD),
+                  color: context.c.surfaceLow,
                   borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-                  border: Border.all(color: AppTheme.border),
+                  border: Border.all(color: context.c.border),
                 ),
                 child: SingleChildScrollView(
                   child: Column(
@@ -130,7 +130,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
                             _consentParagraphs[i],
                             style: AppTheme.font(
                               size: 13,
-                              color: AppTheme.bodyStrong,
+                              color: context.c.bodyStrong,
                               height: 1.7,
                             ),
                           ),
@@ -161,13 +161,13 @@ class _ConsentScreenState extends State<ConsentScreen> {
                             height: 22,
                             decoration: BoxDecoration(
                               color: _agreed
-                                  ? AppTheme.action
-                                  : AppTheme.surface,
+                                  ? context.c.action
+                                  : context.c.surface,
                               borderRadius: BorderRadius.circular(7),
                               border: _agreed
                                   ? null
                                   : Border.all(
-                                      color: const Color(0xFFC9C6D9),
+                                      color: context.c.borderField,
                                       width: 1.5,
                                     ),
                             ),
@@ -183,7 +183,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
                             'I have read and agree to the consent above.',
                             style: AppTheme.font(
                               size: 13,
-                              color: AppTheme.bodyStrong,
+                              color: context.c.bodyStrong,
                               height: 1.5,
                             ),
                           ),
@@ -212,7 +212,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
                           readOnlyValue: _today,
                           height: 52,
                           radius: 14,
-                          background: AppTheme.tintSoft,
+                          background: context.c.tintSoft,
                         ),
                       ),
                     ],

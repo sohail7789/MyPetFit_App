@@ -53,18 +53,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ScreenBackdrop(
-        colors: const [
-          Color(0xFFFFFFFF),
-          Color(0xFFFBFAFD),
-          Color(0xFFF4F1F8),
+        colors: [
+          context.c.surface,
+          context.c.surfaceLow,
+          context.c.surfaceRaised,
         ],
         stops: const [0, 0.62, 1],
-        decoration: const [
+        decoration: [
           PawWatermark(
             top: 96,
             right: -10,
             size: 66,
-            color: AppTheme.startLight,
+            color: context.c.startLight,
             opacity: 0.1,
             rotationDegrees: 16,
           ),
@@ -103,14 +103,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const SizedBox(height: 20),
                       Text(
                         'Create Account',
-                        style: AppTheme.h1.copyWith(fontSize: 28),
+                        style: context.t.h1.copyWith(fontSize: 28),
                       ),
                       const SizedBox(height: 8),
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 274),
                         child: Text(
                           'Join MyPetFit and give your pet the best care possible.',
-                          style: AppTheme.bodyText.copyWith(height: 1.5),
+                          style: context.t.bodyText.copyWith(height: 1.5),
                         ),
                       ),
                       const SizedBox(height: 22),
@@ -119,7 +119,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           Expanded(
                             child: AppField(
                               hint: 'First name',
-                              icon: AppIcon(AppIcons.person(), size: 18),
+                              icon: AppIcon(AppIcons.person(context.c.muted), size: 18),
                               controller: _first,
                               height: AppTheme.fieldHeightCompact,
                               textInputAction: TextInputAction.next,
@@ -139,7 +139,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const SizedBox(height: 12),
                       AppField(
                         hint: 'Username',
-                        icon: AppIcon(AppIcons.username(), size: 19),
+                        icon: AppIcon(AppIcons.username(context.c.muted), size: 19),
                         controller: _username,
                         height: AppTheme.fieldHeightCompact,
                         textInputAction: TextInputAction.next,
@@ -147,7 +147,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const SizedBox(height: 12),
                       AppField(
                         hint: 'Email address',
-                        icon: AppIcon(AppIcons.mail(), size: 20),
+                        icon: AppIcon(AppIcons.mail(context.c.muted), size: 20),
                         controller: _email,
                         keyboardType: TextInputType.emailAddress,
                         height: AppTheme.fieldHeightCompact,
@@ -156,7 +156,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const SizedBox(height: 12),
                       AppField(
                         hint: 'Password',
-                        icon: AppIcon(AppIcons.lock(), size: 19),
+                        icon: AppIcon(AppIcons.lock(context.c.muted), size: 19),
                         controller: _password,
                         obscure: _obscure,
                         height: AppTheme.fieldHeightCompact,
@@ -164,7 +164,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         trailing: GestureDetector(
                           onTap: () => setState(() => _obscure = !_obscure),
                           child: AppIcon(
-                            _obscure ? AppIcons.eyeOff() : AppIcons.eye(),
+                            _obscure ? AppIcons.eyeOff(context.c.muted) : AppIcons.eye(context.c.muted),
                             size: 19,
                           ),
                         ),

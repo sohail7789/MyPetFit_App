@@ -6,7 +6,9 @@ import '../config/theme.dart';
 class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
-  final Color background;
+
+  /// Defaults to the card surface for the active appearance.
+  final Color? background;
   final Color? borderColor;
   final double radius;
   final VoidCallback? onTap;
@@ -16,7 +18,7 @@ class AppCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.fromLTRB(16, 14, 16, 14),
-    this.background = AppTheme.surface,
+    this.background,
     this.borderColor,
     this.radius = AppTheme.radiusCard,
     this.onTap,
@@ -28,10 +30,10 @@ class AppCard extends StatelessWidget {
     final card = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: gradient == null ? background : null,
+        color: gradient == null ? background ?? context.c.surface : null,
         gradient: gradient,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: borderColor ?? AppTheme.border),
+        border: Border.all(color: borderColor ?? context.c.border),
       ),
       child: child,
     );
@@ -50,6 +52,6 @@ class SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text.toUpperCase(), style: AppTheme.overline);
+    return Text(text.toUpperCase(), style: context.t.overline);
   }
 }

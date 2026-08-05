@@ -82,11 +82,11 @@ class _Scoring extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFFFFFFF), Color(0xFFF5F2FA)],
+          colors: [context.c.surface, context.c.surfaceRaised],
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -107,7 +107,7 @@ class _Scoring extends StatelessWidget {
           Text(
             'Scoring your answers',
             textAlign: TextAlign.center,
-            style: AppTheme.h2,
+            style: context.t.h2,
           ),
           const SizedBox(height: 8),
           Text(
@@ -115,7 +115,7 @@ class _Scoring extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppTheme.font(
               size: 14,
-              color: AppTheme.body,
+              color: context.c.body,
               height: 1.55,
             ),
           ),
@@ -131,25 +131,25 @@ class _Scoring extends StatelessWidget {
 class _LoadingDots extends StatelessWidget {
   const _LoadingDots();
 
-  static const _colors = [
-    AppTheme.action,
-    AppTheme.startLight,
-    AppTheme.dotInactive,
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final colors = [
+      context.c.action,
+      context.c.startLight,
+      context.c.dotInactive,
+    ];
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        for (var i = 0; i < _colors.length; i++)
+        for (var i = 0; i < colors.length; i++)
           Padding(
-            padding: EdgeInsets.only(right: i == _colors.length - 1 ? 0 : 7),
+            padding: EdgeInsets.only(right: i == colors.length - 1 ? 0 : 7),
             child: Container(
               width: 9,
               height: 9,
               decoration: BoxDecoration(
-                color: _colors[i],
+                color: colors[i],
                 shape: BoxShape.circle,
               ),
             ),
@@ -183,11 +183,11 @@ class _CelebrateState extends State<_Celebrate>
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFFFFFFF), Color(0xFFF1F8F3)],
+          colors: [context.c.surface, context.c.bandGoodTint],
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 36),
@@ -214,13 +214,13 @@ class _CelebrateState extends State<_Celebrate>
           Text(
             'Great job!',
             textAlign: TextAlign.center,
-            style: AppTheme.h1.copyWith(fontSize: 28, letterSpacing: -1),
+            style: context.t.h1.copyWith(fontSize: 28, letterSpacing: -1),
           ),
           const SizedBox(height: 8),
           Text(
             'Your care routine is paying off…',
             textAlign: TextAlign.center,
-            style: AppTheme.font(size: 14.5, color: AppTheme.body),
+            style: AppTheme.font(size: 14.5, color: context.c.body),
           ),
         ],
       ),

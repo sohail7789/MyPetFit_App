@@ -11,15 +11,15 @@ class OrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider(color: AppTheme.divider)),
+        Expanded(child: Divider(color: context.c.divider)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Text(
             'or continue with',
-            style: AppTheme.font(size: 13, color: AppTheme.muted),
+            style: AppTheme.font(size: 13, color: context.c.muted),
           ),
         ),
-        const Expanded(child: Divider(color: AppTheme.divider)),
+        Expanded(child: Divider(color: context.c.divider)),
       ],
     );
   }
@@ -66,9 +66,9 @@ class SocialButton extends StatelessWidget {
         constraints: BoxConstraints(minHeight: height),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: context.c.surface,
           borderRadius: BorderRadius.circular(AppTheme.radiusField),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: context.c.border),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -83,7 +83,7 @@ class SocialButton extends StatelessWidget {
                 style: AppTheme.font(
                   size: 15,
                   weight: FontWeight.w600,
-                  color: const Color(0xFF33345E),
+                  color: context.c.inkSoft,
                 ),
               ),
             ),
@@ -180,7 +180,7 @@ class _InlineLinkState extends State<InlineLink> {
       child: Text.rich(
         TextSpan(
           text: widget.prefix.isEmpty ? null : '${widget.prefix} ',
-          style: AppTheme.font(size: 14, color: AppTheme.body, height: 1.4),
+          style: AppTheme.font(size: 14, color: context.c.body, height: 1.4),
           children: [
             TextSpan(
               text: widget.action,
@@ -188,7 +188,7 @@ class _InlineLinkState extends State<InlineLink> {
               style: AppTheme.font(
                 size: 14,
                 weight: FontWeight.w700,
-                color: AppTheme.action,
+                color: context.c.actionText,
                 height: 1.4,
               ),
             ),

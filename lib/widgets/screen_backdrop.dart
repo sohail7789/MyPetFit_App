@@ -89,15 +89,17 @@ class HeroPanel extends StatelessWidget {
 class PageDots extends StatelessWidget {
   final int count;
   final int index;
-  final Color activeColor;
-  final Color inactiveColor;
+
+  /// Both default to the active appearance's tokens when left unset.
+  final Color? activeColor;
+  final Color? inactiveColor;
 
   const PageDots({
     super.key,
     required this.count,
     required this.index,
-    this.activeColor = AppTheme.action,
-    this.inactiveColor = AppTheme.dotInactive,
+    this.activeColor,
+    this.inactiveColor,
   });
 
   @override
@@ -114,7 +116,9 @@ class PageDots extends StatelessWidget {
               width: i == index ? 26 : 8,
               height: 8,
               decoration: BoxDecoration(
-                color: i == index ? activeColor : inactiveColor,
+                color: i == index
+                    ? activeColor ?? context.c.action
+                    : inactiveColor ?? context.c.dotInactive,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),

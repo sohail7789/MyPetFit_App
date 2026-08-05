@@ -25,20 +25,20 @@ class ProductDetailScreen extends StatelessWidget {
 
     if (product == null) {
       return Scaffold(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: context.c.surface,
         appBar: AppBar(leading: const BackButton()),
         body: Center(
-          child: Text('Product not found', style: AppTheme.bodyText),
+          child: Text('Product not found', style: context.t.bodyText),
         ),
       );
     }
 
     final cart = context.watch<CartProvider>();
-    final palette = ProductPalette.of(product.category);
+    final palette = ProductPalette.of(context, product.category);
     final quantity = cart.quantityOf(product.id);
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -52,7 +52,7 @@ class ProductDetailScreen extends StatelessWidget {
                   style: AppTheme.font(
                     size: 23,
                     weight: FontWeight.w800,
-                    color: AppTheme.ink,
+                    color: context.c.ink,
                     letterSpacing: -0.7,
                     height: 1.2,
                   ),
@@ -63,7 +63,7 @@ class ProductDetailScreen extends StatelessWidget {
                   style: AppTheme.font(
                     size: 22,
                     weight: FontWeight.w800,
-                    color: AppTheme.action,
+                    color: context.c.actionText,
                   ),
                 ),
                 // "Why it's in the picks" — only once the catalog carries
@@ -76,7 +76,7 @@ class ProductDetailScreen extends StatelessWidget {
                   const SizedBox(height: 18),
                   Text(
                     'What it does',
-                    style: AppTheme.cardTitle,
+                    style: context.t.cardTitle,
                   ),
                   const SizedBox(height: 10),
                   for (final bullet in product.bullets)
@@ -93,9 +93,9 @@ class ProductDetailScreen extends StatelessWidget {
             ),
           ),
           Container(
-            decoration: const BoxDecoration(
-              color: AppTheme.surface,
-              border: Border(top: BorderSide(color: AppTheme.borderSoft)),
+            decoration: BoxDecoration(
+              color: context.c.surface,
+              border: Border(top: BorderSide(color: context.c.borderSoft)),
             ),
             padding: const EdgeInsets.fromLTRB(22, 12, 22, 26),
             // Once it's in the cart the bar becomes a stepper plus a way
@@ -152,7 +152,7 @@ class _Hero extends StatelessWidget {
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: palette.gradient(start: 0, end: 0.7),
+                gradient: palette.gradient(context, start: 0, end: 0.7),
               ),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(60, 24, 60, 20),
@@ -178,7 +178,7 @@ class _Hero extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.85),
+                color: context.c.onAccent.withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Text(
@@ -208,9 +208,9 @@ class _WhyCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(15, 13, 15, 13),
       decoration: BoxDecoration(
-        color: AppTheme.tintPanel,
+        color: context.c.tintPanel,
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: context.c.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,12 +226,12 @@ class _WhyCard extends StatelessWidget {
                   style: AppTheme.font(
                     size: 12,
                     weight: FontWeight.w800,
-                    color: AppTheme.start,
+                    color: context.c.startText,
                     letterSpacing: 0.6,
                   ),
                 ),
                 const SizedBox(height: 3),
-                Text(text, style: AppTheme.bodySmall),
+                Text(text, style: context.t.bodySmall),
               ],
             ),
           ),
@@ -251,11 +251,11 @@ class _Bullet extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.only(top: 2, right: 10),
-          child: Icon(Icons.check_rounded, size: 15, color: AppTheme.success),
+          child: Icon(Icons.check_rounded, size: 15, color: context.c.successText),
         ),
-        Expanded(child: Text(text, style: AppTheme.bodySmall)),
+        Expanded(child: Text(text, style: context.t.bodySmall)),
       ],
     );
   }
@@ -272,7 +272,7 @@ class _Rating extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppTheme.radiusField),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: context.c.border),
       ),
       child: Row(
         children: [
@@ -280,7 +280,7 @@ class _Rating extends StatelessWidget {
             Icon(
               Icons.star_rounded,
               size: 14,
-              color: i < rating.round() ? AppTheme.star : AppTheme.dotInactive,
+              color: i < rating.round() ? context.c.star : context.c.dotInactive,
             ),
           const SizedBox(width: 8),
           Text(
@@ -288,7 +288,7 @@ class _Rating extends StatelessWidget {
             style: AppTheme.font(
               size: 13,
               weight: FontWeight.w700,
-              color: AppTheme.ink,
+              color: context.c.ink,
             ),
           ),
         ],

@@ -39,7 +39,7 @@ class HomeDashboardScreen extends StatelessWidget {
     ].join(' & ');
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -58,7 +58,7 @@ class HomeDashboardScreen extends StatelessWidget {
                           style: AppTheme.font(
                             size: 13,
                             weight: FontWeight.w600,
-                            color: AppTheme.muted,
+                            color: context.c.muted,
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -69,7 +69,7 @@ class HomeDashboardScreen extends StatelessWidget {
                           style: AppTheme.font(
                             size: 25,
                             weight: FontWeight.w800,
-                            color: AppTheme.ink,
+                            color: context.c.ink,
                             letterSpacing: -0.9,
                           ),
                         ),
@@ -79,20 +79,20 @@ class HomeDashboardScreen extends StatelessWidget {
                   _RoundAction(
                     semanticLabel: 'Notifications',
                     onTap: () => context.push(AppRoutes.inbox),
-                    child: const Icon(
+                    child: Icon(
                       Icons.notifications_none_rounded,
                       size: 21,
-                      color: AppTheme.action,
+                      color: context.c.actionText,
                     ),
                   ),
                   const SizedBox(width: 10),
                   _RoundAction(
                     semanticLabel: 'Account',
                     onTap: () => context.go(AppRoutes.account),
-                    child: const Icon(
+                    child: Icon(
                       Icons.person_outline_rounded,
                       size: 21,
-                      color: AppTheme.action,
+                      color: context.c.actionText,
                     ),
                   ),
                 ],
@@ -173,8 +173,8 @@ class _RoundAction extends StatelessWidget {
         child: Container(
           width: 46,
           height: 46,
-          decoration: const BoxDecoration(
-            color: Color(0xFFF4F1F9),
+          decoration: BoxDecoration(
+            color: context.c.surfaceRaised,
             shape: BoxShape.circle,
           ),
           child: child,
@@ -199,11 +199,11 @@ class _ScoreCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF46437F), Color(0xFF5B4E8E), Color(0xFF8E4F7C)],
-          stops: [0, 0.55, 1],
+          colors: context.c.heroGradient,
+          stops: const [0, 0.55, 1],
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -215,7 +215,7 @@ class _ScoreCard extends StatelessWidget {
             bottom: -40,
             child: PawMark(
               size: 120,
-              color: Colors.white,
+              color: context.c.onAccent,
               opacity: 0.07,
               rotation: -0.24,
             ),
@@ -236,7 +236,7 @@ class _ScoreCard extends StatelessWidget {
                           style: AppTheme.font(
                             size: 12,
                             weight: FontWeight.w700,
-                            color: Colors.white.withValues(alpha: 0.75),
+                            color: context.c.onAccent.withValues(alpha: 0.75),
                             letterSpacing: 1,
                           ),
                         ),
@@ -248,7 +248,7 @@ class _ScoreCard extends StatelessWidget {
                           style: AppTheme.font(
                             size: 20,
                             weight: FontWeight.w800,
-                            color: Colors.white,
+                            color: context.c.onAccent,
                             letterSpacing: -0.5,
                           ),
                         ),
@@ -259,7 +259,7 @@ class _ScoreCard extends StatelessWidget {
                               : 'Last assessed ${_date(result.completedAt)}',
                           style: AppTheme.font(
                             size: 12.5,
-                            color: Colors.white.withValues(alpha: 0.8),
+                            color: context.c.onAccent.withValues(alpha: 0.8),
                           ),
                         ),
                       ],
@@ -316,8 +316,8 @@ class _ScoreRing extends StatelessWidget {
                 value: value,
                 strokeWidth: 6,
                 strokeCap: StrokeCap.round,
-                backgroundColor: Colors.white.withValues(alpha: 0.2),
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                backgroundColor: context.c.onAccent.withValues(alpha: 0.2),
+                valueColor: AlwaysStoppedAnimation<Color>(context.c.onAccent),
               ),
             ),
           ),
@@ -326,7 +326,7 @@ class _ScoreRing extends StatelessWidget {
             style: AppTheme.font(
               size: 19,
               weight: FontWeight.w800,
-              color: Colors.white,
+              color: context.c.onAccent,
             ),
           ),
         ],
@@ -349,7 +349,7 @@ class _WhiteButton extends StatelessWidget {
         height: 44,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.c.onAccent,
           borderRadius: BorderRadius.circular(22),
         ),
         child: Text(
@@ -357,7 +357,7 @@ class _WhiteButton extends StatelessWidget {
           style: AppTheme.font(
             size: 14,
             weight: FontWeight.w800,
-            color: AppTheme.action,
+            color: context.c.actionText,
           ),
         ),
       ),
@@ -393,13 +393,13 @@ class _ResumeCard extends StatelessWidget {
                   style: AppTheme.font(
                     size: 14,
                     weight: FontWeight.w800,
-                    color: AppTheme.ink,
+                    color: context.c.ink,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '$answered of $total answered',
-                  style: AppTheme.font(size: 12.5, color: AppTheme.body),
+                  style: AppTheme.font(size: 12.5, color: context.c.body),
                 ),
                 const SizedBox(height: 8),
                 ClipRRect(
@@ -407,19 +407,19 @@ class _ResumeCard extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: total == 0 ? 0 : answered / total,
                     minHeight: 6,
-                    backgroundColor: const Color(0xFFEDEBF4),
+                    backgroundColor: context.c.divider,
                     valueColor:
-                        const AlwaysStoppedAnimation<Color>(AppTheme.action),
+                        AlwaysStoppedAnimation<Color>(context.c.action),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 10),
-          const Icon(
+          Icon(
             Icons.arrow_forward_ios_rounded,
             size: 14,
-            color: Color(0xFFB0AEC2),
+            color: context.c.faint,
           ),
         ],
       ),
@@ -457,7 +457,7 @@ class _QuickAction extends StatelessWidget {
             style: AppTheme.font(
               size: 14,
               weight: FontWeight.w800,
-              color: AppTheme.ink,
+              color: context.c.ink,
             ),
           ),
           const SizedBox(height: 4),
@@ -465,7 +465,7 @@ class _QuickAction extends StatelessWidget {
             subtitle,
             style: AppTheme.font(
               size: 12,
-              color: AppTheme.body,
+              color: context.c.body,
               height: 1.4,
             ),
           ),
@@ -489,7 +489,7 @@ class _FocusCard extends StatelessWidget {
     final weakest = scores.take(3).toList();
 
     return AppCard(
-      background: const Color(0xFFFCFBFD),
+      background: context.c.surfaceLow,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -502,7 +502,7 @@ class _FocusCard extends StatelessWidget {
                 style: AppTheme.font(
                   size: 14,
                   weight: FontWeight.w800,
-                  color: AppTheme.ink,
+                  color: context.c.ink,
                 ),
               ),
             ],
@@ -519,7 +519,7 @@ class _FocusCard extends StatelessWidget {
                     width: 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      color: categoryBarColor(entry.value),
+                      color: categoryBarColor(context.c, entry.value),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -528,7 +528,7 @@ class _FocusCard extends StatelessWidget {
                       '${entry.key} — ${entry.value.round()}%',
                       style: AppTheme.font(
                         size: 13,
-                        color: AppTheme.bodyStrong,
+                        color: context.c.bodyStrong,
                         height: 1.45,
                       ),
                     ),

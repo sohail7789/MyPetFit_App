@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
+import '../config/theme.dart';
 import '../models/pet_info.dart';
 import '../models/score_band.dart';
 import '../models/score_result.dart';
@@ -185,13 +186,13 @@ class ReportPdf {
 
   static pw.Widget _scoreBand(ScoreResult result) {
     final band = result.category;
-    final accent = PdfColor.fromInt(band.bandColor.toARGB32());
+    final accent = PdfColor.fromInt(band.bandColor(AppColors.light).toARGB32());
 
     return pw.Container(
       padding: const pw.EdgeInsets.all(13),
       decoration: pw.BoxDecoration(
-        color: PdfColor.fromInt(band.bandTint.toARGB32()),
-        border: pw.Border.all(color: PdfColor.fromInt(band.bandLine.toARGB32())),
+        color: PdfColor.fromInt(band.bandTint(AppColors.light).toARGB32()),
+        border: pw.Border.all(color: PdfColor.fromInt(band.bandLine(AppColors.light).toARGB32())),
         borderRadius: pw.BorderRadius.circular(12),
       ),
       child: pw.Row(
@@ -321,7 +322,7 @@ class ReportPdf {
 
   static pw.Widget _categoryBar(String name, double percent) {
     final clamped = percent.clamp(0, 100).toDouble();
-    final accent = PdfColor.fromInt(categoryBarColor(clamped).toARGB32());
+    final accent = PdfColor.fromInt(categoryBarColor(AppColors.light, clamped).toARGB32());
 
     return pw.Container(
       margin: const pw.EdgeInsets.only(bottom: 5),

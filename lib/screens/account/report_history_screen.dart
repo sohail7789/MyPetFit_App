@@ -28,7 +28,7 @@ class ReportHistoryScreen extends StatelessWidget {
     final history = quiz.assessmentHistory;
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -36,7 +36,7 @@ class ReportHistoryScreen extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-              child: Text('Report history', style: AppTheme.h2),
+              child: Text('Report history', style: context.t.h2),
             ),
             Expanded(
               child: history.isEmpty
@@ -69,7 +69,7 @@ class ReportHistoryScreen extends StatelessWidget {
                             'meaningful.',
                             style: AppTheme.font(
                               size: 12.5,
-                              color: AppTheme.muted,
+                              color: context.c.muted,
                               height: 1.55,
                             ),
                           ),
@@ -99,13 +99,13 @@ class _Empty extends StatelessWidget {
           children: [
             const DesignImage(AppAssets.emoQuestion, width: 120, height: 120),
             const SizedBox(height: 14),
-            Text('No reports yet', style: AppTheme.h2),
+            Text('No reports yet', style: context.t.h2),
             const SizedBox(height: 10),
             Text(
               'Complete the assessment and your report cards will collect '
               'here so you can watch the trend.',
               textAlign: TextAlign.center,
-              style: AppTheme.bodyText,
+              style: context.t.bodyText,
             ),
             const SizedBox(height: 22),
             AppButton(label: 'Start the assessment', onPressed: onStart),
@@ -131,16 +131,16 @@ class _TrendCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.tintPanel,
+        color: context.c.tintPanel,
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: context.c.border),
       ),
       child: Row(
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('YOUR TREND', style: AppTheme.overline),
+              Text('YOUR TREND', style: context.t.overline),
               const SizedBox(height: 6),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -150,7 +150,7 @@ class _TrendCard extends StatelessWidget {
                     style: AppTheme.font(
                       size: 30,
                       weight: FontWeight.w800,
-                      color: AppTheme.ink,
+                      color: context.c.ink,
                       letterSpacing: -1.2,
                     ),
                   ),
@@ -160,14 +160,14 @@ class _TrendCard extends StatelessWidget {
                         ? Icons.arrow_upward_rounded
                         : Icons.arrow_downward_rounded,
                     size: 12,
-                    color: up ? AppTheme.success : AppTheme.warning,
+                    color: up ? context.c.successText : context.c.warningText,
                   ),
                   Text(
                     '${up ? '+' : ''}$delta',
                     style: AppTheme.font(
                       size: 12.5,
                       weight: FontWeight.w800,
-                      color: up ? AppTheme.success : AppTheme.warning,
+                      color: up ? context.c.successText : context.c.warningText,
                     ),
                   ),
                 ],
@@ -182,6 +182,8 @@ class _TrendCard extends StatelessWidget {
               painter: _SparklinePainter(
                 // Oldest → newest.
                 history.reversed.map((r) => r.percentageScore).toList(),
+                context.c.actionText,
+                context.c.fainter,
               ),
             ),
           ),
@@ -195,7 +197,12 @@ class _TrendCard extends StatelessWidget {
 class _SparklinePainter extends CustomPainter {
   final List<int> scores;
 
-  const _SparklinePainter(this.scores);
+  /// A painter sits outside the widget tree, so the palette is passed in
+  /// rather than resolved from a context.
+  final Color lineColor;
+  final Color dotColor;
+
+  const _SparklinePainter(this.scores, this.lineColor, this.dotColor);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -222,7 +229,7 @@ class _SparklinePainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = AppTheme.action
+        ..color = lineColor
         ..strokeWidth = 2.5
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
@@ -235,14 +242,16 @@ class _SparklinePainter extends CustomPainter {
         pointAt(i),
         isLast ? 4 : 3,
         Paint()
-          ..color = isLast ? AppTheme.action : const Color(0xFFB7B3CE),
+          ..color = isLast ? lineColor : dotColor,
       );
     }
   }
 
   @override
   bool shouldRepaint(_SparklinePainter oldDelegate) =>
-      oldDelegate.scores != scores;
+      oldDelegate.scores != scores ||
+      oldDelegate.lineColor != lineColor ||
+      oldDelegate.dotColor != dotColor;
 }
 
 class _HistoryRow extends StatelessWidget {
@@ -267,9 +276,9 @@ class _HistoryRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: context.c.surface,
           borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: context.c.border),
         ),
         child: Row(
           children: [
@@ -277,7 +286,7 @@ class _HistoryRow extends StatelessWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: band.bandTint,
+                color: band.bandTint(context.c),
                 borderRadius: BorderRadius.circular(16),
               ),
               alignment: Alignment.center,
@@ -286,7 +295,7 @@ class _HistoryRow extends StatelessWidget {
                 style: AppTheme.font(
                   size: 17,
                   weight: FontWeight.w800,
-                  color: band.bandColor,
+                  color: band.bandColor(context.c),
                 ),
               ),
             ),
@@ -300,7 +309,7 @@ class _HistoryRow extends StatelessWidget {
                     style: AppTheme.font(
                       size: 14.5,
                       weight: FontWeight.w800,
-                      color: AppTheme.ink,
+                      color: context.c.ink,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -309,17 +318,17 @@ class _HistoryRow extends StatelessWidget {
                     style: AppTheme.font(
                       size: 12.5,
                       weight: FontWeight.w700,
-                      color: band.bandColor,
+                      color: band.bandColor(context.c),
                     ),
                   ),
                 ],
               ),
             ),
             if (onTap != null)
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 14,
-                color: Color(0xFFB0AEC2),
+                color: context.c.faint,
               ),
           ],
         ),

@@ -5,6 +5,7 @@ import 'config/routes.dart';
 import 'config/theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/onboarding_provider.dart';
+import 'providers/theme_provider.dart';
 
 class MyPetFitApp extends StatefulWidget {
   const MyPetFitApp({super.key});
@@ -29,11 +30,17 @@ class _MyPetFitAppState extends State<MyPetFitApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Watched rather than read: selecting an appearance in settings has to
+    // repaint the whole app, and ThemeMode.system needs MaterialApp to stay
+    // subscribed to platform brightness changes.
+    final themeMode = context.watch<ThemeProvider>().mode;
+
     return MaterialApp.router(
       title: 'MyPetFit',
       debugShowCheckedModeBanner: false,
-      // The redesign is light-only; there is no dark variant in the design yet.
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
       routerConfig: _router,
       // Android's Display size and Font size settings both feed textScaler,
       // and Samsung's One UI ships several steps above 1.0. Every layout here

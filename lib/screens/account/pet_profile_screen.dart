@@ -30,7 +30,7 @@ class PetProfileScreen extends StatelessWidget {
     // leaves nothing to show — go back rather than render a broken screen.
     if (petIndex < 0 || petIndex >= pets.pets.length) {
       return Scaffold(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: context.c.surface,
         body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -46,7 +46,7 @@ class PetProfileScreen extends StatelessWidget {
                     child: Text(
                       'This pet is no longer in your list.',
                       textAlign: TextAlign.center,
-                      style: AppTheme.bodyText,
+                      style: context.t.bodyText,
                     ),
                   ),
                 ),
@@ -61,7 +61,7 @@ class PetProfileScreen extends StatelessWidget {
     final isActive = petIndex == pets.activePetIndex;
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -173,15 +173,15 @@ class PetProfileScreen extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: context.c.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusCard),
         ),
-        title: Text('Remove $name?', style: AppTheme.h3),
+        title: Text('Remove $name?', style: context.t.h3),
         content: Text(
           "Their profile and report cards are deleted from this device. "
           "Your other pets are not affected.",
-          style: AppTheme.bodyText,
+          style: context.t.bodyText,
         ),
         actions: [
           TextButton(
@@ -191,7 +191,7 @@ class PetProfileScreen extends StatelessWidget {
               style: AppTheme.font(
                 size: 14,
                 weight: FontWeight.w700,
-                color: AppTheme.body,
+                color: context.c.body,
               ),
             ),
           ),
@@ -202,7 +202,7 @@ class PetProfileScreen extends StatelessWidget {
               style: AppTheme.font(
                 size: 14,
                 weight: FontWeight.w700,
-                color: AppTheme.danger,
+                color: context.c.dangerText,
               ),
             ),
           ),
@@ -240,7 +240,7 @@ class _HeaderAction extends StatelessWidget {
             style: AppTheme.font(
               size: 14,
               weight: FontWeight.w700,
-              color: AppTheme.action,
+              color: context.c.actionText,
             ),
           ),
         ),
@@ -266,9 +266,9 @@ class _ScoreChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: band.bandTint,
+        color: band.bandTint(context.c),
         borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
-        border: Border.all(color: band.bandLine),
+        border: Border.all(color: band.bandLine(context.c)),
       ),
       child: Wrap(
         crossAxisAlignment: WrapCrossAlignment.center,
@@ -277,14 +277,14 @@ class _ScoreChip extends StatelessWidget {
         children: [
           Text(
             'FITNESS SCORE',
-            style: AppTheme.overline.copyWith(color: AppTheme.muted),
+            style: context.t.overline.copyWith(color: context.c.muted),
           ),
           Text(
             '${result.percentageScore}',
             style: AppTheme.font(
               size: 16,
               weight: FontWeight.w800,
-              color: AppTheme.ink,
+              color: context.c.ink,
             ),
           ),
           Text(
@@ -292,7 +292,7 @@ class _ScoreChip extends StatelessWidget {
             style: AppTheme.font(
               size: 12,
               weight: FontWeight.w800,
-              color: band.bandColor,
+              color: band.bandColor(context.c),
               letterSpacing: 0.6,
             ),
           ),
@@ -315,14 +315,14 @@ class _Header extends StatelessWidget {
         Container(
           width: 72,
           height: 72,
-          decoration: const BoxDecoration(
-            color: Color(0xFFF4F1F9),
+          decoration: BoxDecoration(
+            color: context.c.surfaceRaised,
             shape: BoxShape.circle,
           ),
           alignment: Alignment.center,
-          child: const PawMark(
+          child: PawMark(
             size: 32,
-            color: AppTheme.action,
+            color: context.c.actionText,
             opacity: 0.4,
           ),
         ),
@@ -336,7 +336,7 @@ class _Header extends StatelessWidget {
                 pet.name.trim().isEmpty ? 'Unnamed pet' : pet.name.trim(),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: AppTheme.h2,
+                style: context.t.h2,
               ),
               const SizedBox(height: 4),
               Text(
@@ -345,7 +345,7 @@ class _Header extends StatelessWidget {
                     : '${pet.species.label} · ${pet.breed.trim()}',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: AppTheme.font(size: 13.5, color: AppTheme.body),
+                style: AppTheme.font(size: 13.5, color: context.c.body),
               ),
               if (isActive) ...[
                 const SizedBox(height: 8),
@@ -355,7 +355,7 @@ class _Header extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.tint,
+                    color: context.c.tint,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -363,7 +363,7 @@ class _Header extends StatelessWidget {
                     style: AppTheme.font(
                       size: 10,
                       weight: FontWeight.w800,
-                      color: AppTheme.action,
+                      color: context.c.actionText,
                       letterSpacing: 0.6,
                     ),
                   ),
@@ -390,7 +390,7 @@ class _AssessmentCard extends StatelessWidget {
     final name = pet.name.trim().isEmpty ? 'this pet' : pet.name.trim();
 
     return AppCard(
-      background: const Color(0xFFFCFBFD),
+      background: context.c.surfaceLow,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -399,7 +399,7 @@ class _AssessmentCard extends StatelessWidget {
             style: AppTheme.font(
               size: 15,
               weight: FontWeight.w800,
-              color: AppTheme.ink,
+              color: context.c.ink,
             ),
           ),
           const SizedBox(height: 6),
@@ -412,7 +412,7 @@ class _AssessmentCard extends StatelessWidget {
                     'tracking.',
             style: AppTheme.font(
               size: 13,
-              color: AppTheme.bodyStrong,
+              color: context.c.bodyStrong,
               height: 1.6,
             ),
           ),
@@ -456,9 +456,9 @@ class _DetailRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: last
           ? null
-          : const BoxDecoration(
+          : BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: AppTheme.borderSoft),
+                bottom: BorderSide(color: context.c.borderSoft),
               ),
             ),
       child: Row(
@@ -467,7 +467,7 @@ class _DetailRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: AppTheme.font(size: 13.5, color: AppTheme.muted),
+              style: AppTheme.font(size: 13.5, color: context.c.muted),
             ),
           ),
           const SizedBox(width: 12),
@@ -479,7 +479,7 @@ class _DetailRow extends StatelessWidget {
               style: AppTheme.font(
                 size: 13.5,
                 weight: FontWeight.w700,
-                color: value.trim().isEmpty ? AppTheme.muted : AppTheme.ink,
+                color: value.trim().isEmpty ? context.c.muted : context.c.ink,
               ),
             ),
           ),

@@ -34,7 +34,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final address = context.watch<AddressProvider>().address;
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -49,7 +49,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     onPressed: () => context.backOr(AppRoutes.shop),
                   ),
                   const SizedBox(width: 12),
-                  Text('Checkout', style: AppTheme.h2),
+                  Text('Checkout', style: context.t.h2),
                 ],
               ),
             ),
@@ -83,7 +83,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ],
                   const SizedBox(height: 2),
                   AppCard(
-                    background: const Color(0xFFFCFBFD),
+                    background: context.c.surfaceLow,
                     radius: AppTheme.radiusCardSmall,
                     child: Column(
                       children: [
@@ -100,7 +100,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           size: 13,
                         ),
                         const SizedBox(height: 8),
-                        const Divider(color: Color(0xFFEDEBF4)),
+                        Divider(color: context.c.divider),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -110,7 +110,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               style: AppTheme.font(
                                 size: 15,
                                 weight: FontWeight.w800,
-                                color: AppTheme.ink,
+                                color: context.c.ink,
                               ),
                             ),
                             Text(
@@ -118,7 +118,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               style: AppTheme.font(
                                 size: 15,
                                 weight: FontWeight.w800,
-                                color: AppTheme.ink,
+                                color: context.c.ink,
                               ),
                             ),
                           ],
@@ -130,9 +130,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
             Container(
-              decoration: const BoxDecoration(
-                color: AppTheme.surface,
-                border: Border(top: BorderSide(color: AppTheme.borderSoft)),
+              decoration: BoxDecoration(
+                color: context.c.surface,
+                border: Border(top: BorderSide(color: context.c.borderSoft)),
               ),
               padding: const EdgeInsets.fromLTRB(22, 12, 22, 26),
               child: Column(
@@ -145,7 +145,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       style: AppTheme.font(
                         size: 12.5,
                         weight: FontWeight.w600,
-                        color: AppTheme.muted,
+                        color: context.c.muted,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -194,19 +194,19 @@ class _AddressCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
           decoration: BoxDecoration(
-            color: AppTheme.tintPanel,
+            color: context.c.tintPanel,
             borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
-            border: Border.all(color: AppTheme.action, width: 1.5),
+            border: Border.all(color: context.c.actionText, width: 1.5),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(top: 2),
                 child: Icon(
                   Icons.location_on_outlined,
                   size: 20,
-                  color: AppTheme.action,
+                  color: context.c.actionText,
                 ),
               ),
               const SizedBox(width: 12),
@@ -222,7 +222,7 @@ class _AddressCard extends StatelessWidget {
                       style: AppTheme.font(
                         size: 14,
                         weight: FontWeight.w800,
-                        color: AppTheme.ink,
+                        color: context.c.ink,
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -232,7 +232,7 @@ class _AddressCard extends StatelessWidget {
                           : '${saved.multiline}\n${saved.phone}',
                       style: AppTheme.font(
                         size: 13,
-                        color: AppTheme.body,
+                        color: context.c.body,
                         height: 1.5,
                       ),
                     ),
@@ -245,7 +245,7 @@ class _AddressCard extends StatelessWidget {
                 style: AppTheme.font(
                   size: 13,
                   weight: FontWeight.w700,
-                  color: AppTheme.action,
+                  color: context.c.actionText,
                 ),
               ),
             ],
@@ -277,10 +277,10 @@ class _PaymentRow extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? AppTheme.tintPanel : AppTheme.surface,
+          color: selected ? context.c.tintPanel : context.c.surface,
           borderRadius: BorderRadius.circular(AppTheme.radiusField),
           border: Border.all(
-            color: selected ? AppTheme.action : AppTheme.border,
+            color: selected ? context.c.actionText : context.c.border,
             width: 1.5,
           ),
         ),
@@ -290,10 +290,10 @@ class _PaymentRow extends StatelessWidget {
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                color: selected ? AppTheme.action : AppTheme.surface,
+                color: selected ? context.c.action : context.c.surface,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: selected ? AppTheme.action : AppTheme.dotInactive,
+                  color: selected ? context.c.actionText : context.c.dotInactive,
                   width: 1.5,
                 ),
               ),
@@ -302,8 +302,8 @@ class _PaymentRow extends StatelessWidget {
                   ? Container(
                       width: 8,
                       height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: context.c.onAccent,
                         shape: BoxShape.circle,
                       ),
                     )
@@ -316,7 +316,7 @@ class _PaymentRow extends StatelessWidget {
                 style: AppTheme.font(
                   size: 14,
                   weight: FontWeight.w700,
-                  color: AppTheme.ink,
+                  color: context.c.ink,
                 ),
               ),
             ),
@@ -326,7 +326,7 @@ class _PaymentRow extends StatelessWidget {
                 style: AppTheme.font(
                   size: 12,
                   weight: FontWeight.w600,
-                  color: AppTheme.muted,
+                  color: context.c.muted,
                 ),
               ),
           ],

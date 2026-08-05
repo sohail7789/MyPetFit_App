@@ -8,6 +8,7 @@ import 'package:mypetfit_app/providers/dashboard_provider.dart';
 import 'package:mypetfit_app/providers/onboarding_provider.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';
 import 'package:mypetfit_app/providers/quiz_provider.dart';
+import 'package:mypetfit_app/providers/theme_provider.dart';
 
 Widget _bootApp() => MultiProvider(
       providers: [
@@ -17,6 +18,7 @@ Widget _bootApp() => MultiProvider(
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => OnboardingProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const MyPetFitApp(),
     );

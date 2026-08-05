@@ -26,7 +26,7 @@ class LegalScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -45,7 +45,7 @@ class LegalScreen extends StatelessWidget {
                       style: AppTheme.font(
                         size: 14.5,
                         weight: FontWeight.w800,
-                        color: AppTheme.ink,
+                        color: context.c.ink,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -53,7 +53,7 @@ class LegalScreen extends StatelessWidget {
                       clauses[i].body,
                       style: AppTheme.font(
                         size: 13,
-                        color: AppTheme.bodyStrong,
+                        color: context.c.bodyStrong,
                         height: 1.7,
                       ),
                     ),

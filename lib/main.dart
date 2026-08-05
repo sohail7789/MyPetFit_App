@@ -12,6 +12,8 @@ import 'providers/locale_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'providers/pet_info_provider.dart';
 import 'providers/quiz_provider.dart';
+import 'providers/theme_provider.dart';
+import 'providers/product_provider.dart';
 
 /// Brings up Firebase using the generated per-platform options, so Android,
 /// iOS and web all initialise from the same source of truth.
@@ -49,6 +51,8 @@ Future<void> main() async {
   final cartProvider = CartProvider();
   final localeProvider = LocaleProvider();
   final addressProvider = AddressProvider();
+  final themeProvider = ThemeProvider();
+  final productProvider = ProductProvider();
 
   runApp(
     MultiProvider(
@@ -60,7 +64,9 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: cartProvider),
         ChangeNotifierProvider.value(value: localeProvider),
         ChangeNotifierProvider.value(value: addressProvider),
+        ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider.value(value: productProvider),
       ],
       child: const MyPetFitApp(),
     ),
@@ -86,5 +92,11 @@ Future<void> main() async {
     cartProvider.init();
     localeProvider.init();
     addressProvider.init();
+    themeProvider.init();
+    // Products are loaded from Firestore, which is async, so the provider is
+    // constructed synchronously with an empty list and the load is kicked off
+    // here. The provider calls notifyListeners() when the load completes so
+    // the UI rebuilds automatically.
+    productProvider.loadProducts();
   });
 }

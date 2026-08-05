@@ -21,7 +21,7 @@ class MyPetsScreen extends StatelessWidget {
     final pets = context.watch<PetInfoProvider>();
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -56,7 +56,7 @@ class MyPetsScreen extends StatelessWidget {
                             textAlign: TextAlign.center,
                             style: AppTheme.font(
                               size: 12.5,
-                              color: AppTheme.muted,
+                              color: context.c.muted,
                             ),
                           ),
                       ],
@@ -84,13 +84,13 @@ class _Empty extends StatelessWidget {
           children: [
             const DesignImage(AppAssets.emoQuestion, width: 120, height: 120),
             const SizedBox(height: 14),
-            Text('No pets yet', style: AppTheme.h2),
+            Text('No pets yet', style: context.t.h2),
             const SizedBox(height: 10),
             Text(
               "Add your pet's profile so the assessment and recommendations "
               'can be tailored to them.',
               textAlign: TextAlign.center,
-              style: AppTheme.bodyText,
+              style: context.t.bodyText,
             ),
             const SizedBox(height: 22),
             AppButton(label: 'Add a pet', onPressed: onAdd),
@@ -132,14 +132,14 @@ class _PetCard extends StatelessWidget {
           Container(
             width: 58,
             height: 58,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF4F1F9),
+            decoration: BoxDecoration(
+              color: context.c.surfaceRaised,
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: const PawMark(
+            child: PawMark(
               size: 26,
-              color: AppTheme.action,
+              color: context.c.actionText,
               opacity: 0.4,
             ),
           ),
@@ -158,7 +158,7 @@ class _PetCard extends StatelessWidget {
                         style: AppTheme.font(
                           size: 16,
                           weight: FontWeight.w800,
-                          color: AppTheme.ink,
+                          color: context.c.ink,
                         ),
                       ),
                     ),
@@ -170,7 +170,7 @@ class _PetCard extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.tint,
+                          color: context.c.tint,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -178,7 +178,7 @@ class _PetCard extends StatelessWidget {
                           style: AppTheme.font(
                             size: 10,
                             weight: FontWeight.w800,
-                            color: AppTheme.action,
+                            color: context.c.actionText,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -191,15 +191,15 @@ class _PetCard extends StatelessWidget {
                   _meta,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTheme.font(size: 13, color: AppTheme.body),
+                  style: AppTheme.font(size: 13, color: context.c.body),
                 ),
               ],
             ),
           ),
-          const Icon(
+          Icon(
             Icons.arrow_forward_ios_rounded,
             size: 14,
-            color: Color(0xFFB0AEC2),
+            color: context.c.faint,
           ),
         ],
       ),

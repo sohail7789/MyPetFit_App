@@ -80,10 +80,10 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthArtLayout(
-      gradient: const [
-        Color(0xFFFFFFFF),
-        Color(0xFFFBFAFD),
-        Color(0xFFF2EFF8),
+      gradient: [
+        context.c.surface,
+        context.c.surfaceLow,
+        context.c.surfaceRaised,
       ],
       title: 'Check your email',
       subtitle: Text.rich(
@@ -94,13 +94,13 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
               text: 'priya@email.com',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
-                color: AppTheme.ink,
+                color: context.c.ink,
               ),
             ),
           ],
         ),
         textAlign: TextAlign.center,
-        style: AppTheme.bodyText,
+        style: context.t.bodyText,
       ),
       art: AppAssets.verifyCode,
       artWidth: 270,
@@ -145,19 +145,19 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
                         size: 13.5,
                         weight: FontWeight.w700,
                         color: _remaining == 0
-                            ? AppTheme.action
-                            : AppTheme.placeholder,
+                            ? context.c.actionText
+                            : context.c.placeholder,
                       ),
                     ),
                   ),
                 ),
                 TextSpan(
                   text: _remaining == 0 ? '' : '  ·  $_countdown',
-                  style: const TextStyle(color: AppTheme.muted),
+                  style: TextStyle(color: context.c.muted),
                 ),
               ],
             ),
-            style: AppTheme.font(size: 13.5, color: AppTheme.body),
+            style: AppTheme.font(size: 13.5, color: context.c.body),
           ),
         ),
         const SizedBox(height: 20),
@@ -212,27 +212,27 @@ class _CodeBoxState extends State<_CodeBox> {
           textAlign: TextAlign.center,
           keyboardType: TextInputType.number,
           maxLength: 1,
-          cursorColor: AppTheme.action,
+          cursorColor: context.c.actionText,
           style: AppTheme.font(
             size: 22,
             weight: FontWeight.w800,
-            color: AppTheme.ink,
+            color: context.c.ink,
           ),
           decoration: InputDecoration(
             counterText: '',
             filled: true,
-            fillColor: filled ? const Color(0xFFF1EFF8) : AppTheme.surface,
+            fillColor: filled ? context.c.surfaceRaised : context.c.surface,
             contentPadding: EdgeInsets.zero,
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(
-                color: filled ? AppTheme.action : AppTheme.border,
+                color: filled ? context.c.actionText : context.c.border,
                 width: 1.5,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppTheme.action, width: 1.5),
+              borderSide: BorderSide(color: context.c.actionText, width: 1.5),
             ),
           ),
         ),

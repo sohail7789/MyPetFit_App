@@ -32,7 +32,8 @@ class LabeledField extends StatelessWidget {
   /// Renders static text instead of an input — used for the consent date.
   final String? readOnlyValue;
 
-  final Color background;
+  /// Defaults to the card surface for the active appearance.
+  final Color? background;
 
   const LabeledField({
     super.key,
@@ -47,7 +48,7 @@ class LabeledField extends StatelessWidget {
     this.height = 58,
     this.radius = AppTheme.radiusField,
     this.readOnlyValue,
-    this.background = AppTheme.surface,
+    this.background,
   });
 
   @override
@@ -55,7 +56,7 @@ class LabeledField extends StatelessWidget {
     final valueStyle = AppTheme.font(
       size: 15,
       weight: FontWeight.w600,
-      color: AppTheme.ink,
+      color: context.c.ink,
       // Manrope's descenders sit low; an explicit leading gives the value row
       // a stable line box instead of one that varies with the glyphs typed.
       height: 1.3,
@@ -69,9 +70,9 @@ class LabeledField extends StatelessWidget {
       constraints: BoxConstraints(minHeight: height),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
       decoration: BoxDecoration(
-        color: background,
+        color: background ?? context.c.surface,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: context.c.border),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -89,7 +90,7 @@ class LabeledField extends StatelessWidget {
                         style: AppTheme.font(
                           size: 10,
                           weight: FontWeight.w700,
-                          color: AppTheme.body,
+                          color: context.c.body,
                         ),
                       ),
                     ],
@@ -99,7 +100,7 @@ class LabeledField extends StatelessWidget {
             style: AppTheme.font(
               size: 10,
               weight: FontWeight.w700,
-              color: AppTheme.muted,
+              color: context.c.muted,
               letterSpacing: 0.8,
               // Captions are all-caps and single line; a tight leading keeps
               // the two-row stack compact without risking a clipped cap.
@@ -121,7 +122,7 @@ class LabeledField extends StatelessWidget {
               textInputAction: textInputAction,
               inputFormatters: inputFormatters,
               onChanged: onChanged,
-              cursorColor: AppTheme.action,
+              cursorColor: context.c.actionText,
               style: valueStyle,
               decoration: InputDecoration(
                 isDense: true,
@@ -136,7 +137,7 @@ class LabeledField extends StatelessWidget {
                 hintText: hint,
                 hintMaxLines: 1,
                 hintStyle: valueStyle.copyWith(
-                  color: AppTheme.placeholder,
+                  color: context.c.placeholder,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -175,12 +176,12 @@ class ChoiceChips extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: selected == option ? AppTheme.tint : AppTheme.surface,
+                  color: selected == option ? context.c.tint : context.c.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: selected == option
-                        ? AppTheme.action
-                        : AppTheme.border,
+                        ? context.c.actionText
+                        : context.c.border,
                   ),
                 ),
                 child: Text(
@@ -189,8 +190,8 @@ class ChoiceChips extends StatelessWidget {
                     size: 14,
                     weight: FontWeight.w700,
                     color: selected == option
-                        ? AppTheme.action
-                        : AppTheme.body,
+                        ? context.c.actionText
+                        : context.c.body,
                   ),
                 ),
               ),

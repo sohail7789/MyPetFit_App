@@ -114,7 +114,7 @@ class _ReportCardScreenState extends State<ReportCardScreen>
     if (result == null) {
       // Reached without a completed assessment — send them to take one.
       return Scaffold(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: context.c.surface,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
@@ -124,13 +124,13 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                 Text(
                   'No report yet',
                   textAlign: TextAlign.center,
-                  style: AppTheme.h2,
+                  style: context.t.h2,
                 ),
                 const SizedBox(height: 10),
                 Text(
                   'Complete the assessment to see your report card.',
                   textAlign: TextAlign.center,
-                  style: AppTheme.bodyText,
+                  style: context.t.bodyText,
                 ),
                 const SizedBox(height: 24),
                 AppButton(
@@ -147,7 +147,7 @@ class _ReportCardScreenState extends State<ReportCardScreen>
     final band = result.category;
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -159,14 +159,14 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                 children: [
                   Text(
                     'FITNESS REPORT CARD',
-                    style: AppTheme.overline.copyWith(letterSpacing: 1.2),
+                    style: context.t.overline.copyWith(letterSpacing: 1.2),
                   ),
                   Text(
                     _dateOf(result),
                     style: AppTheme.font(
                       size: 12,
                       weight: FontWeight.w700,
-                      color: AppTheme.muted,
+                      color: context.c.muted,
                     ),
                   ),
                 ],
@@ -185,7 +185,7 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                   _Breakdown(scores: result.categoryScores),
                   const SizedBox(height: 20),
                   AppCard(
-                    background: const Color(0xFFFCFBFD),
+                    background: context.c.surfaceLow,
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,7 +195,7 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                           style: AppTheme.font(
                             size: 14,
                             weight: FontWeight.w800,
-                            color: AppTheme.ink,
+                            color: context.c.ink,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -203,7 +203,7 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                           band.bandAdvice,
                           style: AppTheme.font(
                             size: 13,
-                            color: AppTheme.bodyStrong,
+                            color: context.c.bodyStrong,
                             height: 1.65,
                           ),
                         ),
@@ -229,9 +229,9 @@ class _ReportCardScreenState extends State<ReportCardScreen>
               ),
             ),
             Container(
-              decoration: const BoxDecoration(
-                color: AppTheme.surface,
-                border: Border(top: BorderSide(color: AppTheme.borderSoft)),
+              decoration: BoxDecoration(
+                color: context.c.surface,
+                border: Border(top: BorderSide(color: context.c.borderSoft)),
               ),
               padding: const EdgeInsets.fromLTRB(22, 14, 22, 26),
               child: Column(
@@ -315,9 +315,9 @@ class _BandHero extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
       decoration: BoxDecoration(
-        color: band.bandTint,
+        color: band.bandTint(context.c),
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: band.bandLine),
+        border: Border.all(color: band.bandLine(context.c)),
       ),
       child: Column(
         children: [
@@ -352,7 +352,7 @@ class _BandHero extends StatelessWidget {
                     style: AppTheme.font(
                       size: 86,
                       weight: FontWeight.w800,
-                      color: AppTheme.ink,
+                      color: context.c.ink,
                       letterSpacing: -4.5,
                       height: 0.88,
                     ),
@@ -364,7 +364,7 @@ class _BandHero extends StatelessWidget {
                       style: AppTheme.font(
                         size: 26,
                         weight: FontWeight.w800,
-                        color: AppTheme.body,
+                        color: context.c.body,
                       ),
                     ),
                   ),
@@ -376,9 +376,9 @@ class _BandHero extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: AppTheme.surface,
+              color: context.c.surface,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: band.bandLine),
+              border: Border.all(color: band.bandLine(context.c)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -387,11 +387,11 @@ class _BandHero extends StatelessWidget {
                   width: 22,
                   height: 22,
                   decoration: BoxDecoration(
-                    color: band.bandColor,
+                    color: band.bandColor(context.c),
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
-                  child: Icon(band.bandGlyph, size: 13, color: Colors.white),
+                  child: Icon(band.bandGlyph, size: 13, color: context.c.onAccent),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -399,7 +399,7 @@ class _BandHero extends StatelessWidget {
                   style: AppTheme.font(
                     size: 14,
                     weight: FontWeight.w800,
-                    color: AppTheme.ink,
+                    color: context.c.ink,
                   ),
                 ),
               ],
@@ -417,7 +417,7 @@ class _BandHero extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppTheme.font(
               size: 13,
-              color: AppTheme.bodyStrong,
+              color: context.c.bodyStrong,
               height: 1.6,
             ),
           ),
@@ -440,13 +440,13 @@ class _Trend extends StatelessWidget {
         style: AppTheme.font(
           size: 13,
           weight: FontWeight.w800,
-          color: AppTheme.muted,
+          color: context.c.muted,
         ),
       );
     }
 
     final up = delta > 0;
-    final color = up ? AppTheme.success : AppTheme.warning;
+    final color = up ? context.c.successText : context.c.warningText;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -492,7 +492,7 @@ class _Breakdown extends StatelessWidget {
               style: AppTheme.font(
                 size: 16,
                 weight: FontWeight.w800,
-                color: AppTheme.ink,
+                color: context.c.ink,
                 letterSpacing: -0.4,
               ),
             ),
@@ -501,7 +501,7 @@ class _Breakdown extends StatelessWidget {
               style: AppTheme.font(
                 size: 12,
                 weight: FontWeight.w600,
-                color: AppTheme.muted,
+                color: context.c.muted,
               ),
             ),
           ],
@@ -528,7 +528,7 @@ class _BreakdownRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = categoryBarColor(percent);
+    final color = categoryBarColor(context.c, percent);
     final rounded = percent.round();
 
     return Column(
@@ -544,7 +544,7 @@ class _BreakdownRow extends StatelessWidget {
                 style: AppTheme.font(
                   size: 14,
                   weight: FontWeight.w700,
-                  color: AppTheme.ink,
+                  color: context.c.ink,
                 ),
               ),
             ),
@@ -569,7 +569,7 @@ class _BreakdownRow extends StatelessWidget {
             builder: (context, value, _) => LinearProgressIndicator(
               value: value,
               minHeight: 12,
-              backgroundColor: const Color(0xFFEDEBF4),
+              backgroundColor: context.c.divider,
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),
@@ -602,27 +602,27 @@ class _ShareButton extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 50),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: context.c.surface,
             borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: AppTheme.action, width: 1.5),
+            border: Border.all(color: context.c.actionText, width: 1.5),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (busy)
-                const SizedBox(
+                SizedBox(
                   width: 17,
                   height: 17,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.action),
+                    valueColor: AlwaysStoppedAnimation<Color>(context.c.action),
                   ),
                 )
               else
-                const Icon(
+                Icon(
                   Icons.ios_share_rounded,
                   size: 17,
-                  color: AppTheme.action,
+                  color: context.c.actionText,
                 ),
               const SizedBox(width: 9),
               Flexible(
@@ -635,7 +635,7 @@ class _ShareButton extends StatelessWidget {
                   style: AppTheme.font(
                     size: 15,
                     weight: FontWeight.w700,
-                    color: AppTheme.action,
+                    color: context.c.actionText,
                     height: 1.25,
                   ),
                 ),
@@ -657,7 +657,7 @@ class _RemindToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      background: const Color(0xFFFCFBFD),
+      background: context.c.surfaceLow,
       onTap: () => onChanged(!value),
       child: Row(
         children: [
@@ -667,7 +667,7 @@ class _RemindToggle extends StatelessWidget {
               style: AppTheme.font(
                 size: 13.5,
                 weight: FontWeight.w700,
-                color: AppTheme.ink,
+                color: context.c.ink,
               ),
             ),
           ),
@@ -692,7 +692,7 @@ class _Switch extends StatelessWidget {
       width: 44,
       height: 26,
       decoration: BoxDecoration(
-        color: value ? AppTheme.action : AppTheme.dotInactive,
+        color: value ? context.c.action : context.c.dotInactive,
         borderRadius: BorderRadius.circular(13),
       ),
       child: AnimatedAlign(
@@ -704,11 +704,11 @@ class _Switch extends StatelessWidget {
           width: 20,
           height: 20,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.c.onAccent,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: AppTheme.ink.withValues(alpha: 0.35),
+                color: context.c.ink.withValues(alpha: 0.35),
                 blurRadius: 3,
                 offset: const Offset(0, 1),
               ),

@@ -40,7 +40,7 @@ class OrderTrackingScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -59,13 +59,13 @@ class OrderTrackingScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Order ${reference.id}', style: AppTheme.h3),
+                        Text('Order ${reference.id}', style: context.t.h3),
                         const SizedBox(height: 2),
                         Text(
                           reference.summaryLabel,
                           style: AppTheme.font(
                             size: 12.5,
-                            color: AppTheme.body,
+                            color: context.c.body,
                           ),
                         ),
                       ],
@@ -79,7 +79,7 @@ class OrderTrackingScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(26, 20, 26, 20),
                 children: [
                   AppCard(
-                    background: AppTheme.tintPanel,
+                    background: context.c.tintPanel,
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
@@ -95,7 +95,7 @@ class OrderTrackingScreen extends StatelessWidget {
                             children: [
                               Text(
                                 'Packed and on its way',
-                                style: AppTheme.cardTitle,
+                                style: context.t.cardTitle,
                               ),
                               const SizedBox(height: 3),
                               Text.rich(
@@ -104,16 +104,16 @@ class OrderTrackingScreen extends StatelessWidget {
                                   children: [
                                     TextSpan(
                                       text: reference.arrivalLabel,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.w800,
-                                        color: AppTheme.ink,
+                                        color: context.c.ink,
                                       ),
                                     ),
                                   ],
                                 ),
                                 style: AppTheme.font(
                                   size: 13,
-                                  color: AppTheme.body,
+                                  color: context.c.body,
                                   height: 1.5,
                                 ),
                               ),
@@ -148,7 +148,7 @@ class OrderTrackingScreen extends StatelessWidget {
                                 'Problem with this order?',
                                 style: AppTheme.font(
                                   size: 13,
-                                  color: AppTheme.bodyStrong,
+                                  color: context.c.bodyStrong,
                                   height: 1.45,
                                 ),
                               ),
@@ -159,7 +159,7 @@ class OrderTrackingScreen extends StatelessWidget {
                                   style: AppTheme.font(
                                     size: 13,
                                     weight: FontWeight.w700,
-                                    color: AppTheme.action,
+                                    color: context.c.actionText,
                                   ),
                                 ),
                               ),
@@ -198,15 +198,15 @@ class _TimelineRow extends StatelessWidget {
     final active = state == _StepState.active;
 
     final dotColor = done
-        ? AppTheme.success
+        ? context.c.success
         : active
-            ? AppTheme.action
-            : AppTheme.surface;
+            ? context.c.action
+            : context.c.surface;
     final dotBorder = done
-        ? AppTheme.success
+        ? context.c.successText
         : active
-            ? AppTheme.action
-            : AppTheme.dotInactive;
+            ? context.c.actionText
+            : context.c.dotInactive;
 
     return IntrinsicHeight(
       child: Row(
@@ -224,10 +224,10 @@ class _TimelineRow extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: done
-                    ? const Icon(
+                    ? Icon(
                         Icons.check_rounded,
                         size: 13,
-                        color: Colors.white,
+                        color: context.c.onAccent,
                       )
                     : null,
               ),
@@ -236,7 +236,7 @@ class _TimelineRow extends StatelessWidget {
                   child: Container(
                     width: 2.5,
                     constraints: const BoxConstraints(minHeight: 34),
-                    color: done ? AppTheme.success : AppTheme.border,
+                    color: done ? context.c.success : context.c.border,
                   ),
                 ),
             ],
@@ -254,14 +254,14 @@ class _TimelineRow extends StatelessWidget {
                       size: 14.5,
                       weight: FontWeight.w800,
                       color: state == _StepState.todo
-                          ? AppTheme.muted
-                          : AppTheme.ink,
+                          ? context.c.muted
+                          : context.c.ink,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     time,
-                    style: AppTheme.font(size: 12.5, color: AppTheme.muted),
+                    style: AppTheme.font(size: 12.5, color: context.c.muted),
                   ),
                 ],
               ),

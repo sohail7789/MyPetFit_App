@@ -68,7 +68,7 @@ class _QuizScreenState extends State<QuizScreen> {
     final ready = remaining == 0;
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -158,9 +158,9 @@ class _Header extends StatelessWidget {
                 builder: (context, value, _) => LinearProgressIndicator(
                   value: value,
                   minHeight: 8,
-                  backgroundColor: const Color(0xFFEDEBF4),
+                  backgroundColor: context.c.divider,
                   valueColor:
-                      const AlwaysStoppedAnimation<Color>(AppTheme.action),
+                      AlwaysStoppedAnimation<Color>(context.c.action),
                 ),
               ),
             ),
@@ -171,7 +171,7 @@ class _Header extends StatelessWidget {
             style: AppTheme.font(
               size: 13,
               weight: FontWeight.w700,
-              color: AppTheme.action,
+              color: context.c.actionText,
             ),
           ),
         ],
@@ -201,7 +201,7 @@ class _CategoryHeading extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: const Color(0xFFF4F1F9),
+              color: context.c.surfaceRaised,
               borderRadius: BorderRadius.circular(24),
             ),
             clipBehavior: Clip.antiAlias,
@@ -222,14 +222,14 @@ class _CategoryHeading extends StatelessWidget {
                   style: AppTheme.font(
                     size: 12,
                     weight: FontWeight.w700,
-                    color: AppTheme.start,
+                    color: context.c.startText,
                     letterSpacing: 1.2,
                   ),
                 ),
                 const SizedBox(height: 5),
                 Text(
                   title,
-                  style: AppTheme.h3.copyWith(height: 1.15),
+                  style: context.t.h3.copyWith(height: 1.15),
                 ),
               ],
             ),
@@ -258,9 +258,9 @@ class _Footer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
-        border: Border(top: BorderSide(color: AppTheme.borderSoft)),
+      decoration: BoxDecoration(
+        color: context.c.surface,
+        border: Border(top: BorderSide(color: context.c.borderSoft)),
       ),
       child: Stack(
         clipBehavior: Clip.none,
@@ -299,10 +299,10 @@ class _Footer extends StatelessWidget {
               label: ready ? label : blockedLabel,
               height: AppTheme.ctaHeightCompact,
               icon: ready
-                  ? const Icon(
+                  ? Icon(
                       Icons.arrow_forward_rounded,
                       size: 19,
-                      color: Colors.white,
+                      color: context.c.onAccent,
                     )
                   : null,
               onPressed: ready ? onNext : null,

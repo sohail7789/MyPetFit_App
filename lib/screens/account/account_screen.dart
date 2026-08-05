@@ -8,6 +8,7 @@ import '../../providers/address_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
 import '../../widgets/app_button.dart';
@@ -42,7 +43,7 @@ class AccountScreen extends StatelessWidget {
     final petCount = pets.petCount;
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -50,7 +51,7 @@ class AccountScreen extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-              child: Text('Account', style: AppTheme.h2),
+              child: Text('Account', style: context.t.h2),
             ),
             Expanded(
               child: ListView(
@@ -102,6 +103,12 @@ class AccountScreen extends StatelessWidget {
                             '${context.watch<LocaleProvider>().current.name}',
                         onTap: () => context.push(AppRoutes.language),
                       ),
+                      SettingsTile(
+                        icon: Icons.contrast_rounded,
+                        label: 'Appearance — '
+                            '${context.watch<ThemeProvider>().label}',
+                        onTap: () => context.push(AppRoutes.appearance),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -143,7 +150,7 @@ class AccountScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: AppTheme.font(
                       size: 12,
-                      color: AppTheme.placeholder,
+                      color: context.c.placeholder,
                     ),
                   ),
                 ],
@@ -164,7 +171,7 @@ class SectionLabelText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Text(text.toUpperCase(), style: AppTheme.overline);
+      Text(text.toUpperCase(), style: context.t.overline);
 }
 
 class _ProfileCard extends StatelessWidget {
@@ -183,17 +190,17 @@ class _ProfileCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFCFBFD),
+        color: context.c.surfaceLow,
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: context.c.border),
       ),
       child: Row(
         children: [
           Container(
             width: 58,
             height: 58,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF4F1F9),
+            decoration: BoxDecoration(
+              color: context.c.surfaceRaised,
               shape: BoxShape.circle,
             ),
             clipBehavior: Clip.antiAlias,
@@ -212,7 +219,7 @@ class _ProfileCard extends StatelessWidget {
                   style: AppTheme.font(
                     size: 16,
                     weight: FontWeight.w800,
-                    color: AppTheme.ink,
+                    color: context.c.ink,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -220,7 +227,7 @@ class _ProfileCard extends StatelessWidget {
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTheme.font(size: 13, color: AppTheme.body),
+                  style: AppTheme.font(size: 13, color: context.c.body),
                 ),
               ],
             ),
@@ -234,7 +241,7 @@ class _ProfileCard extends StatelessWidget {
                 style: AppTheme.font(
                   size: 13,
                   weight: FontWeight.w700,
-                  color: AppTheme.action,
+                  color: context.c.actionText,
                 ),
               ),
             ),

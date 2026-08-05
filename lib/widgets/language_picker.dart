@@ -24,8 +24,8 @@ class LanguageSheet extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.surface,
+        decoration: BoxDecoration(
+          color: context.c.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
         ),
         padding: const EdgeInsets.fromLTRB(22, 10, 22, 22),
@@ -39,16 +39,16 @@ class LanguageSheet extends StatelessWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 18),
                 decoration: BoxDecoration(
-                  color: AppTheme.dotInactive,
+                  color: context.c.dotInactive,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            Text('Language', style: AppTheme.h3),
+            Text('Language', style: context.t.h3),
             const SizedBox(height: 6),
             Text(
               'Choose how MyPetFit talks to you.',
-              style: AppTheme.font(size: 13.5, color: AppTheme.body),
+              style: AppTheme.font(size: 13.5, color: context.c.body),
             ),
             const SizedBox(height: 16),
             for (final language in LocaleProvider.supported) ...[
@@ -70,7 +70,7 @@ class LanguageSheet extends StatelessWidget {
               'assessment questions — and will switch on here once ready.',
               style: AppTheme.font(
                 size: 12.5,
-                color: AppTheme.muted,
+                color: context.c.muted,
                 height: 1.55,
               ),
             ),
@@ -110,10 +110,10 @@ class LanguageRow extends StatelessWidget {
             constraints: const BoxConstraints(minHeight: 62),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: selected ? AppTheme.tintPanel : AppTheme.surface,
+              color: selected ? context.c.tintPanel : context.c.surface,
               borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
               border: Border.all(
-                color: selected ? AppTheme.action : AppTheme.border,
+                color: selected ? context.c.actionText : context.c.border,
                 width: selected ? 1.5 : 1,
               ),
             ),
@@ -124,7 +124,7 @@ class LanguageRow extends StatelessWidget {
                   height: 38,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: AppTheme.tint,
+                    color: context.c.tint,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -132,7 +132,7 @@ class LanguageRow extends StatelessWidget {
                     style: AppTheme.font(
                       size: 14,
                       weight: FontWeight.w800,
-                      color: AppTheme.action,
+                      color: context.c.actionText,
                     ),
                   ),
                 ),
@@ -149,7 +149,7 @@ class LanguageRow extends StatelessWidget {
                         style: AppTheme.font(
                           size: 15,
                           weight: FontWeight.w700,
-                          color: AppTheme.ink,
+                          color: context.c.ink,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -159,17 +159,17 @@ class LanguageRow extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: AppTheme.font(
                           size: 12.5,
-                          color: AppTheme.muted,
+                          color: context.c.muted,
                         ),
                       ),
                     ],
                   ),
                 ),
                 if (selected)
-                  const Icon(
+                  Icon(
                     Icons.check_circle_rounded,
                     size: 22,
-                    color: AppTheme.action,
+                    color: context.c.actionText,
                   ),
               ],
             ),

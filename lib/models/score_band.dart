@@ -4,27 +4,38 @@ import '../config/theme.dart';
 import 'score_result.dart';
 
 /// Presentation values for each score band, transcribed from `BANDS` in
-/// "MyPetFit Assessment.dc.html".
+/// "MyPetFit Assessment.dc.html" and its dark counterpart.
+///
+/// The three colour accessors take an [AppColors] rather than being getters
+/// because each band resolves differently in light and dark. They take the
+/// palette itself, not a [BuildContext], so the shared report PDF can ask for
+/// [AppColors.light] explicitly — a document that gets printed or forwarded
+/// should not follow the reader's screen appearance.
 extension ScoreBand on HealthCategory {
-  Color get bandColor => switch (this) {
-        HealthCategory.critical => AppTheme.critical,
-        HealthCategory.needsImprovement => AppTheme.warning,
-        HealthCategory.good => AppTheme.success,
-        HealthCategory.excellent => AppTheme.info,
+  /// The band's accent, used for the score figure, chip glyph and bar fill.
+  ///
+  /// Reads the `…Text` accents rather than the fills: `BANDS` in the dark
+  /// design uses the brightened #F0A05F / #66D68C, which is what stays legible
+  /// drawn directly on the canvas. In light both variants are the same colour.
+  Color bandColor(AppColors c) => switch (this) {
+        HealthCategory.critical => c.critical,
+        HealthCategory.needsImprovement => c.warningText,
+        HealthCategory.good => c.successText,
+        HealthCategory.excellent => c.info,
       };
 
-  Color get bandTint => switch (this) {
-        HealthCategory.critical => AppTheme.bandCriticalTint,
-        HealthCategory.needsImprovement => AppTheme.bandNeedsTint,
-        HealthCategory.good => AppTheme.bandGoodTint,
-        HealthCategory.excellent => AppTheme.bandExcellentTint,
+  Color bandTint(AppColors c) => switch (this) {
+        HealthCategory.critical => c.bandCriticalTint,
+        HealthCategory.needsImprovement => c.bandNeedsTint,
+        HealthCategory.good => c.bandGoodTint,
+        HealthCategory.excellent => c.bandExcellentTint,
       };
 
-  Color get bandLine => switch (this) {
-        HealthCategory.critical => AppTheme.bandCriticalLine,
-        HealthCategory.needsImprovement => AppTheme.bandNeedsLine,
-        HealthCategory.good => AppTheme.bandGoodLine,
-        HealthCategory.excellent => AppTheme.bandExcellentLine,
+  Color bandLine(AppColors c) => switch (this) {
+        HealthCategory.critical => c.bandCriticalLine,
+        HealthCategory.needsImprovement => c.bandNeedsLine,
+        HealthCategory.good => c.bandGoodLine,
+        HealthCategory.excellent => c.bandExcellentLine,
       };
 
   /// Glyph shown in the band chip. Rendered as an icon rather than a text
@@ -82,9 +93,9 @@ extension ScoreBand on HealthCategory {
 
 /// Colour for a single category's breakdown bar, using the same cutoffs as
 /// the overall bands.
-Color categoryBarColor(double percent) {
-  if (percent <= 25) return AppTheme.critical;
-  if (percent <= 50) return AppTheme.warning;
-  if (percent <= 75) return AppTheme.success;
-  return AppTheme.info;
+Color categoryBarColor(AppColors c, double percent) {
+  if (percent <= 25) return c.critical;
+  if (percent <= 50) return c.warningText;
+  if (percent <= 75) return c.successText;
+  return c.info;
 }

@@ -9,18 +9,16 @@ class PasswordStrength extends StatelessWidget {
 
   final String label;
 
-  /// Fill colour for completed segments.
-  final Color color;
-
-  /// Colour of the unfilled remainder.
-  final Color track;
+  /// All three checks passed. Held as a flag rather than a colour so the
+  /// meter can be built without a [BuildContext] and still resolve against
+  /// the active appearance when it paints.
+  final bool strong;
 
   const PasswordStrength({
     super.key,
     required this.level,
     required this.label,
-    this.color = AppTheme.startLight,
-    this.track = const Color(0xFFE4E1EE),
+    this.strong = false,
   });
 
   /// Derives the meter from a password, matching the design's stated rule
@@ -38,12 +36,14 @@ class PasswordStrength extends StatelessWidget {
     return PasswordStrength(
       level: password.isEmpty ? 0 : level,
       label: strong ? 'Strong' : '8+ chars, 1 number',
-      color: strong ? AppTheme.start : AppTheme.startLight,
+      strong: strong,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final fill = strong ? context.c.startText : context.c.startLight;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
@@ -54,7 +54,7 @@ class PasswordStrength extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 height: 5,
                 decoration: BoxDecoration(
-                  color: i < level ? color : track,
+                  color: i < level ? fill : context.c.meterTrack,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -66,7 +66,7 @@ class PasswordStrength extends StatelessWidget {
             style: AppTheme.font(
               size: 12,
               weight: FontWeight.w700,
-              color: AppTheme.start,
+              color: context.c.startText,
               letterSpacing: 0.2,
             ),
           ),

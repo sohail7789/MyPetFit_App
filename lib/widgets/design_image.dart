@@ -63,7 +63,7 @@ class DesignImage extends StatelessWidget {
                 imageFilter: ImageFilter.blur(sigmaX: 13, sigmaY: 13),
                 child: ColorFiltered(
                   colorFilter: ColorFilter.mode(
-                    AppTheme.ink.withValues(alpha: 0.28),
+                    context.c.ink.withValues(alpha: 0.28),
                     BlendMode.srcIn,
                   ),
                   child: image,
@@ -95,13 +95,13 @@ class _Missing extends StatelessWidget {
       width: w,
       height: h,
       decoration: BoxDecoration(
-        color: AppTheme.tint.withValues(alpha: 0.6),
+        color: context.c.tint.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
       ),
       alignment: Alignment.center,
       child: PawMark(
         size: (w < h ? w : h) * 0.42,
-        color: AppTheme.action,
+        color: context.c.actionText,
         opacity: 0.22,
       ),
     );

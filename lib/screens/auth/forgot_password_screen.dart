@@ -29,17 +29,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthArtLayout(
-      gradient: const [
-        Color(0xFFFFFFFF),
-        Color(0xFFFBFAFD),
-        Color(0xFFF2EFF7),
+      gradient: [
+        context.c.surface,
+        context.c.surfaceLow,
+        context.c.surfaceRaised,
       ],
-      decoration: const [
+      decoration: [
         PawWatermark(
           bottom: 96,
           left: -10,
           size: 76,
-          color: AppTheme.action,
+          color: context.c.actionText,
           opacity: 0.07,
           rotationDegrees: -22,
         ),
@@ -47,7 +47,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           bottom: 180,
           right: 16,
           size: 50,
-          color: AppTheme.action,
+          color: context.c.actionText,
           opacity: 0.07,
           rotationDegrees: 16,
         ),
@@ -56,7 +56,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       subtitle: Text(
         "No worries! Enter your email address and we'll send you a link to reset it.",
         textAlign: TextAlign.center,
-        style: AppTheme.bodyText,
+        style: context.t.bodyText,
       ),
       art: AppAssets.forgotPassword,
       artWidth: 334,
@@ -65,7 +65,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       children: [
         AppField(
           hint: 'Email address',
-          icon: AppIcon(AppIcons.mail(), size: 20),
+          icon: AppIcon(AppIcons.mail(context.c.muted), size: 20),
           controller: _email,
           keyboardType: TextInputType.emailAddress,
           height: 58,

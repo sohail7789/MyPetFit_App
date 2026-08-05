@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../config/theme.dart';
-import 'app_field.dart' show kFieldIcon;
 
 /// SVG markup copied verbatim from the design files, so icons render exactly
 /// as drawn rather than being approximated with Material glyphs.
@@ -18,36 +16,36 @@ class AppIcons {
 
   // -- Form field icons -------------------------------------------------
 
-  static String mail([Color c = kFieldIcon]) => _stroke(
+  static String mail(Color c) => _stroke(
       '<rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="M3 7.5l9 6 9-6"/>',
       c,
       1.9);
 
-  static String lock([Color c = kFieldIcon]) => _stroke(
+  static String lock(Color c) => _stroke(
       '<rect x="4" y="10.5" width="16" height="10.5" rx="3"/>'
       '<path d="M8 10.5V8a4 4 0 018 0v2.5"/>',
       c,
       1.9);
 
-  static String person([Color c = kFieldIcon]) => _stroke(
+  static String person(Color c) => _stroke(
       '<circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.4 3.1-5.6 7-5.6s7 2.2 7 5.6"/>',
       c,
       1.9);
 
-  static String username([Color c = kFieldIcon]) => _stroke(
+  static String username(Color c) => _stroke(
       '<path d="M4 20v-1.4C4 15.5 7.6 13 12 13s8 2.5 8 5.6V20"/>'
       '<circle cx="12" cy="7.5" r="3.8"/>',
       c,
       1.9);
 
   /// Eye with a strike-through — the "hide password" state.
-  static String eyeOff([Color c = kFieldIcon]) => _stroke(
+  static String eyeOff(Color c) => _stroke(
       '<path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/>'
       '<circle cx="12" cy="12" r="2.6"/><path d="M4 20L20 4"/>',
       c,
       1.9);
 
-  static String eye([Color c = kFieldIcon]) => _stroke(
+  static String eye(Color c) => _stroke(
       '<path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/>'
       '<circle cx="12" cy="12" r="2.6"/>',
       c,
@@ -55,19 +53,19 @@ class AppIcons {
 
   // -- Navigation / chrome ----------------------------------------------
 
-  static String back([Color c = AppTheme.ink]) =>
+  static String back(Color c) =>
       _stroke('<path d="M14.5 5L8 12l6.5 7"/>', c, 2.6);
 
   static String chevronRight([Color c = Colors.white]) =>
       _stroke('<path d="M9 5l7 7-7 7"/>', c, 2.6);
 
-  static String chevronDown([Color c = const Color(0xFF8C8CA8)]) =>
+  static String chevronDown(Color c) =>
       _stroke('<path d="M5 8l7 7 7-7"/>', c, 3);
 
   static String check([Color c = Colors.white, double w = 3.4]) =>
       _stroke('<path d="M5 12.5l4.5 4.5L19 7"/>', c, w);
 
-  static String globe([Color c = AppTheme.action]) =>
+  static String globe(Color c) =>
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
       'stroke="${_hex(c)}" stroke-width="2"><circle cx="12" cy="12" r="9"/>'
       '<path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18"/></svg>';

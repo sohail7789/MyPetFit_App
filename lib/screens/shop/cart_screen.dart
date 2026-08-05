@@ -19,7 +19,7 @@ class CartScreen extends StatelessWidget {
     final cart = context.watch<CartProvider>();
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -34,7 +34,7 @@ class CartScreen extends StatelessWidget {
                     onPressed: () => context.backOr(AppRoutes.shop),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(child: Text('Your cart', style: AppTheme.h2)),
+                  Expanded(child: Text('Your cart', style: context.t.h2)),
                   if (!cart.isEmpty)
                     Text(
                       '${cart.totalItems} '
@@ -42,7 +42,7 @@ class CartScreen extends StatelessWidget {
                       style: AppTheme.font(
                         size: 13,
                         weight: FontWeight.w700,
-                        color: AppTheme.muted,
+                        color: context.c.muted,
                       ),
                     ),
                 ],
@@ -96,9 +96,9 @@ class _CartRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: context.c.surface,
         borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: context.c.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,7 +116,7 @@ class _CartRow extends StatelessWidget {
                   style: AppTheme.font(
                     size: 14,
                     weight: FontWeight.w700,
-                    color: AppTheme.ink,
+                    color: context.c.ink,
                     height: 1.25,
                   ),
                 ),
@@ -126,7 +126,7 @@ class _CartRow extends StatelessWidget {
                   style: AppTheme.font(
                     size: 13,
                     weight: FontWeight.w800,
-                    color: AppTheme.action,
+                    color: context.c.actionText,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -145,7 +145,7 @@ class _CartRow extends StatelessWidget {
                         style: AppTheme.font(
                           size: 14,
                           weight: FontWeight.w800,
-                          color: AppTheme.ink,
+                          color: context.c.ink,
                         ),
                       ),
                     ),
@@ -164,7 +164,7 @@ class _CartRow extends StatelessWidget {
                           style: AppTheme.font(
                             size: 12,
                             weight: FontWeight.w700,
-                            color: AppTheme.danger,
+                            color: context.c.dangerText,
                           ),
                         ),
                       ),
@@ -202,11 +202,11 @@ class _StepButton extends StatelessWidget {
           width: 28,
           height: 28,
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: context.c.surface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.border),
+            border: Border.all(color: context.c.border),
           ),
-          child: Icon(icon, size: 16, color: AppTheme.action),
+          child: Icon(icon, size: 16, color: context.c.actionText),
         ),
       ),
     );
@@ -229,7 +229,7 @@ class _EmptyCart extends StatelessWidget {
             Text(
               'Your cart is empty — add something from the picks.',
               textAlign: TextAlign.center,
-              style: AppTheme.font(size: 14, color: AppTheme.body),
+              style: AppTheme.font(size: 14, color: context.c.body),
             ),
             const SizedBox(height: 14),
             AppButton(
@@ -253,9 +253,9 @@ class _CartFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
-        border: Border(top: BorderSide(color: AppTheme.borderSoft)),
+      decoration: BoxDecoration(
+        color: context.c.surface,
+        border: Border(top: BorderSide(color: context.c.borderSoft)),
       ),
       padding: const EdgeInsets.fromLTRB(22, 14, 22, 26),
       child: Column(
@@ -296,13 +296,13 @@ class SummaryRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: AppTheme.font(size: size, color: AppTheme.body)),
+        Text(label, style: AppTheme.font(size: size, color: context.c.body)),
         Text(
           value,
           style: AppTheme.font(
             size: size,
             weight: FontWeight.w700,
-            color: valueIsFree ? AppTheme.success : AppTheme.ink,
+            color: valueIsFree ? context.c.successText : context.c.ink,
           ),
         ),
       ],

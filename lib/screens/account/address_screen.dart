@@ -179,7 +179,7 @@ class _AddressScreenState extends State<AddressScreen> {
     final isFirst = !context.watch<AddressProvider>().hasAddress;
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -194,7 +194,7 @@ class _AddressScreenState extends State<AddressScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 4, bottom: 8),
-                    child: Text('Label', style: AppTheme.overline),
+                    child: Text('Label', style: context.t.overline),
                   ),
                   Wrap(
                     spacing: 10,
@@ -295,9 +295,9 @@ class _AddressScreenState extends State<AddressScreen> {
               ),
             ),
             Container(
-              decoration: const BoxDecoration(
-                color: AppTheme.surface,
-                border: Border(top: BorderSide(color: AppTheme.borderSoft)),
+              decoration: BoxDecoration(
+                color: context.c.surface,
+                border: Border(top: BorderSide(color: context.c.borderSoft)),
               ),
               padding: const EdgeInsets.fromLTRB(22, 12, 22, 26),
               child: Column(
@@ -363,7 +363,7 @@ class _AddressScreenState extends State<AddressScreen> {
                 style: AppTheme.font(
                   size: 12,
                   weight: FontWeight.w600,
-                  color: AppTheme.danger,
+                  color: context.c.dangerText,
                 ),
               ),
             ),
@@ -398,10 +398,10 @@ class _LabelChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? AppTheme.tint : AppTheme.surface,
+            color: selected ? context.c.tint : context.c.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected ? AppTheme.action : AppTheme.border,
+              color: selected ? context.c.actionText : context.c.border,
             ),
           ),
           child: Text(
@@ -409,7 +409,7 @@ class _LabelChip extends StatelessWidget {
             style: AppTheme.font(
               size: 14,
               weight: FontWeight.w700,
-              color: selected ? AppTheme.action : AppTheme.body,
+              color: selected ? context.c.actionText : context.c.body,
             ),
           ),
         ),
@@ -440,9 +440,9 @@ class _DefaultSwitch extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 58),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppTheme.tintPanel,
+            color: context.c.tintPanel,
             borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
-            border: Border.all(color: AppTheme.border),
+            border: Border.all(color: context.c.border),
           ),
           child: Row(
             children: [
@@ -454,7 +454,7 @@ class _DefaultSwitch extends StatelessWidget {
                   style: AppTheme.font(
                     size: 13.5,
                     weight: FontWeight.w700,
-                    color: AppTheme.ink,
+                    color: context.c.ink,
                     height: 1.4,
                   ),
                 ),
@@ -464,7 +464,7 @@ class _DefaultSwitch extends StatelessWidget {
                 width: 42,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: value ? AppTheme.action : AppTheme.dotInactive,
+                  color: value ? context.c.action : context.c.dotInactive,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment:
@@ -473,8 +473,8 @@ class _DefaultSwitch extends StatelessWidget {
                 child: Container(
                   width: 18,
                   height: 18,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: context.c.onAccent,
                     shape: BoxShape.circle,
                   ),
                 ),

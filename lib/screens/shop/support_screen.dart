@@ -37,7 +37,7 @@ class SupportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -52,7 +52,7 @@ class SupportScreen extends StatelessWidget {
                     onPressed: () => context.backOr(AppRoutes.shop),
                   ),
                   const SizedBox(width: 12),
-                  Text('Help & support', style: AppTheme.h2),
+                  Text('Help & support', style: context.t.h2),
                 ],
               ),
             ),
@@ -61,10 +61,10 @@ class SupportScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
                 children: [
                   AppCard(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Color(0xFFFFFFFF), Color(0xFFF4F1F9)],
+                      colors: [context.c.surface, context.c.surfaceRaised],
                     ),
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -84,7 +84,7 @@ class SupportScreen extends StatelessWidget {
                                 style: AppTheme.font(
                                   size: 14.5,
                                   weight: FontWeight.w800,
-                                  color: AppTheme.ink,
+                                  color: context.c.ink,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -93,7 +93,7 @@ class SupportScreen extends StatelessWidget {
                                 '9 am – 9 pm',
                                 style: AppTheme.font(
                                   size: 12.5,
-                                  color: AppTheme.body,
+                                  color: context.c.body,
                                 ),
                               ),
                             ],
@@ -125,7 +125,7 @@ class SupportScreen extends StatelessWidget {
                             style: AppTheme.font(
                               size: 14,
                               weight: FontWeight.w800,
-                              color: AppTheme.ink,
+                              color: context.c.ink,
                             ),
                           ),
                           const SizedBox(height: 5),
@@ -133,7 +133,7 @@ class SupportScreen extends StatelessWidget {
                             faq.answer,
                             style: AppTheme.font(
                               size: 12.5,
-                              color: AppTheme.bodyStrong,
+                              color: context.c.bodyStrong,
                               height: 1.55,
                             ),
                           ),
@@ -143,7 +143,7 @@ class SupportScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                   ],
                   AppCard(
-                    background: const Color(0xFFFCFBFD),
+                    background: context.c.surfaceLow,
                     child: Text.rich(
                       TextSpan(
                         text: 'Email us anytime at ',
@@ -153,7 +153,7 @@ class SupportScreen extends StatelessWidget {
                             style: AppTheme.font(
                               size: 13,
                               weight: FontWeight.w700,
-                              color: AppTheme.action,
+                              color: context.c.actionText,
                             ),
                           ),
                           const TextSpan(
@@ -164,7 +164,7 @@ class SupportScreen extends StatelessWidget {
                       ),
                       style: AppTheme.font(
                         size: 13,
-                        color: AppTheme.bodyStrong,
+                        color: context.c.bodyStrong,
                         height: 1.6,
                       ),
                     ),

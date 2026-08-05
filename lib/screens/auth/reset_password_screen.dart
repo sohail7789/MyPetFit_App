@@ -35,16 +35,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthArtLayout(
-      gradient: const [
-        Color(0xFFFFFFFF),
-        Color(0xFFFBFAFD),
-        Color(0xFFF2EFF8),
+      gradient: [
+        context.c.surface,
+        context.c.surfaceLow,
+        context.c.surfaceRaised,
       ],
       title: 'Create new password',
       subtitle: Text(
         "Make it strong — Bruno's health history lives behind it.",
         textAlign: TextAlign.center,
-        style: AppTheme.bodyText,
+        style: context.t.bodyText,
       ),
       art: AppAssets.resetPassword,
       artWidth: 280,
@@ -53,14 +53,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       children: [
         AppField(
           hint: 'New password',
-          icon: AppIcon(AppIcons.lock(), size: 19),
+          icon: AppIcon(AppIcons.lock(context.c.muted), size: 19),
           controller: _password,
           obscure: _obscure,
           onChanged: (_) => setState(() {}),
           trailing: GestureDetector(
             onTap: () => setState(() => _obscure = !_obscure),
             child: AppIcon(
-              _obscure ? AppIcons.eyeOff() : AppIcons.eye(),
+              _obscure ? AppIcons.eyeOff(context.c.muted) : AppIcons.eye(context.c.muted),
               size: 19,
             ),
           ),
@@ -68,7 +68,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         const SizedBox(height: 12),
         AppField(
           hint: 'Confirm password',
-          icon: AppIcon(AppIcons.lock(), size: 19),
+          icon: AppIcon(AppIcons.lock(context.c.muted), size: 19),
           controller: _confirm,
           obscure: _obscure,
           onChanged: (_) => setState(() {}),

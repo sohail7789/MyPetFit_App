@@ -6,6 +6,7 @@ import 'package:mypetfit_app/config/theme.dart';
 import 'package:mypetfit_app/data/legal_content.dart';
 import 'package:mypetfit_app/data/questions_data.dart';
 import 'package:mypetfit_app/providers/address_provider.dart';
+import 'package:mypetfit_app/providers/theme_provider.dart';
 import 'package:mypetfit_app/providers/auth_provider.dart';
 import 'package:mypetfit_app/providers/cart_provider.dart';
 import 'package:mypetfit_app/providers/locale_provider.dart';
@@ -27,6 +28,7 @@ Widget _host(Widget child, {QuizProvider? quiz}) => MultiProvider(
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => PetInfoProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AddressProvider()),
       ],
       child: MaterialApp(theme: AppTheme.light, home: child),

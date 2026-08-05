@@ -15,11 +15,11 @@ class VetAlertScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFFFFF), AppTheme.bandCriticalTint],
+            colors: [context.c.surface, context.c.bandCriticalTint],
           ),
         ),
         child: SafeArea(
@@ -41,7 +41,7 @@ class VetAlertScreen extends StatelessWidget {
                 Text(
                   "Let's get a vet involved",
                   textAlign: TextAlign.center,
-                  style: AppTheme.h1.copyWith(fontSize: 26, letterSpacing: -1),
+                  style: context.t.h1.copyWith(fontSize: 26, letterSpacing: -1),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -51,7 +51,7 @@ class VetAlertScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: AppTheme.font(
                     size: 14.5,
-                    color: AppTheme.bodyStrong,
+                    color: context.c.bodyStrong,
                     height: 1.6,
                   ),
                 ),
@@ -60,10 +60,10 @@ class VetAlertScreen extends StatelessWidget {
                   label: 'Find a vet near me',
                   variant: AppButtonVariant.danger,
                   height: AppTheme.ctaHeightCompact,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.location_on_outlined,
                     size: 18,
-                    color: Colors.white,
+                    color: context.c.onAccent,
                   ),
                   onPressed: () {},
                 ),

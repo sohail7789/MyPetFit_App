@@ -32,7 +32,7 @@ class ScreenHeader extends StatelessWidget {
               title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTheme.h2,
+              style: context.t.h2,
             ),
           ),
           ?trailing,
@@ -52,9 +52,9 @@ class SettingsGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: context.c.surface,
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: context.c.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -62,7 +62,7 @@ class SettingsGroup extends StatelessWidget {
           for (var i = 0; i < children.length; i++) ...[
             children[i],
             if (i != children.length - 1)
-              const Divider(height: 1, color: AppTheme.borderSoft),
+              Divider(height: 1, color: context.c.borderSoft),
           ],
         ],
       ),
@@ -90,8 +90,8 @@ class SettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tint =
-        destructive ? AppTheme.bandCriticalTint : const Color(0xFFF4F1F9);
-    final accent = destructive ? AppTheme.danger : AppTheme.action;
+        destructive ? context.c.bandCriticalTint : context.c.surfaceRaised;
+    final accent = destructive ? context.c.dangerText : context.c.actionText;
 
     return InkWell(
       onTap: onTap,
@@ -115,14 +115,14 @@ class SettingsTile extends StatelessWidget {
                 style: AppTheme.font(
                   size: 14.5,
                   weight: FontWeight.w700,
-                  color: destructive ? AppTheme.danger : AppTheme.ink,
+                  color: destructive ? context.c.dangerText : context.c.ink,
                 ),
               ),
             ),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios_rounded,
               size: 14,
-              color: Color(0xFFB0AEC2),
+              color: context.c.faint,
             ),
           ],
         ),
@@ -163,13 +163,13 @@ class SettingsSwitchTile extends StatelessWidget {
                     style: AppTheme.font(
                       size: 14,
                       weight: FontWeight.w700,
-                      color: AppTheme.ink,
+                      color: context.c.ink,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     hint,
-                    style: AppTheme.font(size: 12.5, color: AppTheme.body),
+                    style: AppTheme.font(size: 12.5, color: context.c.body),
                   ),
                 ],
               ),
@@ -196,7 +196,7 @@ class AppSwitch extends StatelessWidget {
       width: 44,
       height: 26,
       decoration: BoxDecoration(
-        color: value ? AppTheme.action : AppTheme.dotInactive,
+        color: value ? context.c.action : context.c.dotInactive,
         borderRadius: BorderRadius.circular(13),
       ),
       child: AnimatedAlign(
@@ -208,11 +208,11 @@ class AppSwitch extends StatelessWidget {
           width: 20,
           height: 20,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.c.onAccent,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: AppTheme.ink.withValues(alpha: 0.35),
+                color: context.c.ink.withValues(alpha: 0.35),
                 blurRadius: 3,
                 offset: const Offset(0, 1),
               ),

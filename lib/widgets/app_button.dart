@@ -56,31 +56,31 @@ class _AppButtonState extends State<AppButton> {
   bool get _enabled => widget.onPressed != null;
 
   Color get _background {
-    if (!_enabled) return AppTheme.dotInactive;
+    if (!_enabled) return context.c.dotInactive;
     switch (widget.variant) {
       case AppButtonVariant.action:
-        return AppTheme.action;
+        return context.c.action;
       case AppButtonVariant.start:
-        return AppTheme.start;
+        return context.c.start;
       case AppButtonVariant.outline:
-        return AppTheme.surface;
+        return context.c.surface;
       case AppButtonVariant.tinted:
-        return AppTheme.tint;
+        return context.c.tint;
       case AppButtonVariant.danger:
-        return AppTheme.danger;
+        return context.c.danger;
     }
   }
 
   Color get _foreground {
-    if (!_enabled) return Colors.white;
+    if (!_enabled) return context.c.onAccent;
     switch (widget.variant) {
       case AppButtonVariant.action:
       case AppButtonVariant.start:
       case AppButtonVariant.danger:
-        return Colors.white;
+        return context.c.onAccent;
       case AppButtonVariant.outline:
       case AppButtonVariant.tinted:
-        return AppTheme.action;
+        return context.c.actionText;
     }
   }
 
@@ -88,13 +88,13 @@ class _AppButtonState extends State<AppButton> {
     if (!_enabled || _pressed) return null;
     switch (widget.variant) {
       case AppButtonVariant.action:
-        return AppTheme.ctaShadow;
+        return context.c.ctaShadow;
       case AppButtonVariant.start:
-        return AppTheme.ctaShadowStart;
+        return context.c.ctaShadowStart;
       case AppButtonVariant.danger:
         return [
           BoxShadow(
-            color: AppTheme.danger.withValues(alpha: 0.4),
+            color: context.c.danger.withValues(alpha: 0.4),
             blurRadius: 26,
             spreadRadius: -10,
             offset: const Offset(0, 12),
@@ -131,7 +131,7 @@ class _AppButtonState extends State<AppButton> {
             // taller button.
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: AppTheme.button.copyWith(
+            style: context.t.button.copyWith(
               color: _foreground,
               fontSize: widget.variant == AppButtonVariant.outline ? 15 : 17,
               height: 1.2,
@@ -163,7 +163,7 @@ class _AppButtonState extends State<AppButton> {
             color: _background,
             borderRadius: BorderRadius.circular(radius),
             border: widget.variant == AppButtonVariant.outline
-                ? Border.all(color: AppTheme.border)
+                ? Border.all(color: context.c.border)
                 : null,
             boxShadow: _shadow,
           ),
@@ -180,8 +180,10 @@ class CircleIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onPressed;
   final double size;
-  final Color background;
-  final Color foreground;
+
+  /// Both default to the active appearance's tokens when left unset.
+  final Color? background;
+  final Color? foreground;
 
   /// Floating variant (white + drop shadow) used over artwork.
   final bool floating;
@@ -193,8 +195,8 @@ class CircleIconButton extends StatelessWidget {
     required this.icon,
     required this.onPressed,
     this.size = 42,
-    this.background = AppTheme.tintSoft,
-    this.foreground = AppTheme.ink,
+    this.background,
+    this.foreground,
     this.floating = false,
     this.semanticLabel,
   });
@@ -210,11 +212,17 @@ class CircleIconButton extends StatelessWidget {
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: floating ? AppTheme.surface : background,
+            color: floating
+                ? context.c.surface
+                : background ?? context.c.tintSoft,
             shape: BoxShape.circle,
-            boxShadow: floating ? AppTheme.floatShadow : null,
+            boxShadow: floating ? context.c.floatShadow : null,
           ),
-          child: Icon(icon, size: size * 0.45, color: foreground),
+          child: Icon(
+            icon,
+            size: size * 0.45,
+            color: foreground ?? context.c.ink,
+          ),
         ),
       ),
     );

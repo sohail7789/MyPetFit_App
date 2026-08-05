@@ -40,7 +40,7 @@ class ProductArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = ProductPalette.of(product.category);
+    final palette = ProductPalette.of(context, product.category);
     final paw = PawMark(size: pawSize, color: palette.accent, opacity: 0.5);
 
     if (!product.hasImage) return paw;
@@ -72,7 +72,7 @@ class ProductThumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = ProductPalette.of(product.category);
+    final palette = ProductPalette.of(context, product.category);
     return Container(
       width: size,
       height: size,
@@ -112,13 +112,13 @@ class ProductTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = ProductPalette.of(product.category);
+    final palette = ProductPalette.of(context, product.category);
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: context.c.surface,
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: context.c.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -132,7 +132,7 @@ class ProductTile extends StatelessWidget {
                 children: [
                   Positioned.fill(
                     child: DecoratedBox(
-                      decoration: BoxDecoration(gradient: palette.gradient()),
+                      decoration: BoxDecoration(gradient: palette.gradient(context)),
                       child: Padding(
                         padding: const EdgeInsets.all(8),
                         child: ProductArt(product: product, pawSize: 40),
@@ -180,7 +180,7 @@ class ProductTile extends StatelessWidget {
                             style: AppTheme.font(
                               size: 13.5,
                               weight: FontWeight.w700,
-                              color: AppTheme.ink,
+                              color: context.c.ink,
                               height: 1.25,
                             ),
                           ),
@@ -195,7 +195,7 @@ class ProductTile extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: AppTheme.font(
                                   size: 11.5,
-                                  color: AppTheme.body,
+                                  color: context.c.body,
                                   height: 1.4,
                                 ),
                               ),
@@ -218,7 +218,7 @@ class ProductTile extends StatelessWidget {
                     style: AppTheme.font(
                       size: 15,
                       weight: FontWeight.w800,
-                      color: AppTheme.ink,
+                      color: context.c.ink,
                       height: 1.25,
                     ),
                   ),
@@ -248,7 +248,7 @@ class _Tag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
+        color: context.c.onAccent.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -307,7 +307,7 @@ class QuantityControl extends StatelessWidget {
             height: strip,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppTheme.action,
+              color: context.c.action,
               borderRadius: BorderRadius.circular(strip / 2),
             ),
             child: Text(
@@ -315,7 +315,7 @@ class QuantityControl extends StatelessWidget {
               style: AppTheme.font(
                 size: 13,
                 weight: FontWeight.w800,
-                color: Colors.white,
+                color: context.c.onAccent,
               ),
             ),
           ),
@@ -326,9 +326,9 @@ class QuantityControl extends StatelessWidget {
     return Container(
       height: strip,
       decoration: BoxDecoration(
-        color: AppTheme.tint,
+        color: context.c.tint,
         borderRadius: BorderRadius.circular(strip / 2),
-        border: Border.all(color: AppTheme.action.withValues(alpha: 0.25)),
+        border: Border.all(color: context.c.actionText.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
@@ -348,7 +348,7 @@ class QuantityControl extends StatelessWidget {
                 style: AppTheme.font(
                   size: 14,
                   weight: FontWeight.w800,
-                  color: AppTheme.action,
+                  color: context.c.actionText,
                 ),
               ),
             ),
@@ -396,8 +396,8 @@ class _StepButton extends StatelessWidget {
             icon,
             size: 17,
             color: onTap == null
-                ? AppTheme.action.withValues(alpha: 0.35)
-                : AppTheme.action,
+                ? context.c.actionText.withValues(alpha: 0.35)
+                : context.c.actionText,
           ),
         ),
       ),

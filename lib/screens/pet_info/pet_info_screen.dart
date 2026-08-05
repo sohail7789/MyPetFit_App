@@ -199,7 +199,7 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -223,14 +223,14 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
                   Text(
                     _title,
                     style:
-                        AppTheme.h1.copyWith(fontSize: 26, letterSpacing: -1),
+                        context.t.h1.copyWith(fontSize: 26, letterSpacing: -1),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _subtitle,
                     style: AppTheme.font(
                       size: 14,
-                      color: AppTheme.body,
+                      color: context.c.body,
                       height: 1.5,
                     ),
                   ),
@@ -262,7 +262,7 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
                         style: AppTheme.font(
                           size: 12.5,
                           weight: FontWeight.w600,
-                          color: AppTheme.danger,
+                          color: context.c.dangerText,
                         ),
                       ),
                     ],
@@ -315,7 +315,7 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
                             style: AppTheme.font(
                               size: 13,
                               weight: FontWeight.w600,
-                              color: AppTheme.body,
+                              color: context.c.body,
                             ),
                           ),
                           ChoiceChips(
@@ -380,7 +380,7 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
                     Text(
                       '45 questions · 9 categories · about 6 minutes',
                       textAlign: TextAlign.center,
-                      style: AppTheme.font(size: 12, color: AppTheme.muted),
+                      style: AppTheme.font(size: 12, color: context.c.muted),
                     ),
                   ],
                 ],
@@ -401,10 +401,10 @@ class _PhotoPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
-      gradient: const LinearGradient(
+      gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFFFFFFFF), Color(0xFFF4F1F9)],
+        colors: [context.c.surface, context.c.surfaceRaised],
       ),
       child: Row(
         children: [
@@ -418,12 +418,12 @@ class _PhotoPrompt extends StatelessWidget {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppTheme.tint.withValues(alpha: 0.7),
+                      color: context.c.tint.withValues(alpha: 0.7),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: PawMark(
                         size: 38,
-                        color: AppTheme.action,
+                        color: context.c.actionText,
                         opacity: 0.3,
                       ),
                     ),
@@ -436,22 +436,22 @@ class _PhotoPrompt extends StatelessWidget {
                     width: 30,
                     height: 30,
                     decoration: BoxDecoration(
-                      color: AppTheme.action,
+                      color: context.c.action,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppTheme.surface, width: 2.5),
+                      border: Border.all(color: context.c.surface, width: 2.5),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.ink.withValues(alpha: 0.5),
+                          color: context.c.ink.withValues(alpha: 0.5),
                           blurRadius: 10,
                           spreadRadius: -4,
                           offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.photo_camera_outlined,
                       size: 14,
-                      color: Colors.white,
+                      color: context.c.onAccent,
                     ),
                   ),
                 ),
@@ -468,7 +468,7 @@ class _PhotoPrompt extends StatelessWidget {
                   style: AppTheme.font(
                     size: 14.5,
                     weight: FontWeight.w800,
-                    color: AppTheme.ink,
+                    color: context.c.ink,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -477,7 +477,7 @@ class _PhotoPrompt extends StatelessWidget {
                   'and helps your vet identify records.',
                   style: AppTheme.font(
                     size: 12.5,
-                    color: AppTheme.body,
+                    color: context.c.body,
                     height: 1.5,
                   ),
                 ),

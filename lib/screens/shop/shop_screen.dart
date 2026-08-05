@@ -74,7 +74,7 @@ class _ShopScreenState extends State<ShopScreen> {
     final products = _visible(quiz);
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -95,7 +95,7 @@ class _ShopScreenState extends State<ShopScreen> {
                   ? Center(
                       child: Text(
                         'Nothing in this category yet.',
-                        style: AppTheme.bodyText,
+                        style: context.t.bodyText,
                       ),
                     )
                   : GridView.builder(
@@ -166,7 +166,7 @@ class _Header extends StatelessWidget {
                   style: AppTheme.font(
                     size: 11,
                     weight: FontWeight.w700,
-                    color: AppTheme.start,
+                    color: context.c.startText,
                     letterSpacing: 1.1,
                   ),
                 ),
@@ -175,7 +175,7 @@ class _Header extends StatelessWidget {
                   heading,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTheme.h3.copyWith(letterSpacing: -0.8),
+                  style: context.t.h3.copyWith(letterSpacing: -0.8),
                 ),
               ],
             ),
@@ -210,14 +210,14 @@ class _CartButton extends StatelessWidget {
               Container(
                 width: 46,
                 height: 46,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF4F1F9),
+                decoration: BoxDecoration(
+                  color: context.c.surfaceRaised,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.shopping_cart_outlined,
                   size: 21,
-                  color: AppTheme.action,
+                  color: context.c.actionText,
                 ),
               ),
               if (count > 0)
@@ -229,7 +229,7 @@ class _CartButton extends StatelessWidget {
                     height: 18,
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.start,
+                      color: context.c.start,
                       borderRadius: BorderRadius.circular(9),
                     ),
                     alignment: Alignment.center,
@@ -238,7 +238,7 @@ class _CartButton extends StatelessWidget {
                       style: AppTheme.font(
                         size: 11,
                         weight: FontWeight.w800,
-                        color: Colors.white,
+                        color: context.c.onAccent,
                       ),
                     ),
                   ),
@@ -281,10 +281,10 @@ class _FilterRow extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 15),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: active ? AppTheme.action : AppTheme.surface,
+                color: active ? context.c.action : context.c.surface,
                 borderRadius: BorderRadius.circular(AppTheme.radiusChip),
                 border: Border.all(
-                  color: active ? AppTheme.action : AppTheme.border,
+                  color: active ? context.c.actionText : context.c.border,
                 ),
               ),
               child: Text(
@@ -292,7 +292,7 @@ class _FilterRow extends StatelessWidget {
                 style: AppTheme.font(
                   size: 13,
                   weight: FontWeight.w700,
-                  color: active ? Colors.white : AppTheme.body,
+                  color: active ? context.c.onAccent : context.c.body,
                 ),
               ),
             ),
@@ -318,9 +318,9 @@ class _ViewCartBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
-        border: Border(top: BorderSide(color: AppTheme.borderSoft)),
+      decoration: BoxDecoration(
+        color: context.c.surface,
+        border: Border(top: BorderSide(color: context.c.borderSoft)),
       ),
       padding: const EdgeInsets.fromLTRB(22, 12, 22, 12),
       child: GestureDetector(
@@ -329,14 +329,14 @@ class _ViewCartBar extends StatelessWidget {
           height: AppTheme.ctaHeightCompact,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: AppTheme.action,
+            color: context.c.action,
             borderRadius: BorderRadius.circular(28),
-            boxShadow: AppTheme.ctaShadow,
+            boxShadow: context.c.ctaShadow,
           ),
           child: Text(
             'View cart · $count ${count == 1 ? 'item' : 'items'} · '
             '${formatPrice(subtotal)}',
-            style: AppTheme.button,
+            style: context.t.button,
           ),
         ),
       ),

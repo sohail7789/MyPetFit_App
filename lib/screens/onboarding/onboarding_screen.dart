@@ -39,68 +39,79 @@ class _Page {
   });
 }
 
-const _pages = <_Page>[
-  _Page(
-    gradient: [Color(0xFFF3F0F9), Color(0xFFF8F6FB), Color(0xFFFFFFFF)],
-    paw: PawWatermark(
-      top: 120,
-      left: 18,
-      size: 66,
-      color: AppTheme.action,
-      opacity: 0.08,
-      rotationDegrees: -16,
+/// How many pages the carousel has. A constant so widgets that only need
+/// the count don't have to build the whole palette-resolved list.
+const int _pageCount = 3;
+
+/// The three pages, resolved against the active appearance.
+///
+/// Built per call rather than held as a constant because every colour on the
+/// page — wash, paw watermark, accent, dots — differs between light and dark.
+List<_Page> _pagesOf(BuildContext context) {
+  final c = context.c;
+  return <_Page>[
+    _Page(
+      gradient: c.onboardingWashes[0],
+      paw: PawWatermark(
+        top: 120,
+        left: 18,
+        size: 66,
+        color: c.actionText,
+        opacity: 0.08,
+        rotationDegrees: -16,
+      ),
+      art: AppAssets.onboarding1,
+      artLabel: 'Puppy inspecting with a magnifying glass',
+      titleLead: 'Understand your\npet’s ',
+      titleAccent: 'health',
+      accent: c.actionText,
+      bodyText:
+          "Answer 45 simple questions about your pet's lifestyle, habits and well-being.",
+      dotActive: c.action,
+      dotInactive: c.dotInactive,
     ),
-    art: AppAssets.onboarding1,
-    artLabel: 'Puppy inspecting with a magnifying glass',
-    titleLead: 'Understand your\npet’s ',
-    titleAccent: 'health',
-    accent: AppTheme.action,
-    bodyText:
-        "Answer 45 simple questions about your pet's lifestyle, habits and well-being.",
-    dotActive: AppTheme.action,
-    dotInactive: AppTheme.dotInactive,
-  ),
-  _Page(
-    gradient: [Color(0xFFF7EFF4), Color(0xFFFBF6F9), Color(0xFFFFFFFF)],
-    paw: PawWatermark(
-      top: 132,
-      right: 20,
-      size: 58,
-      color: AppTheme.startLight,
-      opacity: 0.14,
-      rotationDegrees: 14,
+    _Page(
+      gradient: c.onboardingWashes[1],
+      paw: PawWatermark(
+        top: 132,
+        right: 20,
+        size: 58,
+        color: c.startLight,
+        opacity: 0.14,
+        rotationDegrees: 14,
+      ),
+      art: AppAssets.onboarding2,
+      artLabel: 'Puppy giving a thumbs up',
+      titleLead: 'Get personalized\n',
+      titleAccent: 'recommendations',
+      accent: c.startLight,
+      bodyText:
+          'We turn the score into nutrition, dental and grooming picks made for your pet.',
+      dotActive: c.startLight,
+      dotInactive: c.dotInactiveWarm,
     ),
-    art: AppAssets.onboarding2,
-    artLabel: 'Puppy giving a thumbs up',
-    titleLead: 'Get personalized\n',
-    titleAccent: 'recommendations',
-    accent: AppTheme.startLight,
-    bodyText:
-        'We turn the score into nutrition, dental and grooming picks made for your pet.',
-    dotActive: AppTheme.startLight,
-    dotInactive: Color(0xFFE4D9E2),
-  ),
-  _Page(
-    gradient: [Color(0xFFEFEEF8), Color(0xFFF7F6FB), Color(0xFFFFFFFF)],
-    paw: PawWatermark(
-      top: 118,
-      left: -8,
-      size: 72,
-      color: AppTheme.action,
-      opacity: 0.07,
-      rotationDegrees: -20,
+    _Page(
+      gradient: c.onboardingWashes[2],
+      paw: PawWatermark(
+        top: 118,
+        left: -8,
+        size: 72,
+        color: c.actionText,
+        opacity: 0.07,
+        rotationDegrees: -20,
+      ),
+      art: AppAssets.onboarding3,
+      artLabel: 'Puppy leaping with joy',
+      titleLead: 'Better health,\n',
+      titleAccent: 'happier pets',
+      accent: c.actionText,
+      bodyText:
+          'Track progress over time, follow reminders and give your pet the best life possible.',
+      dotActive: c.action,
+      dotInactive: c.dotInactive,
     ),
-    art: AppAssets.onboarding3,
-    artLabel: 'Puppy leaping with joy',
-    titleLead: 'Better health,\n',
-    titleAccent: 'happier pets',
-    accent: AppTheme.action,
-    bodyText:
-        'Track progress over time, follow reminders and give your pet the best life possible.',
-    dotActive: AppTheme.action,
-    dotInactive: AppTheme.dotInactive,
-  ),
-];
+  ];
+}
 
 /// Screens 02–04 — the three-page onboarding carousel.
 class OnboardingScreen extends StatefulWidget {
@@ -134,7 +145,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final page = _pages[_index];
+    final pages = _pagesOf(context);
+    final page = pages[_index];
 
     return Scaffold(
       body: AnimatedContainer(
@@ -156,7 +168,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   // Pages 1–2 offer Skip; page 3 reserves the same height.
                   SizedBox(
                     height: 56,
-                    child: _index == _pages.length - 1
+                    child: _index == _pageCount - 1
                         ? null
                         : Align(
                             alignment: Alignment.centerRight,
@@ -169,7 +181,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   style: AppTheme.font(
                                     size: 15,
                                     weight: FontWeight.w600,
-                                    color: AppTheme.body,
+                                    color: context.c.body,
                                   ),
                                 ),
                               ),
@@ -179,16 +191,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   Expanded(
                     child: PageView.builder(
                       controller: _controller,
-                      itemCount: _pages.length,
+                      itemCount: pages.length,
                       onPageChanged: (i) => setState(() => _index = i),
                       itemBuilder: (context, i) => Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 18),
                         child: Center(
                           child: DesignImage(
-                            _pages[i].art,
+                            pages[i].art,
                             height: 322,
                             shadow: true,
-                            semanticLabel: _pages[i].artLabel,
+                            semanticLabel: pages[i].artLabel,
                           ),
                         ),
                       ),
@@ -226,12 +238,12 @@ class _Caption extends StatelessWidget {
     required this.onLogin,
   });
 
-  bool get _isLast => index == _pages.length - 1;
+  bool get _isLast => index == _pageCount - 1;
 
   @override
   Widget build(BuildContext context) {
     final dots = PageDots(
-      count: _pages.length,
+      count: _pageCount,
       index: index,
       activeColor: page.dotActive,
       inactiveColor: page.dotInactive,
@@ -252,10 +264,10 @@ class _Caption extends StatelessWidget {
                 ),
               ],
             ),
-            style: AppTheme.h1.copyWith(height: 1.18),
+            style: context.t.h1.copyWith(height: 1.18),
           ),
           const SizedBox(height: 14),
-          Text(page.bodyText, style: AppTheme.bodyText.copyWith(height: 1.6)),
+          Text(page.bodyText, style: context.t.bodyText.copyWith(height: 1.6)),
           SizedBox(height: _isLast ? 28 : 34),
           if (_isLast) ...[
             Align(alignment: Alignment.centerLeft, child: dots),
@@ -296,7 +308,7 @@ class _NextButton extends StatelessWidget {
   Widget build(BuildContext context) {
     // Page 2's dot accent is the lighter plum but its button uses the
     // deeper #8E4F7C, matching the design.
-    final fill = color == AppTheme.startLight ? AppTheme.start : color;
+    final fill = color == context.c.startLight ? context.c.start : color;
 
     return Semantics(
       button: true,

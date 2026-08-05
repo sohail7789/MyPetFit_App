@@ -72,7 +72,7 @@ class AuthArtLayout extends StatelessWidget {
                             Text(
                               title,
                               textAlign: TextAlign.center,
-                              style: AppTheme.h1,
+                              style: context.t.h1,
                             ),
                             const SizedBox(height: 12),
                             subtitle,
@@ -127,7 +127,7 @@ class BackToLogin extends StatelessWidget {
           style: AppTheme.font(
             size: 15,
             weight: FontWeight.w700,
-            color: AppTheme.action,
+            color: context.c.actionText,
           ),
         ),
       ),

@@ -39,11 +39,11 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFFFFF), Color(0xFFF3F0F9)],
+            colors: [context.c.surface, context.c.surfaceRaised],
           ),
         ),
         child: SafeArea(
@@ -65,7 +65,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                 Text(
                   'Order placed!',
                   textAlign: TextAlign.center,
-                  style: AppTheme.h1.copyWith(fontSize: 27, letterSpacing: -1),
+                  style: context.t.h1.copyWith(fontSize: 27, letterSpacing: -1),
                 ),
                 const SizedBox(height: 10),
                 Text.rich(
@@ -74,17 +74,17 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                     children: [
                       TextSpan(
                         text: _order.id,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w800,
-                          color: AppTheme.ink,
+                          color: context.c.ink,
                         ),
                       ),
                       const TextSpan(text: ' · arriving '),
                       TextSpan(
                         text: _order.arrivalLabel,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w800,
-                          color: AppTheme.ink,
+                          color: context.c.ink,
                         ),
                       ),
                     ],
@@ -92,7 +92,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
                   textAlign: TextAlign.center,
                   style: AppTheme.font(
                     size: 14.5,
-                    color: AppTheme.body,
+                    color: context.c.body,
                     height: 1.6,
                   ),
                 ),

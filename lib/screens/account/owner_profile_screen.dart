@@ -37,7 +37,7 @@ class OwnerProfileScreen extends StatelessWidget {
     final petCount = pets.petCount;
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -61,8 +61,8 @@ class OwnerProfileScreen extends StatelessWidget {
                       Container(
                         width: 72,
                         height: 72,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF4F1F9),
+                        decoration: BoxDecoration(
+                          color: context.c.surfaceRaised,
                           shape: BoxShape.circle,
                         ),
                         clipBehavior: Clip.antiAlias,
@@ -79,14 +79,14 @@ class OwnerProfileScreen extends StatelessWidget {
                               name.isEmpty ? 'Your profile' : name,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: AppTheme.h2,
+                              style: context.t.h2,
                             ),
                             const SizedBox(height: 4),
                             Text(
                               '$petCount ${petCount == 1 ? 'pet' : 'pets'}',
                               style: AppTheme.font(
                                 size: 13.5,
-                                color: AppTheme.body,
+                                color: context.c.body,
                               ),
                             ),
                           ],
@@ -161,7 +161,7 @@ class OwnerProfileScreen extends StatelessWidget {
                         address.multiline,
                         style: AppTheme.font(
                           size: 12.5,
-                          color: AppTheme.muted,
+                          color: context.c.muted,
                           height: 1.55,
                         ),
                       ),
@@ -198,7 +198,7 @@ class _HeaderAction extends StatelessWidget {
             style: AppTheme.font(
               size: 14,
               weight: FontWeight.w700,
-              color: AppTheme.action,
+              color: context.c.actionText,
             ),
           ),
         ),
@@ -229,8 +229,8 @@ class _Row extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: last
           ? null
-          : const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppTheme.borderSoft)),
+          : BoxDecoration(
+              border: Border(bottom: BorderSide(color: context.c.borderSoft)),
             ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,7 +238,7 @@ class _Row extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: AppTheme.font(size: 13.5, color: AppTheme.muted),
+              style: AppTheme.font(size: 13.5, color: context.c.muted),
             ),
           ),
           const SizedBox(width: 12),
@@ -254,7 +254,7 @@ class _Row extends StatelessWidget {
                   style: AppTheme.font(
                     size: 13.5,
                     weight: FontWeight.w700,
-                    color: empty ? AppTheme.muted : AppTheme.ink,
+                    color: empty ? context.c.muted : context.c.ink,
                   ),
                 ),
                 if (note != null) ...[
@@ -262,7 +262,7 @@ class _Row extends StatelessWidget {
                   Text(
                     note!,
                     textAlign: TextAlign.right,
-                    style: AppTheme.font(size: 11.5, color: AppTheme.muted),
+                    style: AppTheme.font(size: 11.5, color: context.c.muted),
                   ),
                 ],
               ],

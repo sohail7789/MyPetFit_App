@@ -16,7 +16,7 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: navigationShell,
       bottomNavigationBar: AppBottomNav(
         current: AppTab.values[navigationShell.currentIndex],

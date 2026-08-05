@@ -47,33 +47,37 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: context.c.surface,
       body: Stack(
         children: [
-          const HeroPanel(
+          HeroPanel(
             height: 340,
-            colors: [Color(0xFFE5E1F1), Color(0xFFF2EFF8), Color(0xFFFFFFFF)],
+            colors: [
+              context.c.meterTrack,
+              context.c.surfaceRaised,
+              context.c.surface,
+            ],
           ),
-          const PawWatermark(
+          PawWatermark(
             top: 96,
             left: 22,
             size: 62,
-            color: AppTheme.action,
+            color: context.c.actionText,
             opacity: 0.12,
             rotationDegrees: -14,
           ),
-          const PawWatermark(
+          PawWatermark(
             top: 206,
             left: -6,
             size: 44,
-            color: AppTheme.action,
+            color: context.c.actionText,
             opacity: 0.1,
             rotationDegrees: 18,
           ),
           Positioned(
             top: 60,
             right: 96,
-            child: AppIcon(AppIcons.heart(AppTheme.action, 0.16), size: 26),
+            child: AppIcon(AppIcons.heart(context.c.actionText, 0.16), size: 26),
           ),
           SafeArea(
             child: Stack(
@@ -101,18 +105,18 @@ class _SignInScreenState extends State<SignInScreen> {
                             Text(
                               'Welcome Back! 👋',
                               textAlign: TextAlign.center,
-                              style: AppTheme.h1,
+                              style: context.t.h1,
                             ),
                             const SizedBox(height: 8),
                             Text(
                               "Login to continue your pet's health journey",
                               textAlign: TextAlign.center,
-                              style: AppTheme.bodyText.copyWith(height: 1.5),
+                              style: context.t.bodyText.copyWith(height: 1.5),
                             ),
                             const SizedBox(height: 24),
                             AppField(
                               hint: 'Email address',
-                              icon: AppIcon(AppIcons.mail(), size: 20),
+                              icon: AppIcon(AppIcons.mail(context.c.muted), size: 20),
                               controller: _email,
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
@@ -120,7 +124,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             const SizedBox(height: 12),
                             AppField(
                               hint: 'Password',
-                              icon: AppIcon(AppIcons.lock(), size: 19),
+                              icon: AppIcon(AppIcons.lock(context.c.muted), size: 19),
                               controller: _password,
                               obscure: _obscure,
                               textInputAction: TextInputAction.done,
@@ -129,8 +133,8 @@ class _SignInScreenState extends State<SignInScreen> {
                                     setState(() => _obscure = !_obscure),
                                 child: AppIcon(
                                   _obscure
-                                      ? AppIcons.eyeOff()
-                                      : AppIcons.eye(),
+                                      ? AppIcons.eyeOff(context.c.muted)
+                                      : AppIcons.eye(context.c.muted),
                                   size: 20,
                                 ),
                               ),
@@ -163,7 +167,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                       style: AppTheme.font(
                                         size: 14,
                                         weight: FontWeight.w600,
-                                        color: AppTheme.action,
+                                        color: context.c.actionText,
                                       ),
                                     ),
                                   ),
@@ -217,9 +221,9 @@ class _RememberMe extends StatelessWidget {
             width: 20,
             height: 20,
             decoration: BoxDecoration(
-              color: value ? AppTheme.action : AppTheme.surface,
+              color: value ? context.c.action : context.c.surface,
               borderRadius: BorderRadius.circular(6),
-              border: value ? null : Border.all(color: AppTheme.dotInactive),
+              border: value ? null : Border.all(color: context.c.dotInactive),
             ),
             alignment: Alignment.center,
             child: value ? AppIcon(AppIcons.check(), size: 12) : null,
@@ -230,7 +234,7 @@ class _RememberMe extends StatelessWidget {
             style: AppTheme.font(
               size: 14,
               weight: FontWeight.w500,
-              color: AppTheme.bodyStrong,
+              color: context.c.bodyStrong,
             ),
           ),
         ],
@@ -257,25 +261,25 @@ class _LanguageChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: context.c.surface,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: AppTheme.floatShadow,
+            boxShadow: context.c.floatShadow,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AppIcon(AppIcons.globe(), size: 15),
+              AppIcon(AppIcons.globe(context.c.actionText), size: 15),
               const SizedBox(width: 6),
               Text(
                 language.glyph,
                 style: AppTheme.font(
                   size: 13,
                   weight: FontWeight.w700,
-                  color: AppTheme.ink,
+                  color: context.c.ink,
                 ),
               ),
               const SizedBox(width: 6),
-              AppIcon(AppIcons.chevronDown(), size: 11),
+              AppIcon(AppIcons.chevronDown(context.c.muted), size: 11),
             ],
           ),
         ),
