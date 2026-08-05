@@ -139,14 +139,6 @@ class ProductTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: _Tag(
-                      label: product.displayTag,
-                      color: palette.accent,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -174,7 +166,12 @@ class ProductTile extends StatelessWidget {
                           // is what gives way — a half-cropped product name
                           // is the one thing here a shopper can't work with.
                           Text(
-                            product.name,
+                            // Firestore rows are not guaranteed to carry a
+                            // name; falling back to the type beats a card
+                            // with a price and no idea what it is for.
+                            product.name.trim().isNotEmpty
+                                ? product.name
+                                : product.displayTag,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: AppTheme.font(
@@ -233,33 +230,6 @@ class ProductTile extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Tag extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _Tag({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: context.c.onAccent.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label.toUpperCase(),
-        style: AppTheme.font(
-          size: 10,
-          weight: FontWeight.w800,
-          color: color,
-          letterSpacing: 0.6,
-        ),
       ),
     );
   }

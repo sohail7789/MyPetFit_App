@@ -138,12 +138,18 @@ class SettingsSwitchTile extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
+  /// Optional leading glyph. Supply one when the row sits in a
+  /// [SettingsGroup] alongside [SettingsTile]s, so the icon column lines up
+  /// instead of the toggle row starting flush left.
+  final IconData? icon;
+
   const SettingsSwitchTile({
     super.key,
     required this.label,
     required this.hint,
     required this.value,
     required this.onChanged,
+    this.icon,
   });
 
   @override
@@ -154,6 +160,18 @@ class SettingsSwitchTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
+            if (icon != null) ...[
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: context.c.surfaceRaised,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, size: 17, color: context.c.actionText),
+              ),
+              const SizedBox(width: 13),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -111,7 +111,6 @@ class AppRoutes {
   static const ownerEdit = '/account/owner/edit';
   static const reminders = '/account/reminders';
   static const language = '/account/language';
-  static const appearance = '/account/appearance';
   static const terms = '/terms'; // 34
   static const privacy = '/privacy'; // 35
   static const deleteAccount = '/account/delete'; // 36
@@ -331,10 +330,6 @@ class AppRoutes {
         GoRoute(
           path: language,
           builder: (context, state) => const LanguageScreen(),
-        ),
-        GoRoute(
-          path: appearance,
-          builder: (context, state) => const AppearanceScreen(),
         ),
         GoRoute(
           path: terms,

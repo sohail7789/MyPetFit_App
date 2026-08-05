@@ -11,7 +11,7 @@ import 'package:mypetfit_app/providers/pet_info_provider.dart';
 import 'package:mypetfit_app/providers/quiz_provider.dart';
 import 'package:mypetfit_app/providers/theme_provider.dart';
 import 'package:mypetfit_app/screens/account/account_screen.dart';
-import 'package:mypetfit_app/screens/account/preferences_screens.dart';
+import 'package:mypetfit_app/widgets/settings_tile.dart';
 import 'package:mypetfit_app/screens/welcome/welcome_screen.dart';
 import 'support/network_image_stub.dart';
 
@@ -72,38 +72,57 @@ void main() {
   });
 
   group('appearance preference', () {
-    testWidgets('account exposes an Appearance row reflecting the mode',
+    testWidgets('account carries a dark-appearance toggle', (tester) async {
+      await tester.pumpWidget(
+        _host(const AccountScreen(), brightness: Brightness.light),
+      );
+      await tester.pump();
+
+      expect(find.text('Dark appearance'), findsOneWidget);
+      // Starts out tracking the device rather than a choice made here.
+      expect(find.text('Following your device setting'), findsOneWidget);
+    });
+
+    testWidgets('the toggle reflects the painted appearance, not the mode',
+        (tester) async {
+      // On `system` the switch still has to show what is actually on screen,
+      // otherwise flipping it appears to do nothing.
+      await tester.pumpWidget(
+        _host(const AccountScreen(), brightness: Brightness.dark),
+      );
+      await tester.pump();
+
+      expect(
+        tester.widget<AppSwitch>(find.byType(AppSwitch)).value,
+        isTrue,
+      );
+    });
+
+    testWidgets('flipping it pins the appearance for the app',
         (tester) async {
       await tester.pumpWidget(
         _host(const AccountScreen(), brightness: Brightness.light),
       );
       await tester.pump();
-      // Defaults to System, matching the design's OS-driven intent.
-      expect(find.text('Appearance — System'), findsOneWidget);
+
+      await tester.tap(find.text('Dark appearance'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Set for this app'), findsOneWidget);
     });
 
-    testWidgets('picking Dark updates the provider and the row',
-        (tester) async {
-      final theme = ThemeProvider();
-      await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => LocaleProvider()),
-            ChangeNotifierProvider.value(value: theme),
-          ],
-          child: MaterialApp(
-            theme: AppTheme.light,
-            home: const AppearanceScreen(),
-          ),
-        ),
-      );
-      await tester.pump();
+    test('setDark pins the mode either way', () async {
+      SharedPreferences.setMockInitialValues({});
+      final p = ThemeProvider();
+      await p.init();
+      expect(p.isFollowingSystem, isTrue);
 
-      expect(theme.mode, ThemeMode.system);
-      await tester.tap(find.text('Dark'));
-      await tester.pump();
-      expect(theme.mode, ThemeMode.dark);
-      expect(theme.label, 'Dark');
+      await p.setDark(true);
+      expect(p.mode, ThemeMode.dark);
+      expect(p.isFollowingSystem, isFalse);
+
+      await p.setDark(false);
+      expect(p.mode, ThemeMode.light);
     });
 
     test('the stored preference round-trips', () async {

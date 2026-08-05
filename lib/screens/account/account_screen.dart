@@ -103,11 +103,18 @@ class AccountScreen extends StatelessWidget {
                             '${context.watch<LocaleProvider>().current.name}',
                         onTap: () => context.push(AppRoutes.language),
                       ),
-                      SettingsTile(
-                        icon: Icons.contrast_rounded,
-                        label: 'Appearance — '
-                            '${context.watch<ThemeProvider>().label}',
-                        onTap: () => context.push(AppRoutes.appearance),
+                      // A toggle rather than its own screen: there are only
+                      // two states worth reaching, and a whole page to flip
+                      // one bit was more chrome than the choice deserves.
+                      SettingsSwitchTile(
+                        icon: Icons.dark_mode_outlined,
+                        label: 'Dark appearance',
+                        hint: context.watch<ThemeProvider>().isFollowingSystem
+                            ? 'Following your device setting'
+                            : 'Set for this app',
+                        value: context.c.brightness == Brightness.dark,
+                        onChanged: (on) =>
+                            context.read<ThemeProvider>().setDark(on),
                       ),
                     ],
                   ),

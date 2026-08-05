@@ -186,23 +186,32 @@ class _Hero extends StatelessWidget {
               onPressed: () => context.backOr(AppRoutes.shop),
             ),
           ),
+          // Catalog `productType` values run long ("Soft Chews / Powder /
+          // Tablets"), so the chip is bounded and ellipsised rather than
+          // being allowed to run off the artwork.
           Positioned(
             bottom: 14,
             left: 24,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: context.c.onAccent.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Text(
-                product.displayTag.toUpperCase(),
-                style: AppTheme.font(
-                  size: 11,
-                  weight: FontWeight.w800,
-                  color: palette.accent,
-                  letterSpacing: 0.6,
+            right: 24,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: context.c.onAccent.withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Text(
+                  product.displayTag.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.font(
+                    size: 11,
+                    weight: FontWeight.w800,
+                    color: palette.accent,
+                    letterSpacing: 0.6,
+                  ),
                 ),
               ),
             ),
