@@ -9,7 +9,7 @@ import '../../providers/pet_info_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/design_image.dart';
-import '../../widgets/paw_mark.dart';
+import '../../widgets/photo_slot.dart';
 import '../../widgets/settings_tile.dart';
 
 /// Screen 33 — My pets.
@@ -129,20 +129,7 @@ class _PetCard extends StatelessWidget {
       onTap: onOpen,
       child: Row(
         children: [
-          Container(
-            width: 58,
-            height: 58,
-            decoration: BoxDecoration(
-              color: context.c.surfaceRaised,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: PawMark(
-              size: 26,
-              color: context.c.actionText,
-              opacity: 0.4,
-            ),
-          ),
+          PhotoAvatar(photoPath: pet.photoPath, size: 58),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

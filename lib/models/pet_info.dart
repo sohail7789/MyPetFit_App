@@ -40,6 +40,11 @@ class OwnerInfo {
   final String? vetName;
   final String? vetContact;
 
+  /// Absolute path to the owner's photo in the app's documents directory.
+  /// Null when none has been chosen. See PhotoStore for why it is a local
+  /// path rather than a remote URL.
+  final String? photoPath;
+
   const OwnerInfo({
     required this.name,
     required this.contactNumber,
@@ -47,8 +52,11 @@ class OwnerInfo {
     this.address,
     this.vetName,
     this.vetContact,
+    this.photoPath,
   });
 
+  /// [clearPhoto] exists because passing `photoPath: null` cannot be told
+  /// apart from omitting it, and removing a photo has to be expressible.
   OwnerInfo copyWith({
     String? name,
     String? contactNumber,
@@ -56,6 +64,8 @@ class OwnerInfo {
     String? address,
     String? vetName,
     String? vetContact,
+    String? photoPath,
+    bool clearPhoto = false,
   }) =>
       OwnerInfo(
         name: name ?? this.name,
@@ -64,6 +74,7 @@ class OwnerInfo {
         address: address ?? this.address,
         vetName: vetName ?? this.vetName,
         vetContact: vetContact ?? this.vetContact,
+        photoPath: clearPhoto ? null : photoPath ?? this.photoPath,
       );
 
   Map<String, dynamic> toJson() => {
@@ -73,6 +84,7 @@ class OwnerInfo {
         if (address != null) 'address': address,
         if (vetName != null) 'vetName': vetName,
         if (vetContact != null) 'vetContact': vetContact,
+        if (photoPath != null) 'photoPath': photoPath,
       };
 
   factory OwnerInfo.fromJson(Map<String, dynamic> json) => OwnerInfo(
@@ -82,6 +94,7 @@ class OwnerInfo {
         address: json['address'] as String?,
         vetName: json['vetName'] as String?,
         vetContact: json['vetContact'] as String?,
+        photoPath: json['photoPath'] as String?,
       );
 }
 
@@ -124,6 +137,7 @@ class PetInfo {
     double? heightCm,
     String? microchipNumber,
     String? photoPath,
+    bool clearPhoto = false,
   }) =>
       PetInfo(
         id: id ?? this.id,
@@ -136,7 +150,9 @@ class PetInfo {
         weightKg: weightKg ?? this.weightKg,
         heightCm: heightCm ?? this.heightCm,
         microchipNumber: microchipNumber ?? this.microchipNumber,
-        photoPath: photoPath ?? this.photoPath,
+        // See OwnerInfo.copyWith — a null photoPath is indistinguishable
+        // from an omitted one, so removal needs its own flag.
+        photoPath: clearPhoto ? null : photoPath ?? this.photoPath,
       );
 
   String get ageDisplay {

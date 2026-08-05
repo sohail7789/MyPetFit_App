@@ -8,7 +8,7 @@ import '../../providers/pet_info_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/labeled_field.dart';
-import '../../widgets/paw_mark.dart';
+import '../../widgets/photo_slot.dart';
 
 /// Why this screen has modes
 /// ------------------------
@@ -57,8 +57,17 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
   String? _gender;
   String? _error;
 
+  /// Where the chosen photo is stored, or null for none. Held in form state
+  /// rather than written straight to the provider so cancelling out of an
+  /// edit doesn't leave the change behind.
+  String? _photoPath;
+
   /// The pet being edited, if any.
   PetInfo? _editing;
+
+  /// Stable per-form id so a photo chosen before the pet is saved lands in
+  /// one file rather than a new one on every pick.
+  final String _draftSlot = 'draft-${DateTime.now().microsecondsSinceEpoch}';
 
   @override
   void initState() {
@@ -81,6 +90,7 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
     if (existing == null) return;
 
     _editing = existing;
+    _photoPath = existing.photoPath;
     _name.text = existing.name;
     _breed.text = existing.breed;
     if (existing.ageYears > 0) _years.text = '${existing.ageYears}';
@@ -135,8 +145,7 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
         PetFormMode.edit => 'Save changes',
       };
 
-  /// Builds a [PetInfo] from the form, keeping fields this screen doesn't
-  /// collect (the photo) when editing. The vet lives on the owner.
+  /// Builds a [PetInfo] from the form. The vet lives on the owner.
   PetInfo _collect() {
     final base = _editing;
     return PetInfo(
@@ -152,7 +161,7 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
       heightCm: double.tryParse(_height.text.trim()) ?? 0,
       microchipNumber:
           _microchip.text.trim().isEmpty ? null : _microchip.text.trim(),
-      photoPath: base?.photoPath,
+      photoPath: _photoPath,
     );
   }
 
@@ -243,7 +252,14 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const _PhotoPrompt(),
+                    _PhotoPrompt(
+                      photoPath: _photoPath,
+                      // A pet being added has no id yet, so the slot is
+                      // stamped once here and reused for the record built in
+                      // _collect — otherwise every save would orphan the file.
+                      slot: 'pet-${_editing?.id ?? _draftSlot}',
+                      onChanged: (path) => setState(() => _photoPath = path),
+                    ),
                     const SizedBox(height: 11),
                     LabeledField(
                       label: "Pet's name",
@@ -393,13 +409,22 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
   }
 }
 
-/// The dashed-ring photo slot. Picking an image is not wired up yet — there is
-/// no image-picker dependency in the project — so it renders the prompt state.
+/// The circular photo well plus its supporting copy.
 class _PhotoPrompt extends StatelessWidget {
-  const _PhotoPrompt();
+  final String? photoPath;
+  final String slot;
+  final ValueChanged<String?> onChanged;
+
+  const _PhotoPrompt({
+    required this.photoPath,
+    required this.slot,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final hasPhoto = photoPath != null;
+
     return AppCard(
       gradient: LinearGradient(
         begin: Alignment.topLeft,
@@ -408,55 +433,10 @@ class _PhotoPrompt extends StatelessWidget {
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 96,
-            height: 96,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: context.c.tint.withValues(alpha: 0.7),
-                    ),
-                    child: Center(
-                      child: PawMark(
-                        size: 38,
-                        color: context.c.actionText,
-                        opacity: 0.3,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  right: -2,
-                  bottom: -2,
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: context.c.action,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: context.c.surface, width: 2.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: context.c.ink.withValues(alpha: 0.5),
-                          blurRadius: 10,
-                          spreadRadius: -4,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.photo_camera_outlined,
-                      size: 14,
-                      color: context.c.onAccent,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          PhotoSlot(
+            photoPath: photoPath,
+            slot: slot,
+            onChanged: onChanged,
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -464,7 +444,7 @@ class _PhotoPrompt extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Add your pet's photo",
+                  hasPhoto ? "Your pet's photo" : "Add your pet's photo",
                   style: AppTheme.font(
                     size: 14.5,
                     weight: FontWeight.w800,
@@ -473,8 +453,11 @@ class _PhotoPrompt extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Tap the circle or drop an image. It shows on the report card '
-                  'and helps your vet identify records.',
+                  hasPhoto
+                      ? 'Tap the photo to change or remove it.'
+                      : 'Tap the circle to take one or pick from your '
+                          'library. It shows on the report card and helps '
+                          'your vet identify records.',
                   style: AppTheme.font(
                     size: 12.5,
                     color: context.c.body,

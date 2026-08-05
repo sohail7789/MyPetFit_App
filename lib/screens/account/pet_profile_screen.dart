@@ -9,7 +9,7 @@ import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
-import '../../widgets/paw_mark.dart';
+import '../../widgets/photo_slot.dart';
 import '../../widgets/settings_tile.dart';
 
 /// A saved pet's profile.
@@ -312,20 +312,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            color: context.c.surfaceRaised,
-            shape: BoxShape.circle,
-          ),
-          alignment: Alignment.center,
-          child: PawMark(
-            size: 32,
-            color: context.c.actionText,
-            opacity: 0.4,
-          ),
-        ),
+        PhotoAvatar(photoPath: pet.photoPath, size: 72),
         const SizedBox(width: 16),
         Expanded(
           child: Column(

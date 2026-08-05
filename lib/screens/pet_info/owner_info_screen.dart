@@ -7,6 +7,7 @@ import '../../config/theme.dart';
 import '../../models/pet_info.dart';
 import '../../providers/pet_info_provider.dart';
 import '../../widgets/app_button.dart';
+import '../../widgets/photo_slot.dart';
 import '../../widgets/design_image.dart';
 import '../../widgets/labeled_field.dart';
 
@@ -45,6 +46,9 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
 
   String? _error;
 
+  /// Held in form state so backing out of an edit doesn't persist the pick.
+  String? _photoPath;
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +61,7 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
       _email.text = owner.email;
       _vet.text = owner.vetName ?? '';
       _vetPhone.text = owner.vetContact ?? '';
+      _photoPath = owner.photoPath;
     }
   }
 
@@ -96,6 +101,7 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
         vetName: _vet.text.trim().isEmpty ? null : _vet.text.trim(),
         vetContact:
             _vetPhone.text.trim().isEmpty ? null : _vetPhone.text.trim(),
+        photoPath: _photoPath,
       ),
     );
 
@@ -163,6 +169,18 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                 padding: const EdgeInsets.fromLTRB(26, 20, 26, 0),
                 child: Column(
                   children: [
+                    // Centred rather than in a card: the owner form has no
+                    // artwork above it, so the photo doubles as the header.
+                    Center(
+                      child: PhotoSlot(
+                        photoPath: _photoPath,
+                        slot: 'owner',
+                        size: 88,
+                        onChanged: (path) =>
+                            setState(() => _photoPath = path),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
                     LabeledField(
                       label: 'Owner name',
                       hint: 'Full name',

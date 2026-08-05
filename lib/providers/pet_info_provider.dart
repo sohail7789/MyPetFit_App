@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pet_info.dart';
+import '../services/photo_store.dart';
 
 class PetInfoProvider extends ChangeNotifier {
   static const int maxPets = 5;
@@ -99,6 +102,11 @@ class PetInfoProvider extends ChangeNotifier {
 
   void removePet(int index) {
     if (index < 0 || index >= _pets.length) return;
+    // Take the photo file with the record, or the sandbox accumulates
+    // images for pets that no longer exist. Deleted by path rather than by
+    // slot: a photo picked before the pet was saved is filed under a draft
+    // name, which the pet's own slot would not match.
+    unawaited(PhotoStore().deleteAt(_pets[index].photoPath));
     _pets.removeAt(index);
     if (_activePetIndex >= _pets.length && _pets.isNotEmpty) {
       _activePetIndex = _pets.length - 1;

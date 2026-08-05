@@ -10,6 +10,7 @@ import '../../providers/locale_provider.dart';
 import '../../providers/pet_info_provider.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/design_image.dart';
+import '../../widgets/photo_slot.dart';
 import '../../widgets/settings_tile.dart';
 import 'account_screen.dart' show SectionLabelText;
 
@@ -58,17 +59,22 @@ class OwnerProfileScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: context.c.surfaceRaised,
-                          shape: BoxShape.circle,
+                      // The owner's own photo when they've set one; the
+                      // design's puppy stands in until then.
+                      if (owner?.photoPath != null)
+                        PhotoAvatar(photoPath: owner!.photoPath, size: 72)
+                      else
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: context.c.surfaceRaised,
+                            shape: BoxShape.circle,
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          padding: const EdgeInsets.all(6),
+                          child: const DesignImage(AppAssets.emoHappy),
                         ),
-                        clipBehavior: Clip.antiAlias,
-                        padding: const EdgeInsets.all(6),
-                        child: const DesignImage(AppAssets.emoHappy),
-                      ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
