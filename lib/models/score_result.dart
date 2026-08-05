@@ -1,6 +1,11 @@
-import 'package:flutter/material.dart';
 import '../config/constants.dart';
 
+/// The band a score falls into.
+///
+/// Presentation lives in `score_band.dart`, not here: colours, tint, glyph,
+/// artwork and copy all differ between light and dark, so they resolve
+/// against an `AppColors` rather than being constants hanging off the enum.
+/// This type stays a plain domain value with one label.
 enum HealthCategory {
   critical,
   needsImprovement,
@@ -12,38 +17,6 @@ enum HealthCategory {
         needsImprovement => 'Needs Improvement',
         good => 'Good',
         excellent => 'Excellent',
-      };
-
-  Color get color => switch (this) {
-        critical => const Color(0xFFE53935),
-        needsImprovement => const Color(0xFFFF6B35),
-        good => const Color(0xFF66BB6A),
-        excellent => const Color(0xFF42A5F5),
-      };
-
-  IconData get icon => switch (this) {
-        critical => Icons.warning_rounded,
-        needsImprovement => Icons.info_rounded,
-        good => Icons.thumb_up_rounded,
-        excellent => Icons.star_rounded,
-      };
-
-  String get emoji => switch (this) {
-        critical => '\u{1F6A8}',
-        needsImprovement => '\u{26A1}',
-        good => '\u{1F44D}',
-        excellent => '\u{1F451}',
-      };
-
-  String get summary => switch (this) {
-        critical =>
-          'Your pet needs immediate attention. Several health indicators are concerning and we strongly recommend consulting a veterinarian. The products below can help support your pet\'s recovery.',
-        needsImprovement =>
-          'There are areas where your pet\'s health could be improved. With some adjustments to diet, exercise, and care routines, your pet can thrive. Check out our recommended products to help.',
-        good =>
-          'Your pet is doing well! There\'s still room for improvement in a few areas. Our recommended products can help take your pet\'s health to the next level.',
-        excellent =>
-          'Great job! Your pet is thriving and in excellent health. Keep up the amazing work! Browse our premium products to maintain this level of wellness.',
       };
 }
 
