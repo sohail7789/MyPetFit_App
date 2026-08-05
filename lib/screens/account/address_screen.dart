@@ -396,7 +396,6 @@ class _LabelChip extends StatelessWidget {
           duration: const Duration(milliseconds: 140),
           constraints: const BoxConstraints(minHeight: 42),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: selected ? context.c.tint : context.c.surface,
             borderRadius: BorderRadius.circular(12),
@@ -404,12 +403,21 @@ class _LabelChip extends StatelessWidget {
               color: selected ? context.c.actionText : context.c.border,
             ),
           ),
-          child: Text(
-            label,
-            style: AppTheme.font(
-              size: 14,
-              weight: FontWeight.w700,
-              color: selected ? context.c.actionText : context.c.body,
+          // Align rather than the Container's own `alignment`: setting that
+          // makes a Container expand to its constraints, and inside a Wrap
+          // those are the full row width — which stacked the three chips one
+          // per line. widthFactor keeps it hugging the label while the text
+          // still centres inside the 42px minimum.
+          child: Align(
+            alignment: Alignment.center,
+            widthFactor: 1,
+            child: Text(
+              label,
+              style: AppTheme.font(
+                size: 14,
+                weight: FontWeight.w700,
+                color: selected ? context.c.actionText : context.c.body,
+              ),
             ),
           ),
         ),

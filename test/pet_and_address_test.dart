@@ -225,6 +225,34 @@ void main() {
   });
 
   group('delivery address', () {
+    testWidgets('the label chips sit on one row', (tester) async {
+      // A Container with `alignment` set expands to its constraints, and in
+      // a Wrap that is the whole row width — which put Home, Work and Other
+      // on three separate lines. Geometry, so nothing but a layout assertion
+      // catches it coming back.
+      useTallSurface(tester);
+
+      await tester.pumpWidget(
+        host(const AddressScreen(), pets: PetInfoProvider()),
+      );
+      await tester.pump();
+
+      final home = tester.getRect(find.text('Home'));
+      final work = tester.getRect(find.text('Work'));
+      final other = tester.getRect(find.text('Other'));
+
+      // Same line, left to right.
+      expect(work.top, home.top);
+      expect(other.top, home.top);
+      expect(work.left, greaterThan(home.right));
+      expect(other.left, greaterThan(work.right));
+
+      // And each hugs its label rather than claiming the row.
+      final screenWidth = tester.view.physicalSize.width /
+          tester.view.devicePixelRatio;
+      expect(home.width, lessThan(screenWidth / 2));
+    });
+
     testWidgets('validates before saving', (tester) async {
       useTallSurface(tester);
       final address = AddressProvider();
