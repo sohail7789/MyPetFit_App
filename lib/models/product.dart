@@ -75,10 +75,34 @@ class Product {
   /// Whether the price is a genuine markdown worth striking through.
   bool get hasDiscount => mrp > price && price > 0;
 
+  /// Percentage off, for the savings badge.
+  ///
+  /// Prefers the stored [discountPercentage] so merchandising can round it
+  /// however it likes, and derives one from the prices when that is unset —
+  /// a struck-through MRP with no percentage next to it looks unfinished.
+  int get savingsPercent {
+    if (discountPercentage > 0) return discountPercentage;
+    if (!hasDiscount) return 0;
+    return (((mrp - price) / mrp) * 100).round();
+  }
+
+  /// Stock is low enough to be worth telling the shopper about.
+  bool get isLowStock => inStock && stock > 0 && stock <= 5;
+
   factory Product.fromMap(
     String id,
-    Map<String, dynamic> map,
+    Map<String, dynamic> rawMap,
   ) {
+    // Field names are typed by hand in the Firebase console, so a stray
+    // space rides along now and then — "name " instead of "name". The
+    // lookup then misses and the field silently reads as empty, which is
+    // far harder to spot than a wrong value: a product simply loses its
+    // name everywhere at once. Trimming the keys costs nothing and turns
+    // that class of typo into a non-event.
+    final map = {
+      for (final e in rawMap.entries) e.key.trim(): e.value,
+    };
+
     return Product(
       id: id,
       name: map['name'] ?? '',

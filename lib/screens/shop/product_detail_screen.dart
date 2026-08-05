@@ -65,15 +65,21 @@ class ProductDetailScreen extends StatelessWidget {
                     height: 1.2,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  formatPrice(product.price),
-                  style: AppTheme.font(
-                    size: 22,
-                    weight: FontWeight.w800,
-                    color: context.c.actionText,
+                // Brand and pack size — the two things a shopper checks
+                // before price, and both were sitting unused in the catalog.
+                if (_subtitle(product) != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _subtitle(product)!,
+                    style: AppTheme.font(size: 13, color: context.c.muted),
                   ),
-                ),
+                ],
+                const SizedBox(height: 10),
+                _PriceRow(product: product),
+                if (!product.inStock || product.isLowStock) ...[
+                  const SizedBox(height: 10),
+                  _StockNote(product: product),
+                ],
                 // "Why it's in the picks" — Firestore's `purpose`, with the
                 // description standing in for products that lack one.
                 const SizedBox(height: 14),
@@ -82,6 +88,15 @@ class ProductDetailScreen extends StatelessWidget {
                       ? product.purpose
                       : product.description,
                 ),
+                // The long description. Skipped when `purpose` is absent,
+                // because the card above is already showing it.
+                if (product.purpose.trim().isNotEmpty &&
+                    product.description.trim().isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  Text('About this product', style: context.t.cardTitle),
+                  const SizedBox(height: 8),
+                  Text(product.description, style: context.t.bodyText),
+                ],
                 if (product.keyBenefits.isNotEmpty) ...[
                   const SizedBox(height: 18),
                   Text(
@@ -95,6 +110,28 @@ class ProductDetailScreen extends StatelessWidget {
                       child: _Bullet(text: benefit),
                     ),
                 ],
+                if (product.idealUsage.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  Text('Ideal use', style: context.t.cardTitle),
+                  const SizedBox(height: 10),
+                  for (final use in product.idealUsage)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 9),
+                      child: _Bullet(text: use),
+                    ),
+                ],
+                if (product.targetPets.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  Text('Suitable for', style: context.t.cardTitle),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final pet in product.targetPets) _Chip(label: pet),
+                    ],
+                  ),
+                ],
                 // Unrated products arrive as 0 rather than null now, so the
                 // row hides on that instead of showing an empty five stars.
                 if (product.rating > 0) ...[
@@ -102,6 +139,21 @@ class ProductDetailScreen extends StatelessWidget {
                   _Rating(
                     rating: product.rating,
                     reviewCount: product.reviewCount,
+                  ),
+                ],
+                if (product.subscriptionAvailable) ...[
+                  const SizedBox(height: 14),
+                  _Note(
+                    icon: Icons.autorenew_rounded,
+                    text: 'Available on subscription — set it up at checkout '
+                        'once repeat orders are switched on.',
+                  ),
+                ],
+                if (product.sku.trim().isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  Text(
+                    'SKU ${product.sku}',
+                    style: AppTheme.font(size: 11.5, color: context.c.faint),
                   ),
                 ],
               ],
@@ -281,6 +333,139 @@ class _Bullet extends StatelessWidget {
         ),
         Expanded(child: Text(text, style: context.t.bodySmall)),
       ],
+    );
+  }
+}
+
+
+/// Brand and pack size, joined only where both exist.
+String? _subtitle(Product product) {
+  final parts = [product.brand.trim(), product.weight.trim()]
+      .where((p) => p.isNotEmpty)
+      .toList();
+  return parts.isEmpty ? null : parts.join(' · ');
+}
+
+/// Price, with the struck-through MRP and savings badge when discounted.
+class _PriceRow extends StatelessWidget {
+  final Product product;
+
+  const _PriceRow({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 10,
+      runSpacing: 6,
+      children: [
+        Text(
+          formatPrice(product.price),
+          style: AppTheme.font(
+            size: 22,
+            weight: FontWeight.w800,
+            color: context.c.actionText,
+          ),
+        ),
+        if (product.hasDiscount) ...[
+          Text(
+            formatPrice(product.mrp),
+            style: AppTheme.font(
+              size: 14.5,
+              weight: FontWeight.w600,
+              color: context.c.muted,
+            ).copyWith(decoration: TextDecoration.lineThrough),
+          ),
+          if (product.savingsPercent > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: context.c.bandGoodTint,
+                borderRadius: BorderRadius.circular(7),
+              ),
+              child: Text(
+                '${product.savingsPercent}% off',
+                style: AppTheme.font(
+                  size: 11.5,
+                  weight: FontWeight.w800,
+                  color: context.c.successText,
+                ),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Out-of-stock and running-low warnings.
+class _StockNote extends StatelessWidget {
+  final Product product;
+
+  const _StockNote({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    final out = !product.inStock;
+    return _Note(
+      icon: out ? Icons.remove_shopping_cart_outlined : Icons.timelapse_rounded,
+      text: out
+          ? 'Out of stock right now.'
+          : 'Only ${product.stock} left in stock.',
+      tone: out ? context.c.dangerText : context.c.warningText,
+    );
+  }
+}
+
+/// A single tinted line of supporting information.
+class _Note extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final Color? tone;
+
+  const _Note({required this.icon, required this.text, this.tone});
+
+  @override
+  Widget build(BuildContext context) {
+    final colour = tone ?? context.c.actionText;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 15, color: colour),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTheme.font(size: 12.5, color: colour, height: 1.45),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Pill used for the "Made for" list.
+class _Chip extends StatelessWidget {
+  final String label;
+
+  const _Chip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: context.c.tint,
+        borderRadius: BorderRadius.circular(AppTheme.radiusChip),
+      ),
+      child: Text(
+        label,
+        style: AppTheme.font(
+          size: 12.5,
+          weight: FontWeight.w700,
+          color: context.c.onTint,
+        ),
+      ),
     );
   }
 }

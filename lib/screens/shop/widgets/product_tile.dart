@@ -166,12 +166,7 @@ class ProductTile extends StatelessWidget {
                           // is what gives way — a half-cropped product name
                           // is the one thing here a shopper can't work with.
                           Text(
-                            // Firestore rows are not guaranteed to carry a
-                            // name; falling back to the type beats a card
-                            // with a price and no idea what it is for.
-                            product.name.trim().isNotEmpty
-                                ? product.name
-                                : product.displayTag,
+                            product.name,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: AppTheme.font(

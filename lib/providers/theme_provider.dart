@@ -7,10 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// pick between them, so [ThemeMode.system] is the default and matches the
 /// design's intent.
 ///
-/// Settings exposes this as a single toggle rather than a three-way choice.
-/// That means "follow the device" is the state you start in and leave the
-/// moment you touch the switch — there is no way back to it from the UI,
-/// which is the accepted trade for a control that reads as on or off.
+/// Settings exposes all three states directly, so "follow the device" stays
+/// reachable rather than being a state you can only leave.
 class ThemeProvider extends ChangeNotifier {
   static const _key = 'app_theme_mode';
 
@@ -19,18 +17,6 @@ class ThemeProvider extends ChangeNotifier {
 
   ThemeMode get mode => _mode;
   bool get isLoaded => _isLoaded;
-
-  /// True while the appearance still tracks the device rather than a choice
-  /// made here. Drives the toggle's supporting line.
-  bool get isFollowingSystem => _mode == ThemeMode.system;
-
-  /// Pins the appearance from the settings toggle.
-  ///
-  /// Takes the resolved on/off the switch shows rather than a [ThemeMode],
-  /// so flipping it while on `system` lands on the opposite of what is
-  /// currently painted instead of silently doing nothing.
-  Future<void> setDark(bool dark) =>
-      select(dark ? ThemeMode.dark : ThemeMode.light);
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();

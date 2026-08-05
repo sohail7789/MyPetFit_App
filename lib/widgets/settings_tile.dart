@@ -201,6 +201,116 @@ class SettingsSwitchTile extends StatelessWidget {
   }
 }
 
+/// A settings row whose choice is a segmented control rather than a single
+/// on/off — used where "follow the system" is a real third state and not
+/// just the absence of a preference.
+class SettingsSegmentedTile<T> extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final List<(T, String)> options;
+  final T value;
+  final ValueChanged<T> onChanged;
+
+  const SettingsSegmentedTile({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.options,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: context.c.surfaceRaised,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 17, color: context.c.actionText),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Text(
+              label,
+              style: AppTheme.font(
+                size: 14.5,
+                weight: FontWeight.w700,
+                color: context.c.ink,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          _Segmented<T>(
+            options: options,
+            value: value,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The track itself: one pill per option, the selected one filled.
+class _Segmented<T> extends StatelessWidget {
+  final List<(T, String)> options;
+  final T value;
+  final ValueChanged<T> onChanged;
+
+  const _Segmented({
+    required this.options,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: context.c.tint,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final (option, text) in options)
+            GestureDetector(
+              onTap: () => onChanged(option),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                curve: Curves.easeOut,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                decoration: BoxDecoration(
+                  color: option == value ? context.c.action : null,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  text,
+                  style: AppTheme.font(
+                    size: 12.5,
+                    weight: FontWeight.w700,
+                    color: option == value
+                        ? context.c.onAccent
+                        : context.c.body,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// The 44×26 pill switch from the design.
 class AppSwitch extends StatelessWidget {
   final bool value;

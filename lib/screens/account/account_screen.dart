@@ -103,18 +103,21 @@ class AccountScreen extends StatelessWidget {
                             '${context.watch<LocaleProvider>().current.name}',
                         onTap: () => context.push(AppRoutes.language),
                       ),
-                      // A toggle rather than its own screen: there are only
-                      // two states worth reaching, and a whole page to flip
-                      // one bit was more chrome than the choice deserves.
-                      SettingsSwitchTile(
-                        icon: Icons.dark_mode_outlined,
-                        label: 'Dark appearance',
-                        hint: context.watch<ThemeProvider>().isFollowingSystem
-                            ? 'Following your device setting'
-                            : 'Set for this app',
-                        value: context.c.brightness == Brightness.dark,
-                        onChanged: (on) =>
-                            context.read<ThemeProvider>().setDark(on),
+                      // Inline rather than its own screen, and three-way
+                      // rather than a switch: "follow the device" is a real
+                      // choice here, not the absence of one, and a toggle
+                      // cannot express it without being a trapdoor.
+                      SettingsSegmentedTile<ThemeMode>(
+                        icon: Icons.contrast_rounded,
+                        label: 'Appearance',
+                        options: const [
+                          (ThemeMode.light, 'Light'),
+                          (ThemeMode.system, 'System'),
+                          (ThemeMode.dark, 'Dark'),
+                        ],
+                        value: context.watch<ThemeProvider>().mode,
+                        onChanged: (mode) =>
+                            context.read<ThemeProvider>().select(mode),
                       ),
                     ],
                   ),
