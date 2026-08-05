@@ -1,11 +1,11 @@
 {
-    "name": "mypetfit_app",
-    "short_name": "mypetfit_app",
+    "name": "MyPetFit",
+    "short_name": "MyPetFit",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F1F0F6",
+    "theme_color": "#46437F",
+    "description": "Pet health assessment and product recommendation app",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
