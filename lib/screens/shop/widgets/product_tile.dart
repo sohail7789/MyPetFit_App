@@ -43,10 +43,10 @@ class ProductArt extends StatelessWidget {
     final palette = ProductPalette.of(context, product.category);
     final paw = PawMark(size: pawSize, color: palette.accent, opacity: 0.5);
 
-    if (!product.hasImage) return paw;
+    if (product.imageUrl.isEmpty) return paw;
 
     return Image.network(
-      product.imageUrl!,
+      product.imageUrl,
       fit: fit,
       loadingBuilder: (context, child, progress) =>
           progress == null ? child : paw,
@@ -184,13 +184,14 @@ class ProductTile extends StatelessWidget {
                               height: 1.25,
                             ),
                           ),
-                          // The design shows a "why" line here; hidden until
-                          // the catalog carries that copy.
-                          if (product.hasWhy) ...[
+                          // The design's "why this pick" line. Firestore's
+                          // `purpose` carries that copy; hidden when a product
+                          // hasn't been given one.
+                          if (product.purpose.trim().isNotEmpty) ...[
                             const SizedBox(height: 6),
                             Flexible(
                               child: Text(
-                                product.whyPicked,
+                                product.purpose,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: AppTheme.font(

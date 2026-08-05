@@ -3,17 +3,20 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
-import '../../data/products_data.dart';
 import '../../models/product.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/pet_info_provider.dart';
+import '../../providers/product_provider.dart';
 import '../../providers/quiz_provider.dart';
+import '../../widgets/app_button.dart';
 import 'widgets/product_tile.dart';
 
 /// Screen 24 — recommended products.
 ///
-/// The design's copy frames these as picks driven by the report, so when an
-/// assessment exists the list leads with products matching its band.
+/// The design's copy frames these as picks driven by the report. The catalog
+/// carries no per-band field, so `featured` stands in for that: featured
+/// products lead once an assessment exists, and the ordering stays editable
+/// from Firestore rather than being compiled in.
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
 
@@ -25,8 +28,11 @@ class _ShopScreenState extends State<ShopScreen> {
   static const _all = 'All';
   String _filter = _all;
 
-  List<String> get _filters {
-    final categories = {for (final p in allProducts) p.category}.toList()
+  List<String> _filtersOf(List<Product> catalog) {
+    final categories = {
+      for (final p in catalog)
+        if (p.category.isNotEmpty) p.category,
+    }.toList()
       ..sort();
     return [_all, ...categories];
   }
@@ -46,15 +52,14 @@ class _ShopScreenState extends State<ShopScreen> {
     return fixed + MediaQuery.textScalerOf(context).scale(scaling) + 6;
   }
 
-  List<Product> _visible(QuizProvider quiz) {
-    final band = quiz.result?.category;
-
-    // Recommended first when we have a score, then the rest of the catalog.
-    final ordered = band == null
-        ? allProducts
+  List<Product> _visible(List<Product> catalog, QuizProvider quiz) {
+    // Featured first once there's a score to justify calling them picks;
+    // without one the catalog stands on its own order.
+    final ordered = quiz.result == null
+        ? catalog
         : [
-            ...allProducts.where((p) => p.recommendedFor.contains(band)),
-            ...allProducts.where((p) => !p.recommendedFor.contains(band)),
+            ...catalog.where((p) => p.featured),
+            ...catalog.where((p) => !p.featured),
           ];
 
     if (_filter == _all) return ordered;
@@ -65,13 +70,14 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
     final quiz = context.watch<QuizProvider>();
+    final catalog = context.watch<ProductProvider>();
     // The design personalises this ("Bruno's picks"); fall back to a neutral
     // heading before a pet profile exists.
     final pet = context.watch<PetInfoProvider>().activePet;
     final heading = (pet?.name.trim().isNotEmpty ?? false)
         ? "${pet!.name}'s picks"
         : 'Recommended for you';
-    final products = _visible(quiz);
+    final products = _visible(catalog.products, quiz);
 
     return Scaffold(
       backgroundColor: context.c.surface,
@@ -85,18 +91,23 @@ class _ShopScreenState extends State<ShopScreen> {
               cartCount: cart.totalItems,
               onCart: () => context.push(AppRoutes.cart),
             ),
-            _FilterRow(
-              filters: _filters,
-              selected: _filter,
-              onSelect: (f) => setState(() => _filter = f),
-            ),
+            // Only worth showing once there is a catalog to filter.
+            if (catalog.products.isNotEmpty)
+              _FilterRow(
+                filters: _filtersOf(catalog.products),
+                selected: _filter,
+                onSelect: (f) => setState(() => _filter = f),
+              ),
             Expanded(
               child: products.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Nothing in this category yet.',
-                        style: context.t.bodyText,
-                      ),
+                  ? _CatalogPlaceholder(
+                      loading: catalog.loading,
+                      error: catalog.error,
+                      // A category with nothing in it is a different message
+                      // from a catalog that hasn't arrived.
+                      filtered: catalog.products.isNotEmpty,
+                      onRetry: () =>
+                          context.read<ProductProvider>().loadProducts(),
                     )
                   : GridView.builder(
                       padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
@@ -245,6 +256,91 @@ class _CartButton extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Stands in for the grid while the catalog is loading, unreachable, or
+/// genuinely empty.
+///
+/// The three cases read very differently to someone waiting on their picks,
+/// so they get their own copy rather than one shared "nothing here".
+class _CatalogPlaceholder extends StatelessWidget {
+  final bool loading;
+  final String? error;
+
+  /// True when a catalog did arrive and the current filter simply matches
+  /// nothing — as opposed to having no catalog at all.
+  final bool filtered;
+
+  final VoidCallback onRetry;
+
+  const _CatalogPlaceholder({
+    required this.loading,
+    required this.error,
+    required this.filtered,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2.5,
+          valueColor: AlwaysStoppedAnimation<Color>(context.c.action),
+        ),
+      );
+    }
+
+    if (filtered) {
+      return Center(
+        child: Text(
+          'Nothing in this category yet.',
+          style: context.t.bodyText,
+        ),
+      );
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              error == null
+                  ? Icons.inventory_2_outlined
+                  : Icons.cloud_off_rounded,
+              size: 44,
+              color: context.c.dotInactive,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              error == null ? 'No products yet' : "Couldn't load the shop",
+              style: context.t.h2,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              error == null
+                  ? 'The catalog is empty right now. Check back once products '
+                      'have been published.'
+                  : 'Check your connection and try again.',
+              textAlign: TextAlign.center,
+              style: context.t.bodyText,
+            ),
+            const SizedBox(height: 20),
+            AppButton(
+              label: 'Try again',
+              variant: AppButtonVariant.outline,
+              height: 52,
+              expand: false,
+              onPressed: onRetry,
+            ),
+          ],
         ),
       ),
     );

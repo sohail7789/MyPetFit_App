@@ -1,99 +1,146 @@
-import 'score_result.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Product {
   final String id;
   final String name;
   final String description;
+  final String purpose;
+
   final double price;
+  final double mrp;
 
-  /// Emoji shown while the image loads, and as the fallback when
-  /// [imageUrl] is null or fails to load.
-  final String emoji;
-
-  /// Remote product photo. Must be **https** — plain http is blocked by
-  /// Android's cleartext policy and iOS App Transport Security.
-  /// Leave null to show the emoji instead.
-  final String? imageUrl;
-
-  final List<HealthCategory> recommendedFor;
+  final String currency;
+  final String brand;
   final String category;
-  /// Average review score. Null when no rating has been published — the UI
-  /// hides the rating row rather than showing a made-up number.
-  final double? rating;
+  final String productType;
 
-  /// One line explaining why the report surfaced this product, shown on the
-  /// shop card and the detail page ("Why it's in Bruno's picks").
-  ///
-  /// Left empty until product copy is written — the UI hides the block rather
-  /// than showing placeholder text.
-  final String whyPicked;
+  final String sku;
+  final String slug;
 
-  /// Three short "What it does" claims on the detail page. Empty hides the
-  /// section.
-  final List<String> bullets;
+  final String imageUrl;
+  final String weight;
 
-  /// Short uppercase tag on the product image, e.g. "Oral care". Falls back
-  /// to [category] when unset.
-  final String? tag;
+  final bool active;
+  final bool featured;
+  final bool inStock;
+  final bool subscriptionAvailable;
+
+  final int stock;
+  final int discountPercentage;
+  final int reviewCount;
+
+  final double rating;
+
+  final List<String> keyBenefits;
+  final List<String> idealUsage;
+  final List<String> targetPets;
+
+  final Timestamp? createdAt;
 
   const Product({
     required this.id,
     required this.name,
     required this.description,
+    required this.purpose,
     required this.price,
-    required this.emoji,
-    this.imageUrl,
-    required this.recommendedFor,
+    required this.mrp,
+    required this.currency,
+    required this.brand,
     required this.category,
-    this.rating,
-    this.whyPicked = '',
-    this.bullets = const [],
-    this.tag,
+    required this.productType,
+    required this.sku,
+    required this.slug,
+    required this.imageUrl,
+    required this.weight,
+    required this.active,
+    required this.featured,
+    required this.inStock,
+    required this.subscriptionAvailable,
+    required this.stock,
+    required this.discountPercentage,
+    required this.reviewCount,
+    required this.rating,
+    required this.keyBenefits,
+    required this.idealUsage,
+    required this.targetPets,
+    this.createdAt,
   });
 
-  /// Label shown on the product image chip.
-  String get displayTag => tag ?? category;
+  /// Short uppercase label on the product image, e.g. "Supplement".
+  ///
+  /// Derived, not stored: [productType] is the design's tag when a product
+  /// carries one, and [category] is the sensible fallback when it doesn't.
+  String get displayTag => productType.trim().isNotEmpty ? productType : category;
 
-  bool get hasWhy => whyPicked.trim().isNotEmpty;
-  bool get hasBullets => bullets.isNotEmpty;
+  /// Whether the price is a genuine markdown worth striking through.
+  bool get hasDiscount => mrp > price && price > 0;
 
-  bool get hasImage => imageUrl != null && imageUrl!.trim().isNotEmpty;
+  factory Product.fromMap(
+    String id,
+    Map<String, dynamic> map,
+  ) {
+    return Product(
+      id: id,
+      name: map['name'] ?? '',
+      description: map['description'] ?? '',
+      purpose: map['purpose'] ?? '',
+      price: (map['price'] as num?)?.toDouble() ?? 0,
+      mrp: (map['mrp'] as num?)?.toDouble() ?? 0,
+      currency: map['currency'] ?? 'INR',
+      brand: map['brand'] ?? '',
+      category: map['category'] ?? '',
+      productType: map['productType'] ?? '',
+      sku: map['sku'] ?? '',
+      slug: map['slug'] ?? '',
+      imageUrl: map['imageUrl'] ?? '',
+      weight: map['weight'] ?? '',
+      active: map['active'] ?? true,
+      featured: map['featured'] ?? false,
+      inStock: map['inStock'] ?? true,
+      subscriptionAvailable:
+          map['subscriptionAvailable'] ?? false,
+      stock: map['stock'] ?? 0,
+      discountPercentage:
+          map['discountPercentage'] ?? 0,
+      reviewCount: map['reviewCount'] ?? 0,
+      rating: (map['rating'] as num?)?.toDouble() ?? 0,
+      keyBenefits:
+          List<String>.from(map['keyBenefits'] ?? []),
+      idealUsage:
+          List<String>.from(map['idealUsage'] ?? []),
+      targetPets:
+          List<String>.from(map['targetPets'] ?? []),
+      createdAt: map['createdAt'],
+    );
+  }
 
-  /// Present so a future Firestore-backed catalog can decode documents
-  /// without touching call sites. Unknown categories are ignored rather
-  /// than throwing, so one bad row can't break the whole listing.
-  factory Product.fromMap(String id, Map<String, dynamic> map) => Product(
-        id: id,
-        name: map['name'] as String? ?? '',
-        description: map['description'] as String? ?? '',
-        price: (map['price'] as num?)?.toDouble() ?? 0,
-        emoji: map['emoji'] as String? ?? '📦',
-        imageUrl: map['imageUrl'] as String?,
-        recommendedFor: ((map['recommendedFor'] as List?) ?? const [])
-            .map((e) => HealthCategory.values
-                .where((c) => c.name == e)
-                .firstOrNull)
-            .whereType<HealthCategory>()
-            .toList(),
-        category: map['category'] as String? ?? 'Other',
-        rating: (map['rating'] as num?)?.toDouble(),
-        whyPicked: map['whyPicked'] as String? ?? '',
-        bullets:
-            ((map['bullets'] as List?) ?? const []).whereType<String>().toList(),
-        tag: map['tag'] as String?,
-      );
-
-  Map<String, dynamic> toMap() => {
-        'name': name,
-        'description': description,
-        'price': price,
-        'emoji': emoji,
-        if (imageUrl != null) 'imageUrl': imageUrl,
-        'recommendedFor': recommendedFor.map((c) => c.name).toList(),
-        'category': category,
-        if (rating != null) 'rating': rating,
-        if (whyPicked.isNotEmpty) 'whyPicked': whyPicked,
-        if (bullets.isNotEmpty) 'bullets': bullets,
-        if (tag != null) 'tag': tag,
-      };
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'description': description,
+      'purpose': purpose,
+      'price': price,
+      'mrp': mrp,
+      'currency': currency,
+      'brand': brand,
+      'category': category,
+      'productType': productType,
+      'sku': sku,
+      'slug': slug,
+      'imageUrl': imageUrl,
+      'weight': weight,
+      'active': active,
+      'featured': featured,
+      'inStock': inStock,
+      'subscriptionAvailable': subscriptionAvailable,
+      'stock': stock,
+      'discountPercentage': discountPercentage,
+      'reviewCount': reviewCount,
+      'rating': rating,
+      'keyBenefits': keyBenefits,
+      'idealUsage': idealUsage,
+      'targetPets': targetPets,
+      'createdAt': createdAt,
+    };
+  }
 }

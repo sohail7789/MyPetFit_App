@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mypetfit_app/config/theme.dart';
 import 'package:mypetfit_app/models/pet_info.dart';
 import 'package:mypetfit_app/providers/address_provider.dart';
+import 'support/product_fixtures.dart';
 import 'package:mypetfit_app/providers/theme_provider.dart';
 import 'package:mypetfit_app/providers/auth_provider.dart';
 import 'package:mypetfit_app/providers/cart_provider.dart';
@@ -59,6 +60,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AddressProvider()),
+        ChangeNotifierProvider(create: (_) => loadedTestCatalog()),
       ],
       child: MaterialApp(
         theme: AppTheme.light,

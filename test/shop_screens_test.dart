@@ -3,21 +3,30 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mypetfit_app/config/theme.dart';
-import 'package:mypetfit_app/data/products_data.dart';
 import 'package:mypetfit_app/providers/cart_provider.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';
+import 'package:mypetfit_app/providers/product_provider.dart';
 import 'package:mypetfit_app/providers/quiz_provider.dart';
 import 'package:mypetfit_app/screens/shop/cart_screen.dart';
 import 'package:mypetfit_app/screens/shop/order_reference.dart';
 import 'package:mypetfit_app/screens/shop/shop_screen.dart';
 import 'package:mypetfit_app/screens/shop/widgets/product_tile.dart';
 import 'support/network_image_stub.dart';
+import 'support/product_fixtures.dart';
 
-Widget _host(Widget child, {CartProvider? cart}) => MultiProvider(
+Widget _host(
+  Widget child, {
+  CartProvider? cart,
+  ProductProvider? catalog,
+}) =>
+    MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => cart ?? CartProvider()),
         ChangeNotifierProvider(create: (_) => QuizProvider()),
         ChangeNotifierProvider(create: (_) => PetInfoProvider()),
+        ChangeNotifierProvider(
+          create: (_) => catalog ?? emptyCatalog(),
+        ),
       ],
       child: MaterialApp(theme: AppTheme.light, home: child),
     );
@@ -45,7 +54,10 @@ void main() {
 
   group('24 Shop', () {
     testWidgets('lists the catalog with an All filter', (tester) async {
-      await tester.pumpWidget(_host(const ShopScreen()));
+      await tester.pumpWidget(_host(
+        const ShopScreen(),
+        catalog: await loadedCatalog(),
+      ));
       await tester.pump();
 
       expect(find.text('PICKED FROM THE REPORT'), findsOneWidget);
@@ -53,15 +65,57 @@ void main() {
       expect(find.byType(ProductTile), findsWidgets);
     });
 
+    testWidgets('shows a spinner while the catalog is loading',
+        (tester) async {
+      await tester.pumpWidget(
+        _host(const ShopScreen(), catalog: pendingCatalog()),
+      );
+      await tester.pump();
+
+      // Mid-load the grid has nothing to show, but it must not claim the
+      // shop is empty either.
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(ProductTile), findsNothing);
+      expect(find.text('No products yet'), findsNothing);
+      expect(find.text('Nothing in this category yet.'), findsNothing);
+    });
+
+    testWidgets('offers a retry when the catalog fails to load',
+        (tester) async {
+      final provider =
+          ProductProvider(service: FakeCatalogService(const [], error: 'nope'));
+      await provider.loadProducts();
+
+      await tester.pumpWidget(_host(const ShopScreen(), catalog: provider));
+      await tester.pump();
+
+      expect(find.text("Couldn't load the shop"), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
+    });
+
+    testWidgets('says so when the catalog is genuinely empty', (tester) async {
+      await tester.pumpWidget(_host(
+        const ShopScreen(),
+        catalog: await loadedCatalog(const []),
+      ));
+      await tester.pump();
+
+      expect(find.text('No products yet'), findsOneWidget);
+    });
+
     testWidgets('the view-cart bar appears only once something is added',
         (tester) async {
       final cart = CartProvider();
-      await tester.pumpWidget(_host(const ShopScreen(), cart: cart));
+      await tester.pumpWidget(_host(
+        const ShopScreen(),
+        cart: cart,
+        catalog: await loadedCatalog(),
+      ));
       await tester.pump();
 
       expect(find.textContaining('View cart'), findsNothing);
 
-      cart.addProduct(allProducts.first);
+      cart.addProduct(testCatalog.first);
       await tester.pump();
 
       expect(find.textContaining('View cart'), findsOneWidget);
@@ -69,12 +123,15 @@ void main() {
     });
 
     testWidgets('a filter narrows the grid to that category', (tester) async {
-      await tester.pumpWidget(_host(const ShopScreen()));
+      await tester.pumpWidget(_host(
+        const ShopScreen(),
+        catalog: await loadedCatalog(),
+      ));
       await tester.pump();
 
-      final category = allProducts.first.category;
+      final category = testCatalog.first.category;
       final expected =
-          allProducts.where((p) => p.category == category).length;
+          testCatalog.where((p) => p.category == category).length;
 
       await tester.tap(find.text(category).first);
       await tester.pump();
@@ -96,7 +153,7 @@ void main() {
 
     testWidgets('steppers change quantity and Remove clears the line',
         (tester) async {
-      final cart = CartProvider()..addProduct(allProducts.first);
+      final cart = CartProvider()..addProduct(testCatalog.first);
       await tester.pumpWidget(_host(const CartScreen(), cart: cart));
       await tester.pump();
 
@@ -117,7 +174,7 @@ void main() {
     });
 
     testWidgets('the footer totals the basket', (tester) async {
-      final product = allProducts.first;
+      final product = testCatalog.first;
       final cart = CartProvider()..addProduct(product);
       await tester.pumpWidget(_host(const CartScreen(), cart: cart));
       await tester.pump();

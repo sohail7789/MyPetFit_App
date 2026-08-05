@@ -80,6 +80,13 @@ Future<void> main() async {
       quizProvider.bindPet(petInfoProvider.activePet?.id);
   petInfoProvider.addListener(bindActivePet);
 
+  // The cart persists product ids, not products, so a restored cart is only
+  // rows-in-waiting until the Firestore catalog lands. Wired here for the
+  // same reason as the pet binding above — the dependency between the two
+  // providers is visible in one place rather than buried in either of them.
+  void hydrateCart() => cartProvider.hydrate(productProvider.products);
+  productProvider.addListener(hydrateCart);
+
   // Kick off persisted-state loads after the first frame has been scheduled.
   // The router re-evaluates its redirect when these land (see AppRoutes.build).
   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -89,7 +96,10 @@ Future<void> main() async {
     // Pets first, then the quiz binds to whichever is active. Both loads are
     // async, and the listener above covers whichever settles last.
     quizProvider.init().then((_) => bindActivePet());
-    cartProvider.init();
+    // Read the saved cart first, then load the catalog: hydrateCart runs on
+    // every productProvider notification, so whichever settles last still
+    // matches the two up.
+    cartProvider.init().then((_) => hydrateCart());
     localeProvider.init();
     addressProvider.init();
     themeProvider.init();

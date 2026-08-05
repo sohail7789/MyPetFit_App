@@ -4,10 +4,10 @@ import 'package:provider/provider.dart';
 import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
-import '../../data/products_data.dart';
 import '../../models/product.dart';
 import '../../models/product_palette.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/product_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/design_image.dart';
 import 'widgets/product_tile.dart';
@@ -20,15 +20,23 @@ class ProductDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final catalog = context.watch<ProductProvider>();
     final product =
-        allProducts.where((p) => p.id == productId).firstOrNull;
+        catalog.products.where((p) => p.id == productId).firstOrNull;
 
     if (product == null) {
       return Scaffold(
         backgroundColor: context.c.surface,
         appBar: AppBar(leading: const BackButton()),
         body: Center(
-          child: Text('Product not found', style: context.t.bodyText),
+          // Deep-linking here before the catalog lands is a load, not a 404.
+          child: catalog.loading
+              ? CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(context.c.action),
+                )
+              : Text('Product not found', style: context.t.bodyText),
         ),
       );
     }
@@ -66,28 +74,35 @@ class ProductDetailScreen extends StatelessWidget {
                     color: context.c.actionText,
                   ),
                 ),
-                // "Why it's in the picks" — only once the catalog carries
-                // that copy; the description stands in until then.
+                // "Why it's in the picks" — Firestore's `purpose`, with the
+                // description standing in for products that lack one.
                 const SizedBox(height: 14),
                 _WhyCard(
-                  text: product.hasWhy ? product.whyPicked : product.description,
+                  text: product.purpose.trim().isNotEmpty
+                      ? product.purpose
+                      : product.description,
                 ),
-                if (product.hasBullets) ...[
+                if (product.keyBenefits.isNotEmpty) ...[
                   const SizedBox(height: 18),
                   Text(
                     'What it does',
                     style: context.t.cardTitle,
                   ),
                   const SizedBox(height: 10),
-                  for (final bullet in product.bullets)
+                  for (final benefit in product.keyBenefits)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 9),
-                      child: _Bullet(text: bullet),
+                      child: _Bullet(text: benefit),
                     ),
                 ],
-                if (product.rating != null) ...[
+                // Unrated products arrive as 0 rather than null now, so the
+                // row hides on that instead of showing an empty five stars.
+                if (product.rating > 0) ...[
                   const SizedBox(height: 16),
-                  _Rating(rating: product.rating!),
+                  _Rating(
+                    rating: product.rating,
+                    reviewCount: product.reviewCount,
+                  ),
                 ],
               ],
             ),
@@ -263,8 +278,9 @@ class _Bullet extends StatelessWidget {
 
 class _Rating extends StatelessWidget {
   final double rating;
+  final int reviewCount;
 
-  const _Rating({required this.rating});
+  const _Rating({required this.rating, this.reviewCount = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -291,6 +307,19 @@ class _Rating extends StatelessWidget {
               color: context.c.ink,
             ),
           ),
+          // The design carries a review count beside the score; hidden until
+          // a product actually has reviews rather than showing "· 0".
+          if (reviewCount > 0) ...[
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                '· $reviewCount pet parents',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.font(size: 12.5, color: context.c.muted),
+              ),
+            ),
+          ],
         ],
       ),
     );

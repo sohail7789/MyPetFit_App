@@ -4,8 +4,12 @@ import '../models/product.dart';
 import '../services/firestore_service.dart';
 
 class ProductProvider extends ChangeNotifier {
-  final FirestoreService _service =
-      FirestoreService();
+  /// The catalog source. Injectable so tests (and any future local/offline
+  /// source) can supply products without reaching Firestore.
+  final FirestoreService _service;
+
+  ProductProvider({FirestoreService? service})
+      : _service = service ?? FirestoreService();
 
   List<Product> _products = [];
 
