@@ -20,7 +20,16 @@ class _Page {
   final String artLabel;
   final String titleLead;
   final String titleAccent;
+
+  /// Colour of the highlighted word in the title — type on the wash, so it
+  /// takes the brightened accent in dark.
   final Color accent;
+
+  /// Fill behind the circular Next button. Separate from [accent] because a
+  /// filled shape and type on the canvas resolve to different values in dark
+  /// (#5B54B8 vs #A9A3F0).
+  final Color buttonFill;
+
   final String bodyText;
   final Color dotActive;
   final Color dotInactive;
@@ -33,6 +42,7 @@ class _Page {
     required this.titleLead,
     required this.titleAccent,
     required this.accent,
+    required this.buttonFill,
     required this.bodyText,
     required this.dotActive,
     required this.dotInactive,
@@ -65,6 +75,7 @@ List<_Page> _pagesOf(BuildContext context) {
       titleLead: 'Understand your\npet’s ',
       titleAccent: 'health',
       accent: c.actionText,
+      buttonFill: c.action,
       bodyText:
           "Answer 45 simple questions about your pet's lifestyle, habits and well-being.",
       dotActive: c.action,
@@ -85,6 +96,7 @@ List<_Page> _pagesOf(BuildContext context) {
       titleLead: 'Get personalized\n',
       titleAccent: 'recommendations',
       accent: c.startLight,
+      buttonFill: c.start,
       bodyText:
           'We turn the score into nutrition, dental and grooming picks made for your pet.',
       dotActive: c.startLight,
@@ -105,6 +117,7 @@ List<_Page> _pagesOf(BuildContext context) {
       titleLead: 'Better health,\n',
       titleAccent: 'happier pets',
       accent: c.actionText,
+      buttonFill: c.action,
       bodyText:
           'Track progress over time, follow reminders and give your pet the best life possible.',
       dotActive: c.action,
@@ -288,7 +301,7 @@ class _Caption extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 dots,
-                _NextButton(color: page.accent, onTap: onNext),
+                _NextButton(fill: page.buttonFill, onTap: onNext),
               ],
             ),
         ],
@@ -299,17 +312,13 @@ class _Caption extends StatelessWidget {
 
 /// The 60×60 circular chevron advancing the carousel.
 class _NextButton extends StatelessWidget {
-  final Color color;
+  final Color fill;
   final VoidCallback onTap;
 
-  const _NextButton({required this.color, required this.onTap});
+  const _NextButton({required this.fill, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    // Page 2's dot accent is the lighter plum but its button uses the
-    // deeper #8E4F7C, matching the design.
-    final fill = color == context.c.startLight ? context.c.start : color;
-
     return Semantics(
       button: true,
       label: 'Next',

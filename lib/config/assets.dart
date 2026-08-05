@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart' show Brightness;
+
 /// Maps semantic asset roles to the filenames actually shipped in
 /// `assets/v3/`.
 ///
@@ -22,8 +24,20 @@ class AppAssets {
 
   // -- Onboarding & auth (screens 01–09) --------------------------------
 
-  /// Not yet supplied — the Welcome lockup falls back to a placeholder.
+  /// The brand lockup. Use [logoFor] rather than this directly.
   static const String logo = 'assets/v3/logo.png';
+
+  /// Dark-appearance lockup.
+  ///
+  /// The wordmark and tagline are dark navy baked into the artwork, which
+  /// leaves them at roughly 1.3:1 against the dark canvas — effectively
+  /// invisible. This variant recolours just that type to the dark palette's
+  /// ink and leaves the gradient paw alone.
+  static const String logoDark = 'assets/v3/logo-dark.png';
+
+  /// The lockup for [brightness].
+  static String logoFor(Brightness brightness) =>
+      brightness == Brightness.dark ? logoDark : logo;
 
   static const String welcomePoster = 'assets/v3/running.png';
 

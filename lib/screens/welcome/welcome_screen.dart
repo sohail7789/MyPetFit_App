@@ -44,10 +44,10 @@ class WelcomeScreen extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(28, 20, 28, 0),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
                 child: DesignImage(
-                  AppAssets.logo,
+                  AppAssets.logoFor(context.c.brightness),
                   width: 200,
                   semanticLabel:
                       'MyPetFit — Intelligent Care for Lifelong Pet Health',

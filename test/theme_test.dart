@@ -43,6 +43,7 @@ Map<String, Color> _colorsOf(AppColors c) => {
       'critical': c.critical,
       'info': c.info,
       'star': c.star,
+      'appleMark': c.appleMark,
       'bandCriticalTint': c.bandCriticalTint,
       'bandCriticalLine': c.bandCriticalLine,
       'bandNeedsTint': c.bandNeedsTint,

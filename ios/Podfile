@@ -1,5 +1,8 @@
-# Uncomment this line to define a global platform for your project
-# platform :ios, '13.0'
+# cloud_firestore refuses to build below 15.0, and with no platform line here
+# CocoaPods silently assumed 13.0 — which failed every iOS build once
+# Firestore was added. Keep this in step with IPHONEOS_DEPLOYMENT_TARGET in
+# Runner.xcodeproj.
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'

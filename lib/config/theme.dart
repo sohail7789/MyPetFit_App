@@ -58,6 +58,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.info,
     required this.star,
     required this.onAccent,
+    required this.appleMark,
     required this.bandCriticalTint,
     required this.bandCriticalLine,
     required this.bandNeedsTint,
@@ -193,6 +194,11 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Type and icons sitting on a filled accent. White in both appearances.
   final Color onAccent;
 
+  /// The Apple wordmark on the social sign-in button. Near-black on light,
+  /// near-white on dark — Apple's mark is monochrome, so it has to invert
+  /// rather than follow the indigo accents.
+  final Color appleMark;
+
   // ---------------------------------------------------------------------
   // Score bands — mirrors BANDS in MyPetFit Assessment{,Dark}.dc.html
   // ---------------------------------------------------------------------
@@ -322,6 +328,7 @@ class AppColors extends ThemeExtension<AppColors> {
     info: Color(0xFF1E6FA8),
     star: Color(0xFFC9A227),
     onAccent: Color(0xFFFFFFFF),
+    appleMark: Color(0xFF111111),
     bandCriticalTint: Color(0xFFFBF0F0),
     bandCriticalLine: Color(0xFFF0D6D6),
     bandNeedsTint: Color(0xFFFDF4EE),
@@ -386,6 +393,7 @@ class AppColors extends ThemeExtension<AppColors> {
     info: Color(0xFF5AAEE8),
     star: Color(0xFFE8C24A),
     onAccent: Color(0xFFFFFFFF),
+    appleMark: Color(0xFFEDEBF6),
     bandCriticalTint: Color(0xFF2E1D1D),
     bandCriticalLine: Color(0xFF3A2323),
     bandNeedsTint: Color(0xFF2A211A),
@@ -451,6 +459,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? info,
     Color? star,
     Color? onAccent,
+    Color? appleMark,
     Color? bandCriticalTint,
     Color? bandCriticalLine,
     Color? bandNeedsTint,
@@ -510,6 +519,7 @@ class AppColors extends ThemeExtension<AppColors> {
       info: info ?? this.info,
       star: star ?? this.star,
       onAccent: onAccent ?? this.onAccent,
+      appleMark: appleMark ?? this.appleMark,
       bandCriticalTint: bandCriticalTint ?? this.bandCriticalTint,
       bandCriticalLine: bandCriticalLine ?? this.bandCriticalLine,
       bandNeedsTint: bandNeedsTint ?? this.bandNeedsTint,
@@ -575,6 +585,7 @@ class AppColors extends ThemeExtension<AppColors> {
       info: c(info, other.info),
       star: c(star, other.star),
       onAccent: c(onAccent, other.onAccent),
+      appleMark: c(appleMark, other.appleMark),
       bandCriticalTint: c(bandCriticalTint, other.bandCriticalTint),
       bandCriticalLine: c(bandCriticalLine, other.bandCriticalLine),
       bandNeedsTint: c(bandNeedsTint, other.bandNeedsTint),

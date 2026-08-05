@@ -28,7 +28,12 @@ class OrDivider extends StatelessWidget {
 /// One of the bordered white social buttons (Google / Apple).
 class SocialButton extends StatelessWidget {
   final String label;
-  final String svg;
+
+  /// Fixed markup for buttons whose mark is the same in both appearances
+  /// (Google's is multicolour). Null for Apple, whose monochrome mark has to
+  /// be resolved against the active palette at paint time.
+  final String? svg;
+
   final double iconSize;
   final double height;
   final VoidCallback? onPressed;
@@ -56,7 +61,7 @@ class SocialButton extends StatelessWidget {
     this.iconSize = 18,
     this.onPressed,
   })  : label = 'Apple',
-        svg = AppIcons.apple;
+        svg = null;
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +78,7 @@ class SocialButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AppIcon(svg, size: iconSize),
+            AppIcon(svg ?? AppIcons.apple(context.c.appleMark), size: iconSize),
             const SizedBox(width: 9),
             Flexible(
               child: Text(

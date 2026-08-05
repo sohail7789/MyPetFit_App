@@ -93,8 +93,10 @@ class AppIcons {
       '<path fill="#FBBC05" d="M5.5 14.1a7 7 0 010-4.4v-3H1.8a11.5 11.5 0 000 10.4l3.7-3z"/>'
       '<path fill="#EA4335" d="M12 5c1.7 0 3.2.6 4.4 1.7l3.2-3.2A11.4 11.4 0 001.8 6.7l3.7 3C6.4 7 9 5 12 5z"/></svg>';
 
-  static const String apple =
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#111">'
+  /// Apple's mark is monochrome and must invert between appearances, so the
+  /// colour is supplied rather than baked in.
+  static String apple(Color c) =>
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${_hex(c)}">'
       '<path d="M16.4 1.4c0 1.2-.5 2.2-1.3 3-.9.9-1.9 1.5-3 1.4-.1-1.1.4-2.3 1.2-3.1.8-.8 2.1-1.4 3.1-1.3zM20.5 17.1c-.5 1.3-.8 1.9-1.5 3-1 1.5-2.4 3.4-4.1 3.5-1.6 0-2-1-4-1-2.1 0-2.5 1-4.1 1-1.7 0-3.1-1.8-4.1-3.3-2.7-4.2-3-9.1-1.3-11.7 1.2-1.8 3.1-2.9 4.9-2.9 1.9 0 3.1 1 4.7 1 1.5 0 2.4-1 4.6-1 1.7 0 3.5.9 4.8 2.5-4.2 2.3-3.5 8.3.1 9.9z"/></svg>';
 }
 
