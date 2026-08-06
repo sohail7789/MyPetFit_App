@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   static const _key = 'auth_state';
@@ -48,9 +49,48 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> signIn(String username, String password) async {
-    _username = username.trim();
+  Future<void> signIn(
+    String email,
+    String password,
+  ) async {
+    final credential = await AuthService.instance.signIn(
+      email: email,
+      password: password,
+    );
+
+    final user = credential.user!;
+
     _isSignedIn = true;
+    _email = user.email ?? '';
+    _username = user.displayName ?? '';
+    _firstName = '';
+    _lastName = '';
+
+    await _persist();
+    notifyListeners();
+  }
+
+  Future<void> sendPasswordResetEmail(
+      String email,
+      ) async {
+    await AuthService.instance.sendPasswordResetEmail(email);
+  }
+
+
+  Future<void> signInWithGoogle() async {
+    final credential = await AuthService.instance.signInWithGoogle();
+
+    final user = credential.user!;
+
+    _isSignedIn = true;
+    _email = user.email ?? '';
+
+    final parts = (user.displayName ?? '').trim().split(' ');
+
+    _firstName = parts.isNotEmpty ? parts.first : '';
+    _lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    _username = user.email?.split('@').first ?? '';
+
     await _persist();
     notifyListeners();
   }
@@ -62,14 +102,27 @@ class AuthProvider extends ChangeNotifier {
     required String lastName,
     required String password,
   }) async {
+    final credential = await AuthService.instance.signUp(
+      username: username,
+      email: email,
+      firstName: firstName,
+      lastName: lastName,
+      password: password,
+    );
+
+    final user = credential.user!;
+
+    _isSignedIn = true;
     _username = username.trim();
-    _email = email.trim();
+    _email = user.email ?? '';
     _firstName = firstName.trim();
     _lastName = lastName.trim();
-    _isSignedIn = true;
+
     await _persist();
+
     notifyListeners();
   }
+
 
   Future<void> signOut() async {
     _isSignedIn = false;

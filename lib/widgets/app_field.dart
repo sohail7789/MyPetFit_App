@@ -15,6 +15,7 @@ class AppField extends StatefulWidget {
   final bool obscure;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
+  final TextCapitalization textCapitalization;
   final double height;
   final ValueChanged<String>? onChanged;
   final String? initialValue;
@@ -32,6 +33,7 @@ class AppField extends StatefulWidget {
     this.obscure = false,
     this.keyboardType,
     this.textInputAction,
+    this.textCapitalization = TextCapitalization.sentences,
     this.height = AppTheme.fieldHeight,
     this.onChanged,
     this.initialValue,
@@ -107,6 +109,7 @@ class _AppFieldState extends State<AppField> {
               obscureText: widget.obscure,
               keyboardType: widget.keyboardType,
               textInputAction: widget.textInputAction,
+              textCapitalization: widget.textCapitalization,
               onChanged: widget.onChanged,
               enabled: widget.enabled,
               cursorColor: context.c.actionText,

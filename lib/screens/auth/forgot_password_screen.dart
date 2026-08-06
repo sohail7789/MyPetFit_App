@@ -8,6 +8,9 @@ import '../../widgets/app_field.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/paw_mark.dart';
 import 'widgets/auth_art_layout.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/auth_service.dart';
 
 /// Screen 07 — Forgot password.
 class ForgotPasswordScreen extends StatefulWidget {
@@ -24,6 +27,68 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   void dispose() {
     _email.dispose();
     super.dispose();
+  }
+
+  Future<void> _sendResetLink() async {
+    final authProvider = context.read<AuthProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+
+    try {
+      final email = _email.text.trim();
+
+      if (email.isEmpty) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Please enter your email address.'),
+          ),
+        );
+        return;
+      }
+
+      final exists =
+      await AuthService.instance.isEmailRegistered(email);
+
+      if (!exists) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('This email is not registered.'),
+          ),
+        );
+        return;
+      }
+
+      await authProvider.sendPasswordResetEmail(email);
+
+      if (!mounted) return;
+
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Password reset email sent. Please check your inbox.',
+          ),
+        ),
+      );
+
+      await Future.delayed(const Duration(seconds: 3));
+
+      if (!mounted) return;
+
+      router.go(AppRoutes.signIn);
+
+
+
+    } catch (e) {
+      if (!mounted) return;
+
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -68,13 +133,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           icon: AppIcon(AppIcons.mail(context.c.muted), size: 20),
           controller: _email,
           keyboardType: TextInputType.emailAddress,
+          textCapitalization: TextCapitalization.none,
+          textInputAction: TextInputAction.done,
           height: 58,
         ),
         const SizedBox(height: 18),
         AppButton(
           label: 'Send Reset Link',
           icon: AppIcon(AppIcons.send(), size: 19),
-          onPressed: () => context.push(AppRoutes.verifyCode),
+          onPressed: _sendResetLink,
         ),
         const SizedBox(height: 22),
         BackToLogin(onTap: () => context.go(AppRoutes.signIn)),

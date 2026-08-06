@@ -17,6 +17,7 @@ class LabeledField extends StatelessWidget {
   final TextEditingController? controller;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
+  final TextCapitalization textCapitalization;
   final ValueChanged<String>? onChanged;
 
   /// Input restrictions, e.g. digits-only and a length cap on a PIN code.
@@ -43,6 +44,7 @@ class LabeledField extends StatelessWidget {
     this.controller,
     this.keyboardType,
     this.textInputAction,
+    this.textCapitalization = TextCapitalization.sentences,
     this.onChanged,
     this.inputFormatters,
     this.height = 58,
@@ -119,6 +121,7 @@ class LabeledField extends StatelessWidget {
             TextField(
               controller: controller,
               keyboardType: keyboardType,
+              textCapitalization: textCapitalization,
               textInputAction: textInputAction,
               inputFormatters: inputFormatters,
               onChanged: onChanged,

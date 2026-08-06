@@ -12,7 +12,20 @@
           "package_name": "com.mypetfit.in"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "969502932777-ii0pdejrnde51a781hltoad4fkg1bp3p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mypetfit.in",
+            "certificate_hash": "a6d3c78978c91f9a21cad1e83b3675c67776bb6b"
+          }
+        },
+        {
+          "client_id": "969502932777-8matotbothnmjphmf215k8efchmjuspl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyArtSCsT4K5q4Cj_Neu_WlSqIHxdn6S5Us"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "969502932777-8matotbothnmjphmf215k8efchmjuspl.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "969502932777-ars43of8kd5ifoo7kh5r8ps2pdj6niup.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mypetfit.mypetfitApp"
+              }
+            }
+          ]
         }
       }
     }
