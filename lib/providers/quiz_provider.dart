@@ -83,7 +83,11 @@ class QuizProvider extends ChangeNotifier with CloudSync {
   static const int maxHistory = 5;
   static const _key = 'quiz_state';
 
-  final FirestoreService _firestore = FirestoreService();
+  /// The cloud source, injectable for tests — see PetInfoProvider's.
+  final FirestoreService _firestore;
+
+  QuizProvider({FirestoreService? service})
+      : _firestore = service ?? FirestoreService();
 
   /// In-progress answers, one draft per pet.
   final Map<String, _QuizDraft> _drafts = {};
@@ -118,6 +122,8 @@ class QuizProvider extends ChangeNotifier with CloudSync {
   bool _stampedLegacy = false;
 
   bool _isLoaded = false;
+
+  Future<void>? _initFuture;
 
   // --- Getters ---------------------------------------------------------
 
@@ -412,7 +418,14 @@ class QuizProvider extends ChangeNotifier with CloudSync {
 
   // --- Persistence -----------------------------------------------------
 
-  Future<void> init() async {
+  /// Reads the persisted snapshot.
+  ///
+  /// Idempotent and awaitable for the same reason as
+  /// [PetInfoProvider.init]: main() only kicks it off, and a cloud load that
+  /// overtook it appended the stored history to the restored one.
+  Future<void> init() => _initFuture ??= _readPersisted();
+
+  Future<void> _readPersisted() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);
     if (raw != null) {
@@ -421,8 +434,10 @@ class QuizProvider extends ChangeNotifier with CloudSync {
 
         final historyJson = json['history'] as List?;
         if (historyJson != null) {
-          _allHistory.addAll(historyJson
-              .map((e) => ScoreResult.fromJson(e as Map<String, dynamic>)));
+          _allHistory
+            ..clear()
+            ..addAll(historyJson
+                .map((e) => ScoreResult.fromJson(e as Map<String, dynamic>)));
         }
 
         // Older saves kept the newest result outside the history list. If it

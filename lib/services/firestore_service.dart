@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../models/consent_state.dart';
 import '../models/owner_profile.dart';
 import '../models/pet_info.dart';
 import '../models/product.dart';
@@ -89,6 +90,43 @@ class FirestoreService {
     }
 
     return OwnerProfile.fromMap(data);
+  }
+
+  /// Saves the signed consent for the currently logged in user.
+  ///
+  /// Merged into `users/{uid}` under its own `consent` key rather than folded
+  /// into the owner profile: consent is given a screen before the owner form,
+  /// so writing it through [saveOwnerProfile] would create an owner document
+  /// with no owner in it — which [getOwnerProfile] then has to reject.
+  Future<void> saveConsent(ConsentState consent) async {
+    final uid = _uid;
+
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .set(
+      {'consent': consent.toMap()},
+      SetOptions(merge: true),
+    );
+  }
+
+  /// Loads the signed consent for the currently logged in user, or null if
+  /// this account has never recorded one.
+  Future<ConsentState?> getConsent() async {
+    final uid = _uid;
+
+    final doc = await _firestore
+        .collection('users')
+        .doc(uid)
+        .get();
+
+    if (!doc.exists) return null;
+
+    final raw = doc.data()?['consent'];
+
+    if (raw is! Map) return null;
+
+    return ConsentState.fromMap(Map<String, dynamic>.from(raw));
   }
 
   /// Save one pet for the currently logged in user.

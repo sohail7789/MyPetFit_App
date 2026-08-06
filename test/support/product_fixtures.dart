@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:mypetfit_app/models/product.dart';
 import 'package:mypetfit_app/providers/product_provider.dart';
 import 'package:mypetfit_app/services/firestore_service.dart';
+import 'package:mypetfit_app/models/consent_state.dart';
 import 'package:mypetfit_app/models/owner_profile.dart';
 import 'package:mypetfit_app/models/pet_info.dart';
 import 'package:mypetfit_app/models/score_result.dart';
@@ -95,6 +96,14 @@ class FakeCatalogService implements FirestoreService {
       ) async {}
 
   @override
+  Future<void> saveConsent(ConsentState consent) async {}
+
+  @override
+  Future<ConsentState?> getConsent() async {
+    return null;
+  }
+
+  @override
   Future<OwnerProfile?> getOwnerProfile() async {
     return null;
   }
@@ -158,6 +167,14 @@ class PendingCatalogService implements FirestoreService {
   Future<void> saveOwnerProfile(
       OwnerProfile profile,
       ) async {}
+
+  @override
+  Future<void> saveConsent(ConsentState consent) async {}
+
+  @override
+  Future<ConsentState?> getConsent() async {
+    return null;
+  }
 
   @override
   Future<OwnerProfile?> getOwnerProfile() async {

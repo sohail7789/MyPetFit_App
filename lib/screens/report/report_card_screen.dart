@@ -135,7 +135,10 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                 const SizedBox(height: 24),
                 AppButton(
                   label: 'Start the assessment',
-                  onPressed: () => context.go(AppRoutes.consent),
+                  // The questionnaire, not the consent form. Reaching this
+                  // screen at all means the router already cleared the
+                  // consent gate.
+                  onPressed: () => context.go(AppRoutes.quiz),
                 ),
               ],
             ),

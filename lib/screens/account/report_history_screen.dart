@@ -40,7 +40,9 @@ class ReportHistoryScreen extends StatelessWidget {
             ),
             Expanded(
               child: history.isEmpty
-                  ? _Empty(onStart: () => context.push(AppRoutes.consent))
+                  // Into the questionnaire, not back through consent — see
+                  // the dashboard's retake action.
+                  ? _Empty(onStart: () => context.push(AppRoutes.quiz))
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
                       children: [

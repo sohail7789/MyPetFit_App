@@ -119,9 +119,15 @@ class HomeDashboardScreen extends StatelessWidget {
                           art: AppAssets.categoryFace(1),
                           title: 'Retake assessment',
                           subtitle: '45 questions · 6 min',
+                          // Straight into the questionnaire for the active
+                          // pet, the same way the pet profile's retake works.
+                          // This used to route via /consent, which asked
+                          // someone who had already signed it to sign it
+                          // again — consent is a gate the router owns once,
+                          // not a step in every assessment.
                           onTap: () {
                             context.read<QuizProvider>().reset();
-                            context.push(AppRoutes.consent);
+                            context.push(AppRoutes.quiz);
                           },
                         ),
                       ),
@@ -273,7 +279,7 @@ class _ScoreCard extends StatelessWidget {
                     ? 'Start the assessment'
                     : 'View report card',
                 onTap: () => context.push(
-                  result == null ? AppRoutes.consent : AppRoutes.report,
+                  result == null ? AppRoutes.quiz : AppRoutes.report,
                 ),
               ),
             ],

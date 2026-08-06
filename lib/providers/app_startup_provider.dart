@@ -20,10 +20,14 @@ enum StartupStage {
 
 /// Single coordinator for restoring cloud state after authentication.
 ///
-/// Owns the order — owner, then pets, then assessments — and the fact that
-/// it has happened. Nothing else should load those three: a screen that does
-/// its own loading and then navigates is what produced the duplicate
-/// navigation this replaces.
+/// Owns the order — the local cache, then consent, owner, pets and
+/// assessments — and the fact that it has happened. Nothing else should load
+/// those: a screen that does its own loading and then navigates is what
+/// produced the duplicate navigation this replaces.
+///
+/// The router treats [StartupStage.ready] as "everything `landingFor` reads
+/// is now true of this account", so anything the landing decision depends on
+/// has to be restored here, before the stage flips.
 class AppStartupProvider extends ChangeNotifier {
   StartupStage _stage = StartupStage.idle;
   Object? _error;
@@ -58,6 +62,20 @@ class AppStartupProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // The local cache first, and awaited. main() only kicks those reads
+      // off, so on a cold launch a reconciler could otherwise beat the
+      // SharedPreferences read to the provider — and since each reconciler
+      // persists the whole snapshot, that wrote `consentGiven: false` over a
+      // stored `true`. Both calls are idempotent, so this is free once the
+      // reads have already landed.
+      await petInfo.init();
+      await quiz.init();
+
+      // Consent leads because the router's first gate is consent. It is
+      // account state, not device state: without restoring it here, a
+      // returning user arrived with their owner and pets in hand and was
+      // still sent back to the consent screen.
+      await petInfo.loadConsentFromFirestore();
       await petInfo.loadOwnerFromFirestore();
       await petInfo.loadPetsFromFirestore();
       await quiz.loadAssessmentsFromFirestore();

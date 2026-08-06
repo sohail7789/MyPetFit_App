@@ -1,12 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mypetfit_app/config/routes.dart';
+import 'package:mypetfit_app/models/consent_state.dart';
+import 'package:mypetfit_app/models/pet_info.dart';
 import 'package:mypetfit_app/providers/app_startup_provider.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';
 import 'package:mypetfit_app/providers/quiz_provider.dart';
+import 'package:mypetfit_app/services/sync_reconciler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Succeeds without touching Firestore.
 class _QuietPets extends PetInfoProvider {
+  @override
+  Future<void> loadConsentFromFirestore() async {}
+
   @override
   Future<void> loadOwnerFromFirestore() async {}
 
@@ -93,6 +99,114 @@ void main() {
 
       // loading, then ready.
       expect(notifications, 2);
+    });
+  });
+
+  group('consent survives a sign-out', () {
+    // The bug this group pins down: consent lived only in SharedPreferences
+    // and was never written to Firestore, so sign-out cleared it and the
+    // router's first gate sent every returning user back to /consent with
+    // their owner and pets already restored around them.
+
+    test('giving consent stamps it, and the stamp survives a reload', () async {
+      final pets = _QuietPets();
+      await pets.init();
+
+      pets.giveConsent(signatureName: 'Sohail');
+      expect(pets.consentGiven, isTrue);
+      expect(pets.consentUpdatedAt, isNotNull);
+
+      // A second provider over the same prefs — a relaunch.
+      final relaunched = _QuietPets();
+      await relaunched.init();
+      expect(relaunched.consentGiven, isTrue);
+      expect(relaunched.consentUpdatedAt, pets.consentUpdatedAt);
+      expect(relaunched.consentRecord?.signatureName, 'Sohail');
+    });
+
+    test('a device with no local decision adopts the account\'s', () {
+      // Signing in after a sign-out, on a reinstall, or on a second handset:
+      // local consent is absent, not `false`, so the cloud copy is adopted
+      // rather than being argued with.
+      final cloud = ConsentState(
+        given: true,
+        record: ConsentRecord(
+          signatureName: 'Sohail',
+          signedAt: DateTime.utc(2026, 1, 4),
+        ),
+        updatedAt: DateTime.utc(2026, 1, 4),
+      );
+
+      final outcome = reconcileSingle<ConsentState>(
+        local: null,
+        cloud: cloud,
+        updatedAtOf: (c) => c.updatedAt,
+        sameContent: (a, b) => a.sameContentAs(b),
+        id: 'consent',
+      );
+
+      expect(outcome.resolved.single.given, isTrue);
+      expect(outcome.outcomes['consent'], SyncOutcome.adopted);
+      expect(outcome.toUpload, isEmpty);
+
+      // The whole point: the router no longer opens on the consent screen.
+      expect(
+        AppRoutes.landingFor(
+          consentGiven: outcome.resolved.single.given,
+          hasOwner: true,
+          hasPet: true,
+        ),
+        AppRoutes.home,
+      );
+    });
+
+    test('consent recorded before syncing existed is uploaded, not lost', () {
+      // The migration case. An undated local decision has no dated cloud copy
+      // to lose to, so it is kept and queued.
+      final local = ConsentState(given: true, updatedAt: kUnknownUpdatedAt);
+
+      final outcome = reconcileSingle<ConsentState>(
+        local: local,
+        cloud: null,
+        updatedAtOf: (c) => c.updatedAt,
+        sameContent: (a, b) => a.sameContentAs(b),
+        id: 'consent',
+      );
+
+      expect(outcome.resolved.single.given, isTrue);
+      expect(outcome.toUpload.single.given, isTrue);
+    });
+  });
+
+  group('startup restores everything landingFor reads', () {
+    test('the local cache is read before the cloud is reconciled', () async {
+      // main() only kicks off init(); it is never awaited there. A reconciler
+      // that beat it persisted the whole snapshot from an empty provider,
+      // writing `consentGiven: false` over the stored `true` — after which
+      // every launch really did open on the consent screen.
+      SharedPreferences.setMockInitialValues({
+        'pet_info_state': '{"pets":[],"activePetIndex":0,'
+            '"consentGiven":true,"consentUpdatedAt":"2026-01-04T00:00:00.000Z"}',
+      });
+
+      final pets = _OrderedPets();
+      await AppStartupProvider()
+          .initialize(petInfo: pets, quiz: _QuietQuiz());
+
+      expect(pets.wasLoadedBeforeCloudRead, isTrue);
+      expect(pets.consentGiven, isTrue);
+    });
+
+    test('consent is restored before the stage reports ready', () async {
+      final startup = AppStartupProvider();
+      final pets = _OrderedPets();
+
+      await startup.initialize(petInfo: pets, quiz: _QuietQuiz());
+
+      // The router reads consent the instant this flips, so a consent load
+      // that happened afterwards would be a load the redirect never sees.
+      expect(pets.consentWasRead, isTrue);
+      expect(startup.isReady, isTrue);
     });
   });
 
@@ -205,4 +319,16 @@ class _RecordingPets extends _QuietPets {
 
   @override
   Future<void> loadOwnerFromFirestore() async => onLoad();
+}
+
+/// Records what startup had already done by the time it reached the cloud.
+class _OrderedPets extends _QuietPets {
+  bool consentWasRead = false;
+  bool wasLoadedBeforeCloudRead = false;
+
+  @override
+  Future<void> loadConsentFromFirestore() async {
+    consentWasRead = true;
+    wasLoadedBeforeCloudRead = isLoaded;
+  }
 }

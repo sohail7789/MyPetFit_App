@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pet_info.dart';
 import '../services/photo_store.dart';
+import '../models/consent_state.dart';
 import '../models/owner_profile.dart';
 import '../services/firestore_service.dart';
 import '../services/sync_reconciler.dart';
@@ -14,20 +15,32 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
   static const int maxPets = 5;
   static const _key = 'pet_info_state';
 
-  final FirestoreService _firestore = FirestoreService();
+  /// The cloud source. Injectable for the same reason ProductProvider's is:
+  /// the reconciliation this provider does on startup is the part most worth
+  /// testing, and it should be reachable without standing up Firestore.
+  final FirestoreService _firestore;
+
+  PetInfoProvider({FirestoreService? service})
+      : _firestore = service ?? FirestoreService();
 
   OwnerInfo? _ownerInfo;
   final List<PetInfo> _pets = [];
   int _activePetIndex = 0;
   bool _consentGiven = false;
   ConsentRecord? _consentRecord;
+  DateTime? _consentUpdatedAt;
   bool _isLoaded = false;
+  Future<void>? _initFuture;
 
   OwnerInfo? get ownerInfo => _ownerInfo;
   List<PetInfo> get pets => List.unmodifiable(_pets);
   int get activePetIndex => _activePetIndex;
   bool get consentGiven => _consentGiven;
   ConsentRecord? get consentRecord => _consentRecord;
+
+  /// When consent last changed on this device, in UTC. Null until it ever
+  /// has, or when the stored decision predates consent being timestamped.
+  DateTime? get consentUpdatedAt => _consentUpdatedAt;
   bool get canAddPet => _pets.length < maxPets;
   int get petCount => _pets.length;
   bool get isLoaded => _isLoaded;
@@ -44,7 +57,18 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
   bool get isComplete =>
       _ownerInfo != null && _pets.isNotEmpty && _consentGiven;
 
-  Future<void> init() async {
+  /// Reads the persisted snapshot.
+  ///
+  /// Idempotent and awaitable — the future is cached and returned again on
+  /// every later call. main() only *kicks this off*, so without something to
+  /// wait on, the cloud reconcilers below could run against a provider that
+  /// had not read SharedPreferences yet: each of them persists the whole
+  /// snapshot, so an early reconcile wrote `consentGiven: false` over the
+  /// stored `true`, and the late-arriving read then appended a second copy of
+  /// every pet. [AppStartupProvider.initialize] awaits this first.
+  Future<void> init() => _initFuture ??= _readPersisted();
+
+  Future<void> _readPersisted() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);
     if (raw != null) {
@@ -54,14 +78,19 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
         if (ownerJson != null) _ownerInfo = OwnerInfo.fromJson(ownerJson);
         final petsJson = json['pets'] as List?;
         if (petsJson != null) {
-          _pets.addAll(petsJson
-              .map((e) => PetInfo.fromJson(e as Map<String, dynamic>)));
+          _pets
+            ..clear()
+            ..addAll(petsJson
+                .map((e) => PetInfo.fromJson(e as Map<String, dynamic>)));
         }
         _activePetIndex = (json['activePetIndex'] as num?)?.toInt() ?? 0;
         if (_activePetIndex >= _pets.length) {
           _activePetIndex = _pets.isEmpty ? 0 : _pets.length - 1;
         }
         _consentGiven = json['consentGiven'] as bool? ?? false;
+        _consentUpdatedAt =
+            DateTime.tryParse(json['consentUpdatedAt'] as String? ?? '')
+                ?.toUtc();
         final consentJson = json['consentRecord'] as Map<String, dynamic>?;
         if (consentJson != null) {
           _consentRecord = ConsentRecord.fromJson(consentJson);
@@ -104,6 +133,63 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
         ),
       ),
     );
+  }
+
+  /// Local consent in the shape the cloud stores it, or null when this device
+  /// has never recorded a decision.
+  ///
+  /// Null rather than `given: false` on purpose: a fresh install, or the
+  /// device someone signs into for the first time, has no opinion to defend,
+  /// and reconciliation adopts the account's consent instead of arguing with
+  /// it.
+  ConsentState? get _localConsent {
+    if (!_consentGiven && _consentUpdatedAt == null) return null;
+    return ConsentState(
+      given: _consentGiven,
+      record: _consentRecord,
+      // A decision stored by a build that predates consent syncing has no
+      // timestamp, so it loses to any dated cloud copy and wins over none.
+      updatedAt: _consentUpdatedAt ?? kUnknownUpdatedAt,
+    );
+  }
+
+  /// Reconciles consent against the cloud.
+  ///
+  /// Consent used to live only in SharedPreferences and was never written to
+  /// Firestore at all, so signing out — which clears that key — or signing in
+  /// on any other device left [consentGiven] false with the owner and pets
+  /// restored around it. `landingFor` checks consent first, so every returning
+  /// user was sent to the consent screen no matter how much of the flow they
+  /// had already finished.
+  ///
+  /// Same newest-wins rule as the owner record, and a local win is queued for
+  /// upload — which is also how a device that consented before this existed
+  /// gets its decision into the cloud.
+  Future<void> loadConsentFromFirestore() async {
+    final cloud = await _firestore.getConsent();
+
+    final outcome = reconcileSingle<ConsentState>(
+      local: _localConsent,
+      cloud: cloud,
+      updatedAtOf: (c) => c.updatedAt,
+      sameContent: (a, b) => a.sameContentAs(b),
+      id: 'consent',
+    );
+
+    _logSyncWarnings(outcome.warnings);
+
+    final resolved = outcome.resolved.isEmpty ? null : outcome.resolved.first;
+    _consentGiven = resolved?.given ?? false;
+    _consentRecord = resolved?.record;
+    _consentUpdatedAt =
+        resolved == null || resolved.isUndated ? null : resolved.updatedAt;
+
+    await _persist();
+    notifyListeners();
+
+    for (final pending in outcome.toUpload) {
+      queueSync('consent', () => _firestore.saveConsent(pending));
+    }
   }
 
   /// Reconciles the owner record against the cloud.
@@ -288,8 +374,17 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
   /// Records the user's consent. The [signatureName] is captured from the
   /// signature TextField on [ConsentScreen] and stored alongside a UTC
   /// timestamp so we always know *who* consented and *when*.
+  ///
+  /// Local first then queued, like every other write here: consenting must
+  /// not fail because the network is down. The cloud copy is what makes the
+  /// decision survive a sign-out or follow the user to another device — see
+  /// [loadConsentFromFirestore].
   void giveConsent({String? signatureName}) {
     _consentGiven = true;
+    // The provider stamps the decision, never the caller — the same rule the
+    // owner and pet records follow, and what makes all three comparable
+    // across devices.
+    _consentUpdatedAt = DateTime.now().toUtc();
     if (signatureName != null && signatureName.trim().isNotEmpty) {
       _consentRecord = ConsentRecord(
         signatureName: signatureName.trim(),
@@ -298,6 +393,11 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
     }
     _persist();
     notifyListeners();
+
+    final consent = _localConsent;
+    if (consent != null) {
+      queueSync('consent', () => _firestore.saveConsent(consent));
+    }
   }
 
   /// Clear in-memory state only. Use [reset] to also wipe persisted data.
@@ -307,6 +407,7 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
     _activePetIndex = 0;
     _consentGiven = false;
     _consentRecord = null;
+    _consentUpdatedAt = null;
     notifyListeners();
   }
 
@@ -320,6 +421,7 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
     _activePetIndex = 0;
     _consentGiven = false;
     _consentRecord = null;
+    _consentUpdatedAt = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_key);
     notifyListeners();
@@ -334,6 +436,8 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
         'pets': _pets.map((p) => p.toJson()).toList(),
         'activePetIndex': _activePetIndex,
         'consentGiven': _consentGiven,
+        if (_consentUpdatedAt != null)
+          'consentUpdatedAt': _consentUpdatedAt!.toIso8601String(),
         if (_consentRecord != null) 'consentRecord': _consentRecord!.toJson(),
       }),
     );
