@@ -379,7 +379,13 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
   /// not fail because the network is down. The cloud copy is what makes the
   /// decision survive a sign-out or follow the user to another device — see
   /// [loadConsentFromFirestore].
-  void giveConsent({String? signatureName}) {
+  ///
+  /// Returns once the local write is on disk, so a caller that navigates
+  /// afterwards cannot outrun it — the same contract [setOwnerInfo] and
+  /// [addPet] offer. All three gate the router's landing decision, and a
+  /// process death in the unawaited window would have lost the one thing that
+  /// sends the user back to this form.
+  Future<void> giveConsent({String? signatureName}) async {
     _consentGiven = true;
     // The provider stamps the decision, never the caller — the same rule the
     // owner and pet records follow, and what makes all three comparable
@@ -391,7 +397,8 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
         signedAt: DateTime.now().toUtc(),
       );
     }
-    _persist();
+
+    await _persist();
     notifyListeners();
 
     final consent = _localConsent;

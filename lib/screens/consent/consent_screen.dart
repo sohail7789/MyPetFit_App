@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
+import '../../providers/pet_info_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/labeled_field.dart';
@@ -49,6 +51,20 @@ class _ConsentScreenState extends State<ConsentScreen> {
   }
 
   bool get _ready => _agreed && _signature.text.trim().length > 1;
+
+  /// Records the signed consent, then continues to the owner form.
+  ///
+  /// Awaited before navigating so the decision is on disk before the screen
+  /// is left. The provider owns persistence and the cloud write — see
+  /// [PetInfoProvider.giveConsent]. No navigation decision is made here
+  /// beyond the next step of the form; the router still owns the gates.
+  Future<void> _agreeAndContinue(BuildContext context) async {
+    await context.read<PetInfoProvider>().giveConsent(
+          signatureName: _signature.text,
+        );
+    if (!context.mounted) return;
+    context.push(AppRoutes.ownerInfo);
+  }
 
   String get _today {
     const months = [
@@ -221,8 +237,12 @@ class _ConsentScreenState extends State<ConsentScreen> {
                   AppButton(
                     label: 'Agree & Continue',
                     height: AppTheme.ctaHeightCompact,
-                    onPressed:
-                        _ready ? () => context.push(AppRoutes.ownerInfo) : null,
+                    // Record it, then move on. This only navigated, so
+                    // consent was never actually given: the user finished the
+                    // assessment with the flag still false — nothing re-checks
+                    // the gates once you are past an entry route — and was
+                    // sent back here on every later sign-in.
+                    onPressed: _ready ? () => _agreeAndContinue(context) : null,
                   ),
                 ],
               ),

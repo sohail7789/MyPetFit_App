@@ -112,7 +112,7 @@ void main() {
       final pets = _QuietPets();
       await pets.init();
 
-      pets.giveConsent(signatureName: 'Sohail');
+      await pets.giveConsent(signatureName: 'Sohail');
       expect(pets.consentGiven, isTrue);
       expect(pets.consentUpdatedAt, isNotNull);
 

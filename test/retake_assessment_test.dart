@@ -81,7 +81,7 @@ void main() {
   Future<PetInfoProvider> consentedOwnerWithPet() async {
     final pets = PetInfoProvider(service: FakeCloud());
     await pets.init();
-    pets.giveConsent(signatureName: 'Sohail');
+    await pets.giveConsent(signatureName: 'Sohail');
     await pets.addPet(bruno());
     return pets;
   }

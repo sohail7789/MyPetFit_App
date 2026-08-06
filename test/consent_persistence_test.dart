@@ -79,7 +79,7 @@ void main() {
       final pets = PetInfoProvider(service: cloud);
       await pets.init();
 
-      pets.giveConsent(signatureName: 'Sohail');
+      await pets.giveConsent(signatureName: 'Sohail');
       // queueSync sends on the next microtask rather than inline.
       await Future<void>.delayed(Duration.zero);
 
@@ -213,7 +213,7 @@ void main() {
       final pets = PetInfoProvider(service: cloud);
       await pets.init();
 
-      pets.giveConsent(signatureName: 'Sohail');
+      await pets.giveConsent(signatureName: 'Sohail');
       await Future<void>.delayed(Duration.zero);
 
       // Locally applied immediately; the write is still owed.
