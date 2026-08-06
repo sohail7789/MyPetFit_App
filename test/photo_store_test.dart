@@ -82,7 +82,7 @@ void main() {
 
   group('clearing a photo', () {
     test('PetInfo.copyWith can remove one', () {
-      const pet = PetInfo(
+      final pet = PetInfo(
         id: 'p1',
         name: 'Bruno',
         breed: 'Indie',
@@ -93,6 +93,7 @@ void main() {
         weightKg: 12,
         heightCm: 40,
         photoPath: '/photos/pet-p1-1.jpg',
+        updatedAt: DateTime.utc(2026, 1, 1),
       );
 
       // Omitting it keeps the photo — that is what every other field does.
@@ -102,11 +103,12 @@ void main() {
     });
 
     test('OwnerInfo.copyWith can remove one', () {
-      const owner = OwnerInfo(
+      final owner = OwnerInfo(
         name: 'Priya',
         contactNumber: '9000000000',
         email: 'p@example.com',
         photoPath: '/photos/owner-1.jpg',
+        updatedAt: DateTime.utc(2026, 1, 1),
       );
 
       expect(owner.copyWith(name: 'Priya S').photoPath, isNotNull);
@@ -114,11 +116,12 @@ void main() {
     });
 
     test('the photo survives a round trip through JSON', () {
-      const owner = OwnerInfo(
+      final owner = OwnerInfo(
         name: 'Priya',
         contactNumber: '9000000000',
         email: 'p@example.com',
         photoPath: '/photos/owner-1.jpg',
+        updatedAt: DateTime.utc(2026, 1, 1),
       );
 
       expect(

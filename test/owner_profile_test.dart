@@ -21,10 +21,11 @@ void main() {
   setUpAll(StubNetworkImages.install);
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  const owner = OwnerInfo(
+  final owner = OwnerInfo(
     name: 'Sohail Inamdar',
     contactNumber: '+91 90000 11111',
     email: 'owner@example.com',
+    updatedAt: DateTime.utc(2026, 1, 1),
   );
 
   Widget host(

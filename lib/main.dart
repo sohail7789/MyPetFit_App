@@ -14,6 +14,7 @@ import 'providers/pet_info_provider.dart';
 import 'providers/quiz_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/product_provider.dart';
+import 'providers/app_startup_provider.dart';
 
 /// Brings up Firebase using the generated per-platform options, so Android,
 /// iOS and web all initialise from the same source of truth.
@@ -53,6 +54,7 @@ Future<void> main() async {
   final addressProvider = AddressProvider();
   final themeProvider = ThemeProvider();
   final productProvider = ProductProvider();
+  final appStartupProvider = AppStartupProvider();
 
   runApp(
     MultiProvider(
@@ -67,6 +69,7 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider.value(value: productProvider),
+        ChangeNotifierProvider.value(value: appStartupProvider),
       ],
       child: const MyPetFitApp(),
     ),

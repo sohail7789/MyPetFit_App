@@ -41,28 +41,36 @@ class _ScoringScreenState extends State<ScoringScreen> {
     super.dispose();
   }
 
-  void _resolve() {
+  Future<void> _resolve() async {
     if (!mounted) return;
+
     final quiz = context.read<QuizProvider>();
+    final router = GoRouter.of(context);
 
     // Record the result once, here — the report card just renders it.
-    final result = quiz.calculateResult();
+    final result = await quiz.calculateResult();
+
+    if (!mounted) return;
+
     final percent = result.percentageScore;
 
     if (percent <= 25) {
-      context.pushReplacement(AppRoutes.vetAlert);
+      router.pushReplacement(AppRoutes.vetAlert);
       return;
     }
 
     if (percent > 50) {
       setState(() => _celebrating = true);
+
       _timer = Timer(_celebratePause, () {
-        if (mounted) context.pushReplacement(AppRoutes.report);
+        if (!mounted) return;
+        router.pushReplacement(AppRoutes.report);
       });
+
       return;
     }
 
-    context.pushReplacement(AppRoutes.report);
+    router.pushReplacement(AppRoutes.report);
   }
 
   @override

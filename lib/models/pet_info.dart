@@ -1,3 +1,4 @@
+import 'owner_profile.dart' show parseUpdatedAt;
 enum PetGender { male, female }
 
 enum PetSpecies {
@@ -45,6 +46,10 @@ class OwnerInfo {
   /// path rather than a remote URL.
   final String? photoPath;
 
+  /// When this record was last edited, in UTC. See [OwnerProfile.updatedAt]
+  /// for why it is a client stamp rather than a server one.
+  final DateTime updatedAt;
+
   const OwnerInfo({
     required this.name,
     required this.contactNumber,
@@ -53,6 +58,7 @@ class OwnerInfo {
     this.vetName,
     this.vetContact,
     this.photoPath,
+    required this.updatedAt,
   });
 
   /// [clearPhoto] exists because passing `photoPath: null` cannot be told
@@ -66,6 +72,7 @@ class OwnerInfo {
     String? vetContact,
     String? photoPath,
     bool clearPhoto = false,
+    DateTime? updatedAt,
   }) =>
       OwnerInfo(
         name: name ?? this.name,
@@ -75,6 +82,7 @@ class OwnerInfo {
         vetName: vetName ?? this.vetName,
         vetContact: vetContact ?? this.vetContact,
         photoPath: clearPhoto ? null : photoPath ?? this.photoPath,
+        updatedAt: updatedAt ?? this.updatedAt,
       );
 
   Map<String, dynamic> toJson() => {
@@ -85,6 +93,7 @@ class OwnerInfo {
         if (vetName != null) 'vetName': vetName,
         if (vetContact != null) 'vetContact': vetContact,
         if (photoPath != null) 'photoPath': photoPath,
+        'updatedAt': updatedAt.toUtc().toIso8601String(),
       };
 
   factory OwnerInfo.fromJson(Map<String, dynamic> json) => OwnerInfo(
@@ -95,7 +104,18 @@ class OwnerInfo {
         vetName: json['vetName'] as String?,
         vetContact: json['vetContact'] as String?,
         photoPath: json['photoPath'] as String?,
+        updatedAt: parseUpdatedAt(json['updatedAt']),
       );
+
+  /// True when every user-editable field matches.
+  bool sameContentAs(OwnerInfo other) =>
+      name == other.name &&
+      contactNumber == other.contactNumber &&
+      email == other.email &&
+      address == other.address &&
+      vetName == other.vetName &&
+      vetContact == other.vetContact &&
+      photoPath == other.photoPath;
 }
 
 class PetInfo {
@@ -111,6 +131,9 @@ class PetInfo {
   final String? microchipNumber;
   final String? photoPath;
 
+  /// When this pet was last edited, in UTC. See [OwnerProfile.updatedAt].
+  final DateTime updatedAt;
+
   const PetInfo({
     required this.id,
     required this.name,
@@ -123,6 +146,7 @@ class PetInfo {
     required this.heightCm,
     this.microchipNumber,
     this.photoPath,
+    required this.updatedAt,
   });
 
   PetInfo copyWith({
@@ -138,6 +162,7 @@ class PetInfo {
     String? microchipNumber,
     String? photoPath,
     bool clearPhoto = false,
+    DateTime? updatedAt,
   }) =>
       PetInfo(
         id: id ?? this.id,
@@ -153,6 +178,7 @@ class PetInfo {
         // See OwnerInfo.copyWith — a null photoPath is indistinguishable
         // from an omitted one, so removal needs its own flag.
         photoPath: clearPhoto ? null : photoPath ?? this.photoPath,
+        updatedAt: updatedAt ?? this.updatedAt,
       );
 
   String get ageDisplay {
@@ -173,6 +199,7 @@ class PetInfo {
         'heightCm': heightCm,
         if (microchipNumber != null) 'microchipNumber': microchipNumber,
         if (photoPath != null) 'photoPath': photoPath,
+        'updatedAt': updatedAt.toUtc().toIso8601String(),
       };
 
   factory PetInfo.fromJson(Map<String, dynamic> json) => PetInfo(
@@ -193,7 +220,22 @@ class PetInfo {
         heightCm: (json['heightCm'] as num?)?.toDouble() ?? 0,
         microchipNumber: json['microchipNumber'] as String?,
         photoPath: json['photoPath'] as String?,
+        updatedAt: parseUpdatedAt(json['updatedAt']),
       );
+
+  /// True when every user-editable field matches. `updatedAt` is excluded —
+  /// it is the thing being compared, not part of the content.
+  bool sameContentAs(PetInfo other) =>
+      name == other.name &&
+      breed == other.breed &&
+      ageYears == other.ageYears &&
+      ageMonths == other.ageMonths &&
+      gender == other.gender &&
+      species == other.species &&
+      weightKg == other.weightKg &&
+      heightCm == other.heightCm &&
+      microchipNumber == other.microchipNumber &&
+      photoPath == other.photoPath;
 }
 
 /// Signed consent record — stored alongside owner + pet data so we always

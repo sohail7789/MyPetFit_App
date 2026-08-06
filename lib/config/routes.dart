@@ -36,6 +36,9 @@ import '../screens/shop/support_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/shell/app_shell.dart';
 import '../screens/welcome/welcome_screen.dart';
+import '../providers/app_startup_provider.dart';
+import '../providers/pet_info_provider.dart';
+import '../screens/startup/startup_screen.dart';
 
 /// Route table for the redesigned flow.
 ///
@@ -60,6 +63,7 @@ class AppRoutes {
   static const quiz = '/quiz'; // 13–21
   static const scoring = '/scoring'; // 22
   static const report = '/report'; // 23
+  static const startup = '/startup';
 
   /// A stored report card — `$report/history/:index` into
   /// QuizProvider.assessmentHistory. Design screen 32b.
@@ -129,37 +133,83 @@ class AppRoutes {
 
   static final _shellKey = GlobalKey<NavigatorState>();
 
+  /// Where a restored user belongs, in the order the assessment needs them:
+  /// consent, then the owner record, then at least one pet, then the app.
+  ///
+  /// Takes three booleans rather than the providers so the decision is a
+  /// pure function — the thing most worth pinning down here is the *order*,
+  /// and that should be assertable without standing up Firestore-backed
+  /// providers to reach it.
+  ///
+  /// Deliberately not gated on having completed an assessment, though the
+  /// state is available. The dashboard already has a "not assessed yet"
+  /// state that invites one, and routing on it would strand someone with no
+  /// way into the rest of the app until they had answered 45 questions.
+  @visibleForTesting
+  static String landingFor({
+    required bool consentGiven,
+    required bool hasOwner,
+    required bool hasPet,
+  }) {
+    if (!consentGiven) return consent;
+    if (!hasOwner) return ownerInfo;
+    if (!hasPet) return petInfo;
+    return home;
+  }
+
   static GoRouter build({
     required AuthProvider authProvider,
     required OnboardingProvider onboardingProvider,
+    required AppStartupProvider appStartupProvider,
+    required PetInfoProvider petInfoProvider,
   }) {
     return GoRouter(
       initialLocation: welcome,
       navigatorKey: _shellKey,
-      refreshListenable: Listenable.merge([authProvider, onboardingProvider]),
+      // petInfoProvider is read by the redirect but deliberately not listened
+      // to. Its contents only decide a landing destination, which is settled
+      // by the time startup reports ready; subscribing would re-run the
+      // redirect on every pet edit for no routing benefit.
+      refreshListenable: Listenable.merge(
+        [authProvider, onboardingProvider, appStartupProvider],
+      ),
       redirect: (context, state) {
+        final location = state.matchedLocation;
+
         // Hold still until persisted state has loaded, so the first frame
         // doesn't bounce the user through /sign-in on its way to /home.
-        if (!authProvider.isLoaded || !onboardingProvider.isLoaded) return null;
-
-        final location = state.matchedLocation;
-        final isPublic = _publicRoutes.contains(location);
+        if (!authProvider.isLoaded || !onboardingProvider.isLoaded) {
+          return null;
+        }
 
         if (!onboardingProvider.isComplete) {
           if (location == welcome || location == onboarding) return null;
           return onboarding;
         }
 
-        if (location == onboarding) {
-          return authProvider.isSignedIn ? home : signIn;
-        }
-
         if (!authProvider.isSignedIn) {
-          return isPublic ? null : signIn;
+          // /startup means nothing signed out — it would sit there loading
+          // data for nobody.
+          return _publicRoutes.contains(location) ? null : signIn;
         }
 
-        // Signed in and sitting on a pre-auth route → into the app.
-        if (isPublic) return home;
+        // Signed in, but this account's data has not been restored yet.
+        // Every entry point funnels through the one screen that does it:
+        // cold launch, email sign-in, Google sign-in, restart.
+        if (appStartupProvider.stage != StartupStage.ready) {
+          return location == startup ? null : startup;
+        }
+
+        // Restored. Anyone still sitting on an entry route gets placed;
+        // anywhere else is left alone, so this never yanks someone out of a
+        // screen they navigated to themselves.
+        if (location == startup || _publicRoutes.contains(location)) {
+          return landingFor(
+            consentGiven: petInfoProvider.consentGiven,
+            hasOwner: petInfoProvider.ownerInfo != null,
+            hasPet: petInfoProvider.pets.isNotEmpty,
+          );
+        }
         return null;
       },
       routes: [
@@ -171,6 +221,10 @@ class AppRoutes {
         GoRoute(
           path: onboarding,
           builder: (context, state) => const OnboardingScreen(),
+        ),
+        GoRoute(
+          path: startup,
+          builder: (context, state) => const StartupScreen(),
         ),
         GoRoute(
           path: signIn,

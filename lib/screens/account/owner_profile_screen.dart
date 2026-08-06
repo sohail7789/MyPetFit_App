@@ -31,6 +31,10 @@ class OwnerProfileScreen extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
     final address = context.watch<AddressProvider>().address;
 
+    // Straight from the provider startup already populated. Fetching it
+    // again here meant a second read on every visit, a screen that showed
+    // nothing until it landed, and owner details that disappeared offline
+    // even though they were cached locally.
     final owner = pets.ownerInfo;
     final name = owner?.name.trim().isNotEmpty == true
         ? owner!.name.trim()
@@ -61,8 +65,8 @@ class OwnerProfileScreen extends StatelessWidget {
                     children: [
                       // The owner's own photo when they've set one; the
                       // design's puppy stands in until then.
-                      if (owner?.photoPath != null)
-                        PhotoAvatar(photoPath: owner!.photoPath, size: 72)
+                      if ((owner?.photoPath ?? '').isNotEmpty)
+                        PhotoAvatar(photoPath: owner!.photoPath!, size: 72)
                       else
                         Container(
                           width: 72,

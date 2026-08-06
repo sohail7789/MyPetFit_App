@@ -241,10 +241,11 @@ void main() {
         (tester) async {
       final pets = PetInfoProvider();
       pets.setOwnerInfo(
-        const OwnerInfo(
+        OwnerInfo(
           name: 'Sohail',
           contactNumber: '+91 90000 11111',
           email: 'owner@example.com',
+          updatedAt: DateTime.utc(2026, 1, 1),
         ),
       );
 

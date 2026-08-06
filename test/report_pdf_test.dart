@@ -30,7 +30,7 @@ void main() {
   test('renders a non-empty PDF with pet and owner details', () async {
     final bytes = await ReportPdf.build(
       result: resultWith(),
-      pet: const PetInfo(
+      pet: PetInfo(
         id: 'p1',
         name: 'Bruno',
         breed: 'Golden Retriever',
@@ -39,8 +39,9 @@ void main() {
         gender: PetGender.male,
         weightKg: 24,
         heightCm: 56,
+        updatedAt: DateTime.utc(2026, 1, 1),
       ),
-      owner: const OwnerInfo(
+      owner: OwnerInfo(
         name: 'Sohail',
         contactNumber: '+91 90000 11111',
         email: 'owner@example.com',
@@ -48,6 +49,7 @@ void main() {
         // covers the whole household.
         vetName: 'Dr Rao',
         vetContact: '+91 90000 00000',
+        updatedAt: DateTime.utc(2026, 1, 1),
       ),
     );
 

@@ -1,8 +1,10 @@
 import 'dart:async';
-
 import 'package:mypetfit_app/models/product.dart';
 import 'package:mypetfit_app/providers/product_provider.dart';
 import 'package:mypetfit_app/services/firestore_service.dart';
+import 'package:mypetfit_app/models/owner_profile.dart';
+import 'package:mypetfit_app/models/pet_info.dart';
+import 'package:mypetfit_app/models/score_result.dart';
 
 /// Builds a product with sensible defaults, so a test only spells out the
 /// fields it actually cares about.
@@ -84,6 +86,45 @@ class FakeCatalogService implements FirestoreService {
     if (error != null) throw error!;
     return products;
   }
+  @override
+  Future<void> deletePet(String petId) async {}
+
+  @override
+  Future<void> saveOwnerProfile(
+      OwnerProfile profile,
+      ) async {}
+
+  @override
+  Future<OwnerProfile?> getOwnerProfile() async {
+    return null;
+  }
+
+  @override
+  Future<void> savePet(PetInfo pet) async {}
+
+  @override
+  Future<List<PetInfo>> getPets() async {
+    return [];
+  }
+
+  @override
+  Future<void> saveAssessment(
+      String petId,
+      ScoreResult result,
+      ) async {}
+
+  @override
+  Future<List<ScoreResult>> getAssessments(
+      String petId,
+      ) async {
+    return [];
+  }
+
+  @override
+  Future<Map<String, List<ScoreResult>>> getAllAssessments() async {
+    return {};
+  }
+
 }
 
 /// A [ProductProvider] already holding [catalog], as if the load had landed.
@@ -109,6 +150,45 @@ class PendingCatalogService implements FirestoreService {
 
   @override
   Future<List<Product>> getProducts() => _completer.future;
+
+  @override
+  Future<void> deletePet(String petId) async {}
+
+  @override
+  Future<void> saveOwnerProfile(
+      OwnerProfile profile,
+      ) async {}
+
+  @override
+  Future<OwnerProfile?> getOwnerProfile() async {
+    return null;
+  }
+
+  @override
+  Future<void> savePet(PetInfo pet) async {}
+
+  @override
+  Future<List<PetInfo>> getPets() async {
+    return [];
+  }
+
+  @override
+  Future<void> saveAssessment(
+    String petId,
+    ScoreResult result,
+  ) async {}
+
+  @override
+  Future<List<ScoreResult>> getAssessments(
+    String petId,
+  ) async {
+    return [];
+  }
+
+  @override
+  Future<Map<String, List<ScoreResult>>> getAllAssessments() async {
+    return {};
+  }
 }
 
 /// A [ProductProvider] stuck mid-load.

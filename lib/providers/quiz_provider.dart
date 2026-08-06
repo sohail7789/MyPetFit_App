@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/questions_data.dart';
 import '../models/question.dart';
 import '../models/score_result.dart';
+import '../services/firestore_service.dart';
+import 'cloud_sync.dart';
 
 /// One pet's in-progress assessment.
 ///
@@ -77,9 +79,11 @@ class _QuizDraft {
 /// Scoring follows the design exactly: an unanswered scored question counts as
 /// its *lowest* option rather than zero, and the overall percentage is
 /// normalised between the worst and best achievable totals.
-class QuizProvider extends ChangeNotifier {
+class QuizProvider extends ChangeNotifier with CloudSync {
   static const int maxHistory = 5;
   static const _key = 'quiz_state';
+
+  final FirestoreService _firestore = FirestoreService();
 
   /// In-progress answers, one draft per pet.
   final Map<String, _QuizDraft> _drafts = {};
@@ -93,7 +97,9 @@ class QuizProvider extends ChangeNotifier {
   // The rest of the class reads progress through these, so scoping it per
   // pet did not have to touch every question-handling method.
   int get _currentCategoryIndex => _draft.categoryIndex;
+
   set _currentCategoryIndex(int value) => _draft.categoryIndex = value;
+
   Map<String, Answer> get _selectedAnswers => _draft.answers;
 
   /// Selected option ids for multi-select questions.
@@ -116,10 +122,14 @@ class QuizProvider extends ChangeNotifier {
   // --- Getters ---------------------------------------------------------
 
   List<QuestionCategory> get categories => healthCategories;
+
   int get currentCategoryIndex => _currentCategoryIndex;
+
   QuestionCategory get currentCategory =>
       healthCategories[_currentCategoryIndex];
+
   int get totalCategories => healthCategories.length;
+
   bool get isLoaded => _isLoaded;
 
   /// Total questions in the questionnaire, scored or not.
@@ -127,11 +137,13 @@ class QuizProvider extends ChangeNotifier {
 
   /// Questions the user has engaged with — the progress bar and the home
   /// screen's resume card both count every question, not just scored ones.
-  int get answeredCount => allQuestions
-      .where((q) => q.isMulti
+  int get answeredCount =>
+      allQuestions
+          .where((q) =>
+      q.isMulti
           ? (_multiAnswers[q.id]?.isNotEmpty ?? false)
           : _selectedAnswers.containsKey(q.id))
-      .length;
+          .length;
 
   double get overallProgress =>
       totalQuestions == 0 ? 0 : answeredCount / totalQuestions;
@@ -169,7 +181,8 @@ class QuizProvider extends ChangeNotifier {
       assessmentHistory.isEmpty ? null : assessmentHistory.first;
 
   /// The bound pet's last [maxHistory] assessments, newest first.
-  List<ScoreResult> get assessmentHistory => List.unmodifiable(
+  List<ScoreResult> get assessmentHistory =>
+      List.unmodifiable(
         _allHistory.where((r) => r.petId == _activePetId),
       );
 
@@ -199,6 +212,9 @@ class QuizProvider extends ChangeNotifier {
     if (_activePetId == petId && !claimed) return;
     _activePetId = petId;
     if (claimed) _persist();
+    // main.dart rebinds whenever the active pet changes, so without this a
+    // pet switch changed which results the getters report while nothing
+    // rebuilt to show them.
     notifyListeners();
   }
 
@@ -284,7 +300,7 @@ class QuizProvider extends ChangeNotifier {
     if (max == 0) return 0;
     final earned = category.scoredQuestions.fold<int>(
       0,
-      (sum, q) => sum + _earnedFor(q),
+          (sum, q) => sum + _earnedFor(q),
     );
     return (earned / max) * 100;
   }
@@ -295,17 +311,17 @@ class QuizProvider extends ChangeNotifier {
     if (span <= 0) return 0;
     final earned = healthCategories.fold<int>(
       0,
-      (sum, c) =>
-          sum + c.scoredQuestions.fold<int>(0, (s, q) => s + _earnedFor(q)),
+          (sum, c) =>
+      sum + c.scoredQuestions.fold<int>(0, (s, q) => s + _earnedFor(q)),
     );
     return (((earned - assessmentMinScore) / span) * 100).round().clamp(0, 100);
   }
 
-  ScoreResult calculateResult() {
+  Future<ScoreResult> calculateResult() async {
     final rawScore = healthCategories.fold<int>(
       0,
-      (sum, c) =>
-          sum + c.scoredQuestions.fold<int>(0, (s, q) => s + _earnedFor(q)),
+          (sum, c) =>
+      sum + c.scoredQuestions.fold<int>(0, (s, q) => s + _earnedFor(q)),
     );
 
     final catScores = <String, double>{
@@ -324,8 +340,21 @@ class QuizProvider extends ChangeNotifier {
     _allHistory.insert(0, result);
     _trimHistoryFor(_activePetId);
 
-    _persist();
+    await _persist();
     notifyListeners();
+
+    // Queued, not awaited. Scoring is local arithmetic over answers already
+    // in memory; making it depend on a network write meant someone who
+    // finished 45 questions offline got an exception instead of a report,
+    // and the result was never returned to the screen waiting for it.
+    final petId = _activePetId;
+    if (petId != null) {
+      queueSync(
+        'assessment-${result.completedAt.toIso8601String()}',
+        () => _firestore.saveAssessment(petId, result),
+      );
+    }
+
     return result;
   }
 
@@ -370,6 +399,8 @@ class QuizProvider extends ChangeNotifier {
 
   /// Wipes both in-memory state and the persisted key. Called on sign-out.
   Future<void> resetAll() async {
+    // Unsynced assessments belong to the account signing out.
+    clearPendingSyncs();
     _drafts.clear();
     _allHistory.clear();
     _activePetId = null;
@@ -422,6 +453,24 @@ class QuizProvider extends ChangeNotifier {
     _isLoaded = true;
     notifyListeners();
   }
+
+  Future<void> loadAssessmentsFromFirestore() async {
+    final cloudHistory = await _firestore.getAllAssessments();
+
+    _allHistory.clear();
+
+    for (final reports in cloudHistory.values) {
+      _allHistory.addAll(reports);
+    }
+
+    _allHistory.sort(
+          (a, b) => b.completedAt.compareTo(a.completedAt),
+    );
+
+    await _persist();
+    notifyListeners();
+  }
+
 
   Map<String, dynamic> _snapshot() => {
         'history': _allHistory.map((r) => r.toJson()).toList(),

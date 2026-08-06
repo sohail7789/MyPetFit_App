@@ -6,6 +6,8 @@ import 'config/theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/app_startup_provider.dart';
+import 'providers/pet_info_provider.dart';
 
 class MyPetFitApp extends StatefulWidget {
   const MyPetFitApp({super.key});
@@ -25,6 +27,8 @@ class _MyPetFitAppState extends State<MyPetFitApp> {
     _router = AppRoutes.build(
       authProvider: context.read<AuthProvider>(),
       onboardingProvider: context.read<OnboardingProvider>(),
+      appStartupProvider: context.read<AppStartupProvider>(),
+      petInfoProvider: context.read<PetInfoProvider>(),
     );
   }
 

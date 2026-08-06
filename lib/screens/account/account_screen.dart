@@ -5,6 +5,7 @@ import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../providers/address_provider.dart';
+import '../../providers/app_startup_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/locale_provider.dart';
@@ -25,13 +26,20 @@ class AccountScreen extends StatelessWidget {
     final quiz = context.read<QuizProvider>();
     final cart = context.read<CartProvider>();
     final address = context.read<AddressProvider>();
+    final pets = context.read<PetInfoProvider>();
     final auth = context.read<AuthProvider>();
+    final startup = context.read<AppStartupProvider>();
 
     await quiz.resetAll();
     await cart.reset();
+    await pets.reset();
     // The delivery address is per-user; leaving it behind would hand the
     // next person to sign in on this device someone else's home address.
     await address.reset();
+    // initialize() refuses to run again once it has reported ready, so
+    // without this the next person to sign in on this device inherits
+    // that verdict and none of their own data is ever fetched.
+    startup.reset();
     await auth.signOut();
     router.go(AppRoutes.signIn);
   }

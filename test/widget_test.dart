@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:mypetfit_app/app.dart';
 import 'package:mypetfit_app/providers/auth_provider.dart';
+import 'package:mypetfit_app/providers/app_startup_provider.dart';
 import 'package:mypetfit_app/providers/cart_provider.dart';
 import 'package:mypetfit_app/providers/dashboard_provider.dart';
 import 'package:mypetfit_app/providers/onboarding_provider.dart';
@@ -19,6 +20,7 @@ Widget _bootApp() => MultiProvider(
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => OnboardingProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => AppStartupProvider()),
       ],
       child: const MyPetFitApp(),
     );

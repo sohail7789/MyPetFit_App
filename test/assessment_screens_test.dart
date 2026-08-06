@@ -157,7 +157,7 @@ void main() {
     testWidgets('shows the band, score and all nine breakdown rows',
         (tester) async {
       final quiz = _answered();
-      quiz.calculateResult();
+      await quiz.calculateResult();
 
       await tester.pumpWidget(_host(const ReportCardScreen(), quiz: quiz));
       await tester.pumpAndSettle();
@@ -190,7 +190,7 @@ void main() {
           quiz.selectAnswer(question.id, worst);
         }
       }
-      final result = quiz.calculateResult();
+      final result = await quiz.calculateResult();
 
       expect(result.percentageScore, 0);
       expect(result.category, HealthCategory.critical);

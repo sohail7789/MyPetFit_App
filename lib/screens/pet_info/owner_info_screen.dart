@@ -5,6 +5,7 @@ import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../models/pet_info.dart';
+import '../../services/sync_reconciler.dart' show kUnknownUpdatedAt;
 import '../../providers/pet_info_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/photo_slot.dart';
@@ -49,6 +50,7 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
   /// Held in form state so backing out of an edit doesn't persist the pick.
   String? _photoPath;
 
+
   @override
   void initState() {
     super.initState();
@@ -76,7 +78,7 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
   /// Saves the step, then continues. Previously this screen only navigated —
   /// nothing typed here was ever persisted, so the report card and the
   /// shared PDF had no owner to name.
-  void _continue() {
+  Future<void> _continue() async {
     final name = _name.text.trim();
     if (name.isEmpty) {
       setState(() => _error = 'Please enter your name.');
@@ -90,7 +92,8 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
     }
 
     final pets = context.read<PetInfoProvider>();
-    pets.setOwnerInfo(
+
+    await pets.setOwnerInfo(
       OwnerInfo(
         name: name,
         contactNumber: _phone.text.trim(),
@@ -102,8 +105,13 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
         vetContact:
             _vetPhone.text.trim().isEmpty ? null : _vetPhone.text.trim(),
         photoPath: _photoPath,
+        // Stamped by the provider, not here — a screen has no business
+        // deciding when a record changed. This value is overwritten.
+        updatedAt: kUnknownUpdatedAt,
       ),
     );
+
+    if (!mounted) return;
 
     if (widget.isEditing) {
       // backOr, not pop: reached from a deep link or after a stack
@@ -218,6 +226,7 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                       hint: 'you@email.com',
                       controller: _email,
                       keyboardType: TextInputType.emailAddress,
+                      textCapitalization: TextCapitalization.none,
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: 12),

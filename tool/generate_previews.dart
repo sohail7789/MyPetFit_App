@@ -53,10 +53,11 @@ void main() {
   Widget host(Widget child, double scale) {
     final pets = PetInfoProvider()
       ..setOwnerInfo(
-        const OwnerInfo(
+        OwnerInfo(
           name: 'Sohail Inamdar',
           contactNumber: '+91 90000 11111',
           email: 'sohail@example.com',
+          updatedAt: DateTime.utc(2026, 1, 1),
         ),
       );
 

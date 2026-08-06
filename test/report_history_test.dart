@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mypetfit_app/config/theme.dart';
 import 'package:mypetfit_app/data/questions_data.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';
+import 'package:mypetfit_app/providers/app_startup_provider.dart';
 import 'package:mypetfit_app/providers/quiz_provider.dart';
 import 'package:mypetfit_app/screens/account/report_history_screen.dart';
 import 'package:mypetfit_app/screens/report/report_card_screen.dart';
@@ -151,6 +152,7 @@ void main() {
         MultiProvider(
           providers: [
             ChangeNotifierProvider(create: (_) => QuizProvider()),
+            ChangeNotifierProvider(create: (_) => AppStartupProvider()),
             ChangeNotifierProvider(create: (_) => PetInfoProvider()),
           ],
           child: const MaterialApp(

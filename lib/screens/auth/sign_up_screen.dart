@@ -39,14 +39,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _signUp() async {
-    await context.read<AuthProvider>().signUp(
-          username: _username.text.trim(),
-          email: _email.text.trim(),
-          password: _password.text,
-          firstName: _first.text.trim(),
-          lastName: _last.text.trim(),
-        );
-    if (mounted) context.go(AppRoutes.consent);
+    try {
+      await context.read<AuthProvider>().signUp(
+        username: _username.text.trim(),
+        email: _email.text.trim(),
+        password: _password.text,
+        firstName: _first.text.trim(),
+        lastName: _last.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account created successfully'),
+        ),
+      );
+      // No navigation here either. A new account has no consent, owner or
+      // pet, so the router's own landing decision sends them to /consent —
+      // the same place, without racing the redirect.
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      );
+    }
   }
 
   @override
@@ -150,6 +170,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         icon: AppIcon(AppIcons.mail(context.c.muted), size: 20),
                         controller: _email,
                         keyboardType: TextInputType.emailAddress,
+                        textCapitalization: TextCapitalization.none,
                         height: AppTheme.fieldHeightCompact,
                         textInputAction: TextInputAction.next,
                       ),

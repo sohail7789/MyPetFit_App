@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../models/pet_info.dart';
+import '../../services/sync_reconciler.dart' show kUnknownUpdatedAt;
 import '../../providers/pet_info_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
@@ -162,10 +163,12 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
       microchipNumber:
           _microchip.text.trim().isEmpty ? null : _microchip.text.trim(),
       photoPath: _photoPath,
+      // Stamped by the provider, not here. Overwritten on save.
+      updatedAt: kUnknownUpdatedAt,
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_name.text.trim().isEmpty) {
       setState(() => _error = "Please enter your pet's name.");
       return;
@@ -176,20 +179,23 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
 
     switch (widget.mode) {
       case PetFormMode.onboarding:
-        // setPetInfo replaces the active pet, or creates the first one.
-        pets.setPetInfo(pet);
+        await pets.setPetInfo(pet);
+
+        if (!mounted) return;
+
         context.push(AppRoutes.quiz);
 
       case PetFormMode.add:
         if (!pets.canAddPet) {
           setState(() => _error =
-              'You can manage up to ${PetInfoProvider.maxPets} pets.');
+          'You can manage up to ${PetInfoProvider.maxPets} pets.');
           return;
         }
-        pets.addPet(pet);
-        // addPet makes the new pet active, so its profile is the one at the
-        // current active index. Replace rather than push: backing out of the
-        // profile should land on My pets, not the form that created it.
+
+        await pets.addPet(pet);
+
+        if (!mounted) return;
+
         context.pushReplacement(
           '${AppRoutes.pets}/${pets.activePetIndex}',
         );

@@ -36,12 +36,48 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
+  /// Authenticates. Nothing else.
+  ///
+  /// No loading and no navigation: AuthProvider notifying is what moves the
+  /// router, which sends us to /startup and on from there. Doing the loading
+  /// here and then calling context.go raced that redirect and navigated
+  /// twice — and it always landed on /consent, so returning users were sent
+  /// back through a step they had already completed.
   Future<void> _signIn() async {
-    await context.read<AuthProvider>().signIn(
-          _email.text.trim(),
-          _password.text,
-        );
-    if (mounted) context.go(AppRoutes.home);
+    try {
+      await context.read<AuthProvider>().signIn(
+            _email.text.trim(),
+            _password.text,
+          );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    }
+  }
+
+
+  /// As with [_signIn] — authenticate, then let the router take over.
+  Future<void> _signInWithGoogle() async {
+    try {
+      await context.read<AuthProvider>().signInWithGoogle();
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -119,6 +155,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               icon: AppIcon(AppIcons.mail(context.c.muted), size: 20),
                               controller: _email,
                               keyboardType: TextInputType.emailAddress,
+                              textCapitalization: TextCapitalization.none,
                               textInputAction: TextInputAction.next,
                             ),
                             const SizedBox(height: 12),
@@ -178,7 +215,9 @@ class _SignInScreenState extends State<SignInScreen> {
                             const SizedBox(height: 22),
                             const OrDivider(),
                             const SizedBox(height: 16),
-                            const SocialRow(),
+                            SocialRow(
+                              onGoogle: _signInWithGoogle,
+                            ),
                             const SizedBox(height: 20),
                             InlineLink(
                               prefix: "Don't have an account?",

@@ -5,6 +5,7 @@ import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../providers/address_provider.dart';
+import '../../providers/app_startup_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/pet_info_provider.dart';
@@ -45,11 +46,16 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     final pets = context.read<PetInfoProvider>();
     final address = context.read<AddressProvider>();
     final auth = context.read<AuthProvider>();
+    final startup = context.read<AppStartupProvider>();
 
     await quiz.resetAll();
     await cart.reset();
     await pets.reset();
     await address.reset();
+    // initialize() refuses to run again once it has reported ready, so
+    // without this the next person to sign in on this device inherits
+    // that verdict and none of their own data is ever fetched.
+    startup.reset();
     await auth.signOut();
     router.go(AppRoutes.accountDeleted);
   }

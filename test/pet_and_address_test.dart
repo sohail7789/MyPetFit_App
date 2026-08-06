@@ -147,7 +147,7 @@ void main() {
       useTallSurface(tester);
       final pets = PetInfoProvider();
       pets.addPet(
-        const PetInfo(
+        PetInfo(
           id: 'p1',
           name: 'Bruno',
           breed: 'Beagle',
@@ -157,6 +157,7 @@ void main() {
           weightKg: 12,
           heightCm: 40,
           microchipNumber: '900 000 123 456',
+          updatedAt: DateTime.utc(2026, 1, 1),
         ),
       );
 
@@ -187,7 +188,7 @@ void main() {
       useTallSurface(tester);
       final pets = PetInfoProvider();
       pets.addPet(
-        const PetInfo(
+        PetInfo(
           id: 'p1',
           name: 'Bruno',
           breed: 'Beagle',
@@ -196,6 +197,7 @@ void main() {
           gender: PetGender.male,
           weightKg: 12,
           heightCm: 40,
+          updatedAt: DateTime.utc(2026, 1, 1),
         ),
       );
 
