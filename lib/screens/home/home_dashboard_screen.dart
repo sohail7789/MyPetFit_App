@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
+import '../../models/pet_info.dart';
 import '../../models/score_band.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/pet_info_provider.dart';
@@ -11,32 +12,20 @@ import '../../providers/quiz_provider.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/design_image.dart';
 import '../../widgets/paw_mark.dart';
+import '../../widgets/photo_slot.dart';
 
 /// Screen 30 — Home dashboard.
 class HomeDashboardScreen extends StatelessWidget {
   const HomeDashboardScreen({super.key});
 
-  static String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
-
   @override
   Widget build(BuildContext context) {
     final quiz = context.watch<QuizProvider>();
-    final auth = context.watch<AuthProvider>();
-    final pet = context.watch<PetInfoProvider>().activePet;
-
-    final owner = auth.firstName.trim().isNotEmpty
-        ? auth.firstName
-        : auth.displayName;
-    final petName = pet?.name.trim() ?? '';
-    final title = [
-      if (owner.trim().isNotEmpty) owner,
-      if (petName.isNotEmpty) petName,
-    ].join(' & ');
+    // select, not watch: the picks tile needs one string, and watching the
+    // whole provider rebuilt this list on every pet edit and photo change.
+    final petName = context.select<PetInfoProvider, String>(
+      (pets) => pets.activePet?.name.trim() ?? '',
+    );
 
     return Scaffold(
       backgroundColor: context.c.surface,
@@ -45,59 +34,7 @@ class HomeDashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _greeting(),
-                          style: AppTheme.font(
-                            size: 13,
-                            weight: FontWeight.w600,
-                            color: context.c.muted,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          title.isEmpty ? 'Welcome back' : title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTheme.font(
-                            size: 25,
-                            weight: FontWeight.w800,
-                            color: context.c.ink,
-                            letterSpacing: -0.9,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _RoundAction(
-                    semanticLabel: 'Notifications',
-                    onTap: () => context.push(AppRoutes.inbox),
-                    child: Icon(
-                      Icons.notifications_none_rounded,
-                      size: 21,
-                      color: context.c.actionText,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  _RoundAction(
-                    semanticLabel: 'Account',
-                    onTap: () => context.go(AppRoutes.account),
-                    child: Icon(
-                      Icons.person_outline_rounded,
-                      size: 21,
-                      color: context.c.actionText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const _Header(),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 16, 22, 20),
@@ -152,6 +89,421 @@ class HomeDashboardScreen extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Greeting, owner name, and who the rest of the screen is about.
+///
+/// Watches the two providers it reads rather than letting the whole
+/// dashboard watch them, so renaming a pet or editing the owner repaints
+/// this strip instead of every card below it.
+class _Header extends StatelessWidget {
+  const _Header();
+
+  static String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pets = context.watch<PetInfoProvider>();
+    final auth = context.watch<AuthProvider>();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _greeting(),
+                      style: AppTheme.font(
+                        size: 13,
+                        weight: FontWeight.w600,
+                        color: context.c.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _ownerName(pets, auth),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.font(
+                        size: 25,
+                        weight: FontWeight.w800,
+                        color: context.c.ink,
+                        letterSpacing: -0.9,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _RoundAction(
+                semanticLabel: 'Notifications',
+                onTap: () => context.push(AppRoutes.inbox),
+                child: Icon(
+                  Icons.notifications_none_rounded,
+                  size: 21,
+                  color: context.c.actionText,
+                ),
+              ),
+              const SizedBox(width: 10),
+              _RoundAction(
+                semanticLabel: 'Account',
+                onTap: () => context.go(AppRoutes.account),
+                child: Icon(
+                  Icons.person_outline_rounded,
+                  size: 21,
+                  color: context.c.actionText,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const _PetStrip(),
+        ],
+      ),
+    );
+  }
+
+  /// The owner record first, the account second.
+  ///
+  /// `auth.firstName` is empty for an email sign-in — [AuthProvider.signIn]
+  /// has no name to read off the credential — so relying on it showed those
+  /// users their username. The owner form is where they actually typed their
+  /// name, so it leads.
+  static String _ownerName(PetInfoProvider pets, AuthProvider auth) {
+    final owner = pets.ownerInfo?.name.trim() ?? '';
+    if (owner.isNotEmpty) return owner.split(' ').first;
+
+    final account = auth.firstName.trim().isNotEmpty
+        ? auth.firstName.trim()
+        : auth.displayName.trim();
+    return account.isEmpty ? 'Welcome back' : account;
+  }
+}
+
+/// Who the dashboard is currently about: avatar, name, breed and age.
+///
+/// Also the pet switcher. Every card below reads the active pet, and
+/// [QuizProvider] is bound to it in main.dart, so changing the selection
+/// here repaints the whole screen against the new pet with no other wiring.
+class _PetStrip extends StatelessWidget {
+  const _PetStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    final pets = context.watch<PetInfoProvider>();
+    final pet = pets.activePet;
+
+    if (pet == null) return const _NoPetStrip();
+
+    final switchable = pets.petCount > 1;
+
+    return Semantics(
+      button: switchable,
+      label: switchable ? 'Switch pet. Showing ${pet.name}' : null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: switchable ? () => _openSwitcher(context) : null,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
+          decoration: BoxDecoration(
+            color: context.c.surfaceRaised,
+            borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+          ),
+          child: Row(
+            children: [
+              PhotoAvatar(photoPath: pet.photoPath, size: 42),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      pet.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.font(
+                        size: 15,
+                        weight: FontWeight.w800,
+                        color: context.c.ink,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      petSubtitle(pet),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.font(size: 12.5, color: context.c.body),
+                    ),
+                  ],
+                ),
+              ),
+              if (switchable) ...[
+                const SizedBox(width: 8),
+                Text(
+                  '${pets.petCount} pets',
+                  style: AppTheme.font(
+                    size: 12,
+                    weight: FontWeight.w700,
+                    color: context.c.actionText,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.unfold_more_rounded,
+                  size: 17,
+                  color: context.c.actionText,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openSwitcher(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _PetSwitcherSheet(),
+    );
+  }
+}
+
+/// Breed and age on one line, skipping whichever is missing.
+///
+/// Both are optional in practice: the pet form lets someone save a name and
+/// come back later, and "Beagle · " with nothing after it reads as a bug.
+@visibleForTesting
+String petSubtitle(PetInfo pet) {
+  final parts = [
+    if (pet.breed.trim().isNotEmpty) pet.breed.trim(),
+    ?petAgeLabel(pet),
+  ];
+  return parts.isEmpty ? 'Tap to add details' : parts.join(' · ');
+}
+
+/// A readable age, or null when none was recorded.
+///
+/// Months are dropped once a pet is over two, where "4 yr 3 mo" is more
+/// precision than anyone reads; under a year the months are the whole story.
+@visibleForTesting
+String? petAgeLabel(PetInfo pet) {
+  final years = pet.ageYears;
+  final months = pet.ageMonths;
+
+  if (years <= 0 && months <= 0) return null;
+  if (years <= 0) return months == 1 ? '1 month' : '$months months';
+  if (years > 2 || months == 0) return years == 1 ? '1 year' : '$years years';
+  return '$years yr $months mo';
+}
+
+/// The strip before there is a pet to show.
+class _NoPetStrip extends StatelessWidget {
+  const _NoPetStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      // The router gates this route on consent, so someone who has not
+      // signed yet is sent to the form and returned here afterwards.
+      onTap: () => context.push(AppRoutes.petInfo),
+      padding: const EdgeInsets.fromLTRB(12, 10, 14, 10),
+      background: context.c.tintPanel,
+      borderColor: context.c.actionText.withValues(alpha: 0.25),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: context.c.tint,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.add_rounded,
+              size: 22,
+              color: context.c.actionText,
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Add your first pet',
+                  style: AppTheme.font(
+                    size: 15,
+                    weight: FontWeight.w800,
+                    color: context.c.ink,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  'The assessment needs one to score',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.font(size: 12.5, color: context.c.body),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 14,
+            color: context.c.faint,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Picks which pet the dashboard is about.
+class _PetSwitcherSheet extends StatelessWidget {
+  const _PetSwitcherSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final pets = context.watch<PetInfoProvider>();
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.c.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        padding: const EdgeInsets.fromLTRB(22, 10, 22, 22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 18),
+                decoration: BoxDecoration(
+                  color: context.c.dotInactive,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Text('Your pets', style: context.t.h3),
+            const SizedBox(height: 6),
+            Text(
+              'The dashboard, reports and recommendations all follow this '
+              'choice.',
+              style: AppTheme.font(size: 13.5, color: context.c.body),
+            ),
+            const SizedBox(height: 16),
+            for (var i = 0; i < pets.petCount; i++) ...[
+              _PetRow(
+                pet: pets.pets[i],
+                selected: i == pets.activePetIndex,
+                onTap: () {
+                  context.read<PetInfoProvider>().setActivePet(i);
+                  Navigator.of(context).pop();
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One row in the switcher, styled to match the language sheet.
+class _PetRow extends StatelessWidget {
+  final PetInfo pet;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PetRow({
+    required this.pet,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 62),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? context.c.tintPanel : context.c.surface,
+            borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
+            border: Border.all(
+              color: selected ? context.c.actionText : context.c.border,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              PhotoAvatar(photoPath: pet.photoPath, size: 38),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      pet.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.font(
+                        size: 15,
+                        weight: FontWeight.w700,
+                        color: context.c.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      petSubtitle(pet),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.font(size: 12.5, color: context.c.muted),
+                    ),
+                  ],
+                ),
+              ),
+              if (selected)
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 22,
+                  color: context.c.actionText,
+                ),
+            ],
+          ),
         ),
       ),
     );
