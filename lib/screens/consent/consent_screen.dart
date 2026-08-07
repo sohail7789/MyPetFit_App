@@ -34,7 +34,11 @@ const _consentParagraphs = <String>[
 /// Continue unlocks only once the box is ticked *and* a signature is typed,
 /// matching the design's `consentReady` rule.
 class ConsentScreen extends StatefulWidget {
-  const ConsentScreen({super.key});
+  /// Where to continue once consent is signed, supplied by the router's
+  /// gate — the route that was blocked, or the next step of the first run.
+  final String? next;
+
+  const ConsentScreen({super.key, this.next});
 
   @override
   State<ConsentScreen> createState() => _ConsentScreenState();
@@ -52,18 +56,34 @@ class _ConsentScreenState extends State<ConsentScreen> {
 
   bool get _ready => _agreed && _signature.text.trim().length > 1;
 
-  /// Records the signed consent, then continues to the owner form.
+  /// Records the signed consent, then resumes whatever was gated.
   ///
   /// Awaited before navigating so the decision is on disk before the screen
   /// is left. The provider owns persistence and the cloud write — see
-  /// [PetInfoProvider.giveConsent]. No navigation decision is made here
-  /// beyond the next step of the form; the router still owns the gates.
+  /// [PetInfoProvider.giveConsent]. No routing decision is made here: the
+  /// destination came from the router's gate.
+  ///
+  /// `go`, not `push` — the gate replaced the location on the way in, and a
+  /// form that has just been signed is not somewhere Back should return to.
   Future<void> _agreeAndContinue(BuildContext context) async {
     await context.read<PetInfoProvider>().giveConsent(
           signatureName: _signature.text,
         );
     if (!context.mounted) return;
-    context.push(AppRoutes.ownerInfo);
+    context.go(_destination);
+  }
+
+  /// The gated route to resume, defaulting to the first-run next step.
+  ///
+  /// Only in-app paths are honoured. The value is router-supplied today, but
+  /// it arrives as a query parameter, and a destination read from a URL is
+  /// not something to hand to the navigator unchecked.
+  String get _destination {
+    final next = widget.next;
+    if (next != null && next.startsWith('/') && !next.startsWith('//')) {
+      return next;
+    }
+    return AppRoutes.petInfo;
   }
 
   String get _today {

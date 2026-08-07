@@ -149,13 +149,10 @@ void main() {
       expect(outcome.outcomes['consent'], SyncOutcome.adopted);
       expect(outcome.toUpload, isEmpty);
 
-      // The whole point: the router no longer opens on the consent screen.
+      // The adopted decision is what keeps the assessment routes open — the
+      // landing itself no longer consults consent at all.
       expect(
-        AppRoutes.landingFor(
-          consentGiven: outcome.resolved.single.given,
-          hasOwner: true,
-          hasPet: true,
-        ),
+        AppRoutes.landingFor(hasOwner: true, hasPet: true),
         AppRoutes.home,
       );
     });
@@ -212,36 +209,18 @@ void main() {
 
   group('landing decision', () {
     // The real function the redirect calls. What matters is the order:
-    // consent, then owner, then pet, then the app.
-    test('a brand-new account starts at consent', () {
+    // owner, then pet, then the app. Consent is no longer part of it — it
+    // gates the routes that collect data, not the way in.
+    test('a brand-new account starts at owner details', () {
       expect(
-        AppRoutes.landingFor(
-          consentGiven: false,
-          hasOwner: false,
-          hasPet: false,
-        ),
-        AppRoutes.consent,
-      );
-    });
-
-    test('consent given but no owner goes to owner details', () {
-      expect(
-        AppRoutes.landingFor(
-          consentGiven: true,
-          hasOwner: false,
-          hasPet: false,
-        ),
+        AppRoutes.landingFor(hasOwner: false, hasPet: false),
         AppRoutes.ownerInfo,
       );
     });
 
     test('owner but no pet goes to the pet form', () {
       expect(
-        AppRoutes.landingFor(
-          consentGiven: true,
-          hasOwner: true,
-          hasPet: false,
-        ),
+        AppRoutes.landingFor(hasOwner: true, hasPet: false),
         AppRoutes.petInfo,
       );
     });
@@ -250,13 +229,23 @@ void main() {
       // The old sign-in screen sent everyone to /consent regardless, so a
       // returning user was walked back through a step they had finished.
       expect(
-        AppRoutes.landingFor(
-          consentGiven: true,
-          hasOwner: true,
-          hasPet: true,
-        ),
+        AppRoutes.landingFor(hasOwner: true, hasPet: true),
         AppRoutes.home,
       );
+    });
+
+    test('consent never appears in a landing decision', () {
+      // The complaint that produced this change: signing in must not put
+      // anyone in front of the consent form. No combination can any more.
+      for (final hasOwner in [false, true]) {
+        for (final hasPet in [false, true]) {
+          expect(
+            AppRoutes.landingFor(hasOwner: hasOwner, hasPet: hasPet),
+            isNot(AppRoutes.consent),
+            reason: 'owner=$hasOwner pet=$hasPet landed on the consent form',
+          );
+        }
+      }
     });
 
     test('every destination is a fixed point — the redirect cannot loop', () {
@@ -264,7 +253,7 @@ void main() {
       // route (a public one, or /startup). So a loop is possible only if
       // landingFor could return an entry route, which would be re-evaluated
       // and land somewhere again. Exhausting the input space proves it
-      // cannot: eight combinations, none returning an entry route.
+      // cannot: four combinations, none returning an entry route.
       const entryRoutes = {
         AppRoutes.welcome,
         AppRoutes.onboarding,
@@ -276,37 +265,18 @@ void main() {
         AppRoutes.startup,
       };
 
-      for (final consentGiven in [false, true]) {
-        for (final hasOwner in [false, true]) {
-          for (final hasPet in [false, true]) {
-            final destination = AppRoutes.landingFor(
-              consentGiven: consentGiven,
-              hasOwner: hasOwner,
-              hasPet: hasPet,
-            );
-            expect(
-              entryRoutes.contains(destination),
-              isFalse,
-              reason: 'consent=$consentGiven owner=$hasOwner pet=$hasPet '
-                  'landed back on the entry route $destination, which would '
-                  'be redirected again',
-            );
-          }
+      for (final hasOwner in [false, true]) {
+        for (final hasPet in [false, true]) {
+          final destination =
+              AppRoutes.landingFor(hasOwner: hasOwner, hasPet: hasPet);
+          expect(
+            entryRoutes.contains(destination),
+            isFalse,
+            reason: 'owner=$hasOwner pet=$hasPet landed back on the entry '
+                'route $destination, which would be redirected again',
+          );
         }
       }
-    });
-
-    test('consent outranks the later gates', () {
-      // Someone whose consent was withdrawn is asked again before anything
-      // else, even with an owner and pets already on file.
-      expect(
-        AppRoutes.landingFor(
-          consentGiven: false,
-          hasOwner: true,
-          hasPet: true,
-        ),
-        AppRoutes.consent,
-      );
     });
   });
 }

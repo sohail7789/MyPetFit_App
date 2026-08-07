@@ -133,25 +133,55 @@ class AppRoutes {
 
   static final _shellKey = GlobalKey<NavigatorState>();
 
-  /// Where a restored user belongs, in the order the assessment needs them:
-  /// consent, then the owner record, then at least one pet, then the app.
+  /// Routes that may not be entered until consent has been signed.
   ///
-  /// Takes three booleans rather than the providers so the decision is a
-  /// pure function — the thing most worth pinning down here is the *order*,
-  /// and that should be assertable without standing up Firestore-backed
+  /// Consent gates creating a pet and taking an assessment — the two places
+  /// data is actually collected — rather than gating sign-in. Someone who
+  /// already has a pet on file has consented at some point and is never
+  /// asked again; editing a saved pet is deliberately absent for the same
+  /// reason.
+  static const _consentRequired = <String>{petInfo, addPet, quiz};
+
+  /// Whether [location] may only be entered with consent on record.
+  ///
+  /// Exposed for the same reason [landingFor] is: the decision worth pinning
+  /// down is *which* routes are gated, and that should be assertable without
+  /// standing up a router and a widget tree to reach it.
+  @visibleForTesting
+  static bool requiresConsent(String location) =>
+      _consentRequired.contains(location);
+
+  /// The consent form, carrying where to continue once it is signed.
+  ///
+  /// The gate replaces the location rather than stacking on it, so the
+  /// destination has to travel with the redirect — otherwise signing the
+  /// form would strand the user with nowhere to go back to.
+  static String consentThen(String next) =>
+      '$consent?next=${Uri.encodeComponent(next)}';
+
+  /// Where a restored user belongs: the owner record, then at least one pet,
+  /// then the app.
+  ///
+  /// Takes two booleans rather than the providers so the decision is a pure
+  /// function — the thing most worth pinning down here is the *order*, and
+  /// that should be assertable without standing up Firestore-backed
   /// providers to reach it.
   ///
-  /// Deliberately not gated on having completed an assessment, though the
-  /// state is available. The dashboard already has a "not assessed yet"
-  /// state that invites one, and routing on it would strand someone with no
-  /// way into the rest of the app until they had answered 45 questions.
+  /// Consent is deliberately not one of them. It used to lead this ladder,
+  /// which meant a returning user was sent to a form they had already signed
+  /// before they could reach anything. It is a route guard now — see
+  /// [_consentRequired] — so it is asked for at the point it is needed and
+  /// never on the way in.
+  ///
+  /// Also not gated on having completed an assessment, though the state is
+  /// available. The dashboard already has a "not assessed yet" state that
+  /// invites one, and routing on it would strand someone with no way into
+  /// the rest of the app until they had answered 45 questions.
   @visibleForTesting
   static String landingFor({
-    required bool consentGiven,
     required bool hasOwner,
     required bool hasPet,
   }) {
-    if (!consentGiven) return consent;
     if (!hasOwner) return ownerInfo;
     if (!hasPet) return petInfo;
     return home;
@@ -200,12 +230,20 @@ class AppRoutes {
           return location == startup ? null : startup;
         }
 
+        // Consent, asked for where it is actually needed. A landing on
+        // /pet-info passes through here on the next pass and is turned into
+        // the form, so the first run still collects it — but nobody is asked
+        // merely for signing in.
+        if (_consentRequired.contains(location) &&
+            !petInfoProvider.consentGiven) {
+          return consentThen(location);
+        }
+
         // Restored. Anyone still sitting on an entry route gets placed;
         // anywhere else is left alone, so this never yanks someone out of a
         // screen they navigated to themselves.
         if (location == startup || _publicRoutes.contains(location)) {
           return landingFor(
-            consentGiven: petInfoProvider.consentGiven,
             hasOwner: petInfoProvider.ownerInfo != null,
             hasPet: petInfoProvider.pets.isNotEmpty,
           );
@@ -250,7 +288,9 @@ class AppRoutes {
         // ---- Assessment -------------------------------------------------
         GoRoute(
           path: consent,
-          builder: (context, state) => const ConsentScreen(),
+          builder: (context, state) => ConsentScreen(
+            next: state.uri.queryParameters['next'],
+          ),
         ),
         GoRoute(
           path: ownerInfo,

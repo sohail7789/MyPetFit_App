@@ -192,19 +192,12 @@ void main() {
     expect(find.text('CONSENT'), findsNothing);
   });
 
-  test('no screen navigates to the consent route any more', () {
-    // Consent is reached only by the router's landing decision. If a screen
-    // starts pushing it again this is the test that says so.
-    expect(AppRoutes.landingFor(
-      consentGiven: false,
-      hasOwner: true,
-      hasPet: true,
-    ), AppRoutes.consent);
-
-    expect(AppRoutes.landingFor(
-      consentGiven: true,
-      hasOwner: true,
-      hasPet: true,
-    ), AppRoutes.home);
+  test('a set-up user lands home, never on the consent form', () {
+    // Consent is reached only through the router's gate on /quiz, /pet-info
+    // and /account/pets/new. No landing decision produces it.
+    expect(
+      AppRoutes.landingFor(hasOwner: true, hasPet: true),
+      AppRoutes.home,
+    );
   });
 }

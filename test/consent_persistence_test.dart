@@ -60,18 +60,20 @@ void main() {
       quiz: QuizProvider(service: cloud ?? FakeCloud()),
     );
     return AppRoutes.landingFor(
-      consentGiven: pets.consentGiven,
       hasOwner: pets.ownerInfo != null,
       hasPet: pets.pets.isNotEmpty,
     );
   }
 
   group('first-time user', () {
-    test('an empty account lands on consent', () async {
+    test('an empty account starts at owner details, not consent', () async {
       final pets = PetInfoProvider(service: FakeCloud());
 
-      expect(await landingAfterStartup(pets), AppRoutes.consent);
+      // Consent is collected on the way to the first pet, by the router's
+      // gate on /pet-info — never as the price of signing in.
+      expect(await landingAfterStartup(pets), AppRoutes.ownerInfo);
       expect(pets.consentGiven, isFalse);
+      expect(AppRoutes.requiresConsent(AppRoutes.petInfo), isTrue);
     });
 
     test('signing consent pushes it to the cloud', () async {
@@ -146,8 +148,14 @@ void main() {
       );
 
       final pets = PetInfoProvider(service: cloud);
-      expect(await landingAfterStartup(pets), AppRoutes.consent);
+
+      // The withdrawal wins the reconcile...
+      expect(await landingAfterStartup(pets), AppRoutes.home);
       expect(pets.consentGiven, isFalse);
+      // ...but it is the gate that acts on it, not the landing: they keep
+      // their pets and the app, and are asked again only when they next
+      // create a pet or start an assessment.
+      expect(AppRoutes.requiresConsent(AppRoutes.quiz), isTrue);
     });
   });
 

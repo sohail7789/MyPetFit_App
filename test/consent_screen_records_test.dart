@@ -31,9 +31,9 @@ void main() {
           builder: (_, _) => const ConsentScreen(),
         ),
         GoRoute(
-          path: AppRoutes.ownerInfo,
+          path: AppRoutes.petInfo,
           builder: (_, _) =>
-              const Scaffold(body: Center(child: Text('OWNER INFO'))),
+              const Scaffold(body: Center(child: Text('PET INFO'))),
         ),
       ],
     );
@@ -67,7 +67,7 @@ void main() {
     await agreeAndContinue(tester);
 
     // The navigation always worked. The recording is what was missing.
-    expect(find.text('OWNER INFO'), findsOneWidget);
+    expect(find.text('PET INFO'), findsOneWidget);
     expect(pets.consentGiven, isTrue);
   });
 
@@ -104,7 +104,7 @@ void main() {
     // giveConsent awaits its own local write, so leaving this screen cannot
     // outrun the persistence — a process death on the owner form still finds
     // the decision recorded on the next launch.
-    expect(find.text('OWNER INFO'), findsOneWidget);
+    expect(find.text('PET INFO'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('pet_info_state'), contains('"consentGiven":true'));
   });
