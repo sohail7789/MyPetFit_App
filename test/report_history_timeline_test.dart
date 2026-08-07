@@ -51,6 +51,15 @@ void main() {
   String dateLabel(int daysAgo) =>
       exactReportDate(DateTime.now().subtract(Duration(days: daysAgo)));
 
+  /// A timeline row's full date line, which is unique per report.
+  ///
+  /// Matched exactly rather than by substring: milestone cards below the
+  /// timeline carry dates of their own, so a partial match is ambiguous.
+  String rowDateLine(int daysAgo) {
+    final when = DateTime.now().subtract(Duration(days: daysAgo));
+    return '${relativeReportDate(when)} · ${exactReportDate(when)}';
+  }
+
   PetInfo pet(String id, String name) => PetInfo(
         id: id,
         name: name,
@@ -313,8 +322,8 @@ void main() {
       await tester.pumpWidget(host(quiz, await withPets([pet('p1', 'Bruno')])));
       await tester.pumpAndSettle();
 
-      // Rows are addressed by their date line, which is unique per report.
-      await tester.tap(find.textContaining(dateLabel(60)));
+      // Rows are addressed by their full date line, which is unique.
+      await tester.tap(find.text(rowDateLine(60)));
       await tester.pumpAndSettle();
 
       expect(find.text('REPORT 2'), findsOneWidget);

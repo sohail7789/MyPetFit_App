@@ -10,6 +10,7 @@ import '../../analytics/services/analytics_cache.dart';
 import '../../analytics/widgets/analytics_empty_state.dart';
 import '../../analytics/widgets/category_evolution_list.dart';
 import '../../analytics/widgets/insight_list.dart';
+import '../../analytics/widgets/milestone_list.dart';
 import '../../analytics/widgets/trend_graph.dart';
 import '../../models/pet_info.dart';
 import '../../models/score_band.dart';
@@ -497,6 +498,10 @@ class _TrendSectionState extends State<_TrendSection> {
         if (snapshot.categoryTrends.isNotEmpty) ...[
           const SizedBox(height: 22),
           CategoryEvolutionList(trends: snapshot.categoryTrends),
+        ],
+        if (snapshot.milestones.isNotEmpty) ...[
+          const SizedBox(height: 22),
+          MilestoneList(milestones: snapshot.milestones),
         ],
       ],
     );

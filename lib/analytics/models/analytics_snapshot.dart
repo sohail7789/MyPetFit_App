@@ -1,4 +1,4 @@
-import 'achievement.dart';
+import 'milestone.dart';
 import 'analytics_summary.dart';
 import 'assessment_series.dart';
 import 'category_trend.dart';
@@ -26,7 +26,7 @@ class AnalyticsSnapshot {
   final List<HealthInsight> insights;
 
   /// Oldest earned first.
-  final List<Achievement> achievements;
+  final List<Milestone> milestones;
 
   /// The peak, the trough and the current standing. Null with no history.
   ///
@@ -40,7 +40,7 @@ class AnalyticsSnapshot {
     required this.summary,
     this.categoryTrends = const [],
     this.insights = const [],
-    this.achievements = const [],
+    this.milestones = const [],
     this.extremes,
   });
 

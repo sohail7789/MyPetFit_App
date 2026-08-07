@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:mypetfit_app/analytics/domain/achievement_calculator.dart';
+import 'package:mypetfit_app/analytics/domain/milestone_calculator.dart';
 import 'package:mypetfit_app/analytics/domain/category_trend_calculator.dart';
 import 'package:mypetfit_app/analytics/domain/insight_calculator.dart';
 import 'package:mypetfit_app/analytics/domain/statistics_calculator.dart';
 import 'package:mypetfit_app/analytics/domain/summary_calculator.dart';
 import 'package:mypetfit_app/analytics/domain/trend_calculator.dart';
-import 'package:mypetfit_app/analytics/models/achievement.dart';
+import 'package:mypetfit_app/analytics/models/milestone.dart';
 import 'package:mypetfit_app/analytics/models/assessment_point.dart';
 import 'package:mypetfit_app/analytics/models/assessment_series.dart';
 import 'package:mypetfit_app/analytics/models/health_insight.dart';
@@ -421,7 +421,7 @@ void main() {
   });
 
   group('achievements', () {
-    const calculator = AchievementCalculator();
+    const calculator = MilestoneCalculator();
 
     test('nothing recorded earns nothing', () {
       expect(calculator(const AssessmentSeries.empty('p1')), isEmpty);
@@ -430,7 +430,7 @@ void main() {
     test('the first assessment earns its milestone at its own date', () {
       final earned = calculator(series([point(40, dayOffset: 0)]));
 
-      expect(earned.single.kind, AchievementKind.firstAssessment);
+      expect(earned.single.kind, MilestoneKind.firstAssessment);
       expect(earned.single.earnedAt, epoch);
     });
 
@@ -442,7 +442,7 @@ void main() {
       ]));
 
       final three = earned.firstWhere(
-        (a) => a.kind == AchievementKind.threeAssessments,
+        (a) => a.kind == MilestoneKind.threeAssessments,
       );
       expect(three.earnedAt, epoch.add(const Duration(days: 60)));
     });
@@ -457,7 +457,7 @@ void main() {
       ]));
 
       final excellent = earned.firstWhere(
-        (a) => a.kind == AchievementKind.excellentHealth,
+        (a) => a.kind == MilestoneKind.excellentHealth,
       );
       expect(excellent.earnedAt, epoch.add(const Duration(days: 30)));
     });
@@ -471,7 +471,7 @@ void main() {
 
       expect(
         earned.map((a) => a.kind),
-        contains(AchievementKind.tenPercentImprovement),
+        contains(MilestoneKind.tenPointImprovement),
       );
     });
 
@@ -483,7 +483,7 @@ void main() {
 
       expect(
         earned.map((a) => a.kind),
-        isNot(contains(AchievementKind.tenPercentImprovement)),
+        isNot(contains(MilestoneKind.tenPointImprovement)),
       );
     });
 
@@ -494,7 +494,7 @@ void main() {
 
       expect(
         earned.map((a) => a.kind),
-        contains(AchievementKind.fiveConsecutiveImprovements),
+        contains(MilestoneKind.fiveConsecutiveImprovements),
       );
     });
 
@@ -510,7 +510,7 @@ void main() {
 
       expect(
         earned.map((a) => a.kind),
-        isNot(contains(AchievementKind.fiveConsecutiveImprovements)),
+        isNot(contains(MilestoneKind.fiveConsecutiveImprovements)),
       );
     });
 

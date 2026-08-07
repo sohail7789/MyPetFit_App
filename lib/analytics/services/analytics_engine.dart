@@ -1,4 +1,4 @@
-import '../domain/achievement_calculator.dart';
+import '../domain/milestone_calculator.dart';
 import '../domain/category_trend_calculator.dart';
 import '../domain/extremes_calculator.dart';
 import '../domain/insight_calculator.dart';
@@ -18,14 +18,14 @@ class AnalyticsEngine {
   final SummaryCalculator summary;
   final CategoryTrendCalculator categoryTrends;
   final InsightCalculator insights;
-  final AchievementCalculator achievements;
+  final MilestoneCalculator milestones;
   final ExtremesCalculator extremes;
 
   const AnalyticsEngine({
     this.summary = const SummaryCalculator(),
     this.categoryTrends = const CategoryTrendCalculator(),
     this.insights = const InsightCalculator(),
-    this.achievements = const AchievementCalculator(),
+    this.milestones = const MilestoneCalculator(),
     this.extremes = const ExtremesCalculator(),
   });
 
@@ -37,7 +37,7 @@ class AnalyticsEngine {
       summary: summary(series),
       categoryTrends: categoryTrends(series),
       insights: insights(series),
-      achievements: achievements(series),
+      milestones: milestones(series),
       extremes: extremes(series),
     );
   }

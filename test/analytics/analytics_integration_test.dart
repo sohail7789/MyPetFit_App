@@ -181,7 +181,7 @@ void main() {
       expect(snapshot.hasTrend, isFalse);
       expect(snapshot.categoryTrends, isEmpty);
       expect(snapshot.insights, isEmpty);
-      expect(snapshot.achievements, isEmpty);
+      expect(snapshot.milestones, isEmpty);
       expect(snapshot.summary.direction, TrendDirection.unknown);
     });
 
@@ -194,7 +194,7 @@ void main() {
       expect(snapshot.hasTrend, isFalse);
       expect(snapshot.summary.statistics.latestScore, 70);
       expect(snapshot.summary.direction, TrendDirection.unknown);
-      expect(snapshot.achievements, isNotEmpty);
+      expect(snapshot.milestones, isNotEmpty);
     });
 
     test('the same history always produces an equal snapshot', () {
@@ -213,7 +213,7 @@ void main() {
       expect(a.summary, b.summary);
       expect(a.categoryTrends, b.categoryTrends);
       expect(a.insights, b.insights);
-      expect(a.achievements, b.achievements);
+      expect(a.milestones, b.milestones);
     });
 
     test('holds up over a decade of history', () {
