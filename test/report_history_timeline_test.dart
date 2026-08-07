@@ -25,22 +25,31 @@ void main() {
   setUpAll(StubNetworkImages.install);
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
+  /// A fixed clock for the pure functions, which take `now` as an argument.
   final now = DateTime(2026, 8, 7, 14);
 
+  /// Widget tests cannot inject a clock — the screen reads the real one — so
+  /// their fixtures are dated relative to the actual today. Pinning them to a
+  /// fixed date made them pass only on the day they were written.
   ScoreResult report(
     int percent, {
     required int daysAgo,
     String petId = 'p1',
     HealthCategory band = HealthCategory.good,
+    DateTime? from,
   }) =>
       ScoreResult(
         rawScore: percent,
         maxPossibleScore: 100,
         percentageScore: percent,
         category: band,
-        completedAt: now.subtract(Duration(days: daysAgo)),
+        completedAt: (from ?? DateTime.now()).subtract(Duration(days: daysAgo)),
         petId: petId,
       );
+
+  /// The date label a widget test should expect for a report [daysAgo] old.
+  String dateLabel(int daysAgo) =>
+      exactReportDate(DateTime.now().subtract(Duration(days: daysAgo)));
 
   PetInfo pet(String id, String name) => PetInfo(
         id: id,
@@ -160,11 +169,11 @@ void main() {
   group('grouping', () {
     test('keeps the newest-first order it was given', () {
       final groups = groupHistory([
-        report(80, daysAgo: 0),
-        report(75, daysAgo: 1),
-        report(70, daysAgo: 3),
-        report(68, daysAgo: 15),
-        report(65, daysAgo: 40),
+        report(80, daysAgo: 0, from: now),
+        report(75, daysAgo: 1, from: now),
+        report(70, daysAgo: 3, from: now),
+        report(68, daysAgo: 15, from: now),
+        report(65, daysAgo: 40, from: now),
       ], now: now);
 
       expect(groups.map((g) => g.bucket), [
@@ -180,10 +189,10 @@ void main() {
       // The index is what the report route addresses. Renumbering inside a
       // group would open the wrong report for every group after the first.
       final groups = groupHistory([
-        report(80, daysAgo: 0),
-        report(75, daysAgo: 30),
-        report(70, daysAgo: 60),
-        report(65, daysAgo: 90),
+        report(80, daysAgo: 0, from: now),
+        report(75, daysAgo: 30, from: now),
+        report(70, daysAgo: 60, from: now),
+        report(65, daysAgo: 90, from: now),
       ], now: now);
 
       expect(groups.length, 2);
@@ -197,8 +206,8 @@ void main() {
 
     test('several reports on one day share a group', () {
       final groups = groupHistory([
-        report(80, daysAgo: 0),
-        report(78, daysAgo: 0),
+        report(80, daysAgo: 0, from: now),
+        report(78, daysAgo: 0, from: now),
       ], now: now);
 
       expect(groups.length, 1);
@@ -207,8 +216,8 @@ void main() {
 
     test('empty buckets are dropped, not rendered as bare headings', () {
       final groups = groupHistory([
-        report(80, daysAgo: 0),
-        report(65, daysAgo: 200),
+        report(80, daysAgo: 0, from: now),
+        report(65, daysAgo: 200, from: now),
       ], now: now);
 
       expect(groups.map((g) => g.bucket),
@@ -279,7 +288,7 @@ void main() {
       expect(find.text('Bruno'), findsNWidgets(2));
       expect(find.textContaining('#'), findsNothing);
       expect(find.text('Good'), findsNWidgets(2));
-      expect(find.text('Today · 7 Aug 2026'), findsOneWidget);
+      expect(find.text('Today · ${dateLabel(0)}'), findsOneWidget);
       expect(find.textContaining('Last month · '), findsOneWidget);
       // The latest score appears twice: once on its row, once on the trend
       // card that still sits above the timeline until feature 3 replaces it.
@@ -305,7 +314,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Rows are addressed by their date line, which is unique per report.
-      await tester.tap(find.textContaining('8 Jun 2026'));
+      await tester.tap(find.textContaining(dateLabel(60)));
       await tester.pumpAndSettle();
 
       expect(find.text('REPORT 2'), findsOneWidget);
@@ -320,7 +329,7 @@ void main() {
       await tester.pumpWidget(host(quiz, await withPets([pet('p1', 'Bruno')])));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Today · 7 Aug 2026'));
+      await tester.tap(find.text('Today · ${dateLabel(0)}'));
       await tester.pumpAndSettle();
 
       expect(find.text('REPORT 0'), findsOneWidget);
