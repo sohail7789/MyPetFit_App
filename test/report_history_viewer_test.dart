@@ -207,7 +207,8 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('19 Jan 2026'), findsOneWidget);
+      // The metadata card carries the date and the time it was completed.
+      expect(find.text('19 Jan 2026 · 12:00 am'), findsOneWidget);
     });
   });
 

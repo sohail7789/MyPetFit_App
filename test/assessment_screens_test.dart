@@ -170,7 +170,10 @@ void main() {
 
       expect(find.text('FITNESS REPORT CARD'), findsOneWidget);
       expect(find.text('100'), findsOneWidget);
-      expect(find.text('Excellent'), findsOneWidget);
+      // The band now reads on the hero badge and again on each category
+      // card, so it appears once per card plus the headline.
+      expect(find.bySemanticsLabel('Health band: Excellent'), findsWidgets);
+      expect(find.bySemanticsLabel('100 percent'), findsOneWidget);
       expect(find.text('8 categories'), findsOneWidget);
 
       // Category 9 is unscored, so it contributes no breakdown row.

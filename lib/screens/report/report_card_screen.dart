@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../config/assets.dart';
+import '../../config/constants.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../models/pet_info.dart';
@@ -137,19 +138,6 @@ class _ReportCardScreenState extends State<ReportCardScreen>
     super.dispose();
   }
 
-  /// The date the report being shown was completed — not today's date. A
-  /// past report card opened from history has to carry its own date, and for
-  /// a freshly calculated one the two are the same anyway.
-  static String _dateOf(ScoreResult result) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    final d = result.completedAt;
-    return '${d.day.toString().padLeft(2, '0')} '
-        '${months[d.month - 1]} ${d.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final quiz = context.watch<QuizProvider>();
@@ -200,42 +188,33 @@ class _ReportCardScreenState extends State<ReportCardScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // The date left the header and moved into the metadata card:
+            // when it sat beside the title it competed with it, and it is
+            // supporting detail, not the headline.
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'FITNESS REPORT CARD',
-                    style: context.t.overline.copyWith(letterSpacing: 1.2),
-                  ),
-                  Text(
-                    _dateOf(result),
-                    style: AppTheme.font(
-                      size: 12,
-                      weight: FontWeight.w700,
-                      color: context.c.muted,
-                    ),
-                  ),
-                ],
+              child: Text(
+                'FITNESS REPORT CARD',
+                style: context.t.overline.copyWith(letterSpacing: 1.2),
               ),
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(22, 14, 22, 8),
+                padding: const EdgeInsets.fromLTRB(22, _gapLg, 22, 8),
                 children: [
                   _BandHero(
                     result: result,
                     countUp: _countUp,
                     previous: _previousScore(history),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: _gapLg),
                   _AssessedPet(
                     pet: _petFor(result, context.watch<PetInfoProvider>()),
+                    completedAt: result.completedAt,
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: _gapXl),
                   _Breakdown(scores: result.categoryScores),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: _gapXl),
                   AppCard(
                     background: context.c.surfaceLow,
                     padding: const EdgeInsets.all(16),
@@ -349,6 +328,18 @@ class _ReportCardScreenState extends State<ReportCardScreen>
   }
 }
 
+/// One spacing scale for the whole report, so the rhythm is consistent
+/// rather than a different magic number between every pair of blocks.
+const double _gapSm = 8;
+const double _gapMd = 12;
+const double _gapLg = 16;
+const double _gapXl = 22;
+
+/// The score, then the band, then everything else.
+///
+/// The figure is the answer to "how healthy is my pet", so it is given the
+/// most weight on the page; the band explains it; the trend and the copy
+/// support it.
 class _BandHero extends StatelessWidget {
   final ScoreResult result;
   final Animation<double> countUp;
@@ -365,7 +356,7 @@ class _BandHero extends StatelessWidget {
     final band = result.category;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
       decoration: BoxDecoration(
         color: band.bandTint(context.c),
         borderRadius: BorderRadius.circular(26),
@@ -379,91 +370,28 @@ class _BandHero extends StatelessWidget {
           if (band.isPositive)
             const DesignImage(
               AppAssets.greatJob,
-              width: 132,
+              width: 124,
               shadow: true,
               semanticLabel: 'Celebrating puppy',
             )
           else
             const DesignImage(
               AppAssets.vetAlert,
-              width: 132,
+              width: 124,
               shadow: true,
               semanticLabel: 'Concerned puppy',
             ),
-          const SizedBox(height: 12),
-          AnimatedBuilder(
-            animation: countUp,
-            builder: (context, _) {
-              final shown = (result.percentageScore * countUp.value).round();
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '$shown',
-                    style: AppTheme.font(
-                      size: 86,
-                      weight: FontWeight.w800,
-                      color: context.c.ink,
-                      letterSpacing: -4.5,
-                      height: 0.88,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4, bottom: 9),
-                    child: Text(
-                      '%',
-                      style: AppTheme.font(
-                        size: 26,
-                        weight: FontWeight.w800,
-                        color: context.c.body,
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: context.c.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: band.bandLine(context.c)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: band.bandColor(context.c),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(band.bandGlyph, size: 13, color: context.c.onAccent),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  band.label,
-                  style: AppTheme.font(
-                    size: 14,
-                    weight: FontWeight.w800,
-                    color: context.c.ink,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: _gapLg),
+          _ScoreFigure(percent: result.percentageScore, countUp: countUp),
+          const SizedBox(height: _gapLg),
+          BandBadge(band: band),
           // The design shows a trend line; it only makes sense once there is
           // a previous assessment to compare against.
           if (previous != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: _gapMd),
             _Trend(delta: result.percentageScore - previous!),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: _gapLg),
           Text(
             band.bandCopy,
             textAlign: TextAlign.center,
@@ -479,6 +407,130 @@ class _BandHero extends StatelessWidget {
   }
 }
 
+/// The headline figure.
+///
+/// Read to a screen reader as one phrase — "88 percent" — rather than as a
+/// bare number and a stray symbol, and laid out so the per-cent sign sits on
+/// the figure's baseline at any text scale.
+class _ScoreFigure extends StatelessWidget {
+  final int percent;
+  final Animation<double> countUp;
+
+  const _ScoreFigure({required this.percent, required this.countUp});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$percent percent',
+      container: true,
+      excludeSemantics: true,
+      child: AnimatedBuilder(
+        animation: countUp,
+        builder: (context, _) {
+          final shown = (percent * countUp.value).round();
+          // FittedBox so the figure gives way on a narrow phone at the 1.3
+          // text scale the app clamps to, instead of overflowing the card.
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$shown',
+                  style: AppTheme.font(
+                    size: 92,
+                    weight: FontWeight.w800,
+                    color: context.c.ink,
+                    letterSpacing: -5,
+                    height: 0.85,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 5, bottom: 10),
+                  child: Text(
+                    '%',
+                    style: AppTheme.font(
+                      size: 26,
+                      weight: FontWeight.w800,
+                      color: context.c.body,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// The health band as a badge: glyph in a filled disc, label beside it.
+///
+/// Shared by the hero and the category cards so a band reads the same
+/// wherever it appears. [compact] is the category-card size.
+class BandBadge extends StatelessWidget {
+  final HealthCategory band;
+  final bool compact;
+
+  const BandBadge({super.key, required this.band, this.compact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final disc = compact ? 16.0 : 24.0;
+
+    return Semantics(
+      label: 'Health band: ${band.label}',
+      container: true,
+      excludeSemantics: true,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 8 : 15,
+          vertical: compact ? 4 : 9,
+        ),
+        decoration: BoxDecoration(
+          color: compact ? band.bandTint(context.c) : context.c.surface,
+          borderRadius: BorderRadius.circular(compact ? 20 : 15),
+          border: Border.all(color: band.bandLine(context.c)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: disc,
+              height: disc,
+              decoration: BoxDecoration(
+                color: band.bandColor(context.c),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                band.bandGlyph,
+                size: compact ? 10 : 14,
+                color: context.c.onAccent,
+              ),
+            ),
+            SizedBox(width: compact ? 5 : 9),
+            Flexible(
+              child: Text(
+                band.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.font(
+                  size: compact ? 11 : 15,
+                  weight: FontWeight.w800,
+                  color: compact ? band.bandColor(context.c) : context.c.ink,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _Trend extends StatelessWidget {
   final int delta;
 
@@ -489,6 +541,7 @@ class _Trend extends StatelessWidget {
     if (delta == 0) {
       return Text(
         'Unchanged since your last assessment',
+        textAlign: TextAlign.center,
         style: AppTheme.font(
           size: 13,
           weight: FontWeight.w800,
@@ -509,18 +562,55 @@ class _Trend extends StatelessWidget {
           color: color,
         ),
         const SizedBox(width: 8),
-        Text(
-          '${up ? 'Up' : 'Down'} ${delta.abs()} since your last assessment',
-          style: AppTheme.font(
-            size: 13,
-            weight: FontWeight.w800,
-            color: color,
+        Flexible(
+          child: Text(
+            '${up ? 'Up' : 'Down'} ${delta.abs()} since your last assessment',
+            textAlign: TextAlign.center,
+            style: AppTheme.font(
+              size: 13,
+              weight: FontWeight.w800,
+              color: color,
+            ),
           ),
         ),
       ],
     );
   }
 }
+
+/// The band a single category's percentage falls into.
+///
+/// Reads the same [AppConstants] cutoffs the overall band uses, so a
+/// category label can never disagree with the colour beside it or with the
+/// headline band. Presentation only — the stored value is untouched.
+@visibleForTesting
+HealthCategory bandForPercent(double percent) {
+  if (percent <= AppConstants.criticalMax) return HealthCategory.critical;
+  if (percent <= AppConstants.needsImprovementMax) {
+    return HealthCategory.needsImprovement;
+  }
+  if (percent <= AppConstants.goodMax) return HealthCategory.good;
+  return HealthCategory.excellent;
+}
+
+/// A glyph for each assessment category.
+///
+/// Keyed by name because that is how `categoryScores` is keyed. A renamed
+/// category falls back to a neutral glyph rather than breaking the card —
+/// the questionnaire carries no icon of its own, and giving it one would
+/// mean editing the assessment model.
+@visibleForTesting
+IconData categoryIcon(String name) => switch (name) {
+      'Skin & Coat Health' => Icons.spa_outlined,
+      'Activity & Fitness Level' => Icons.directions_run_rounded,
+      'Oral, Vision & Hearing' => Icons.visibility_outlined,
+      'Behavior & Mental Wellness' => Icons.psychology_outlined,
+      'Sleep & Nutrition' => Icons.bedtime_outlined,
+      'Digestive & Urinary Health' => Icons.water_drop_outlined,
+      'Physical & Internal Health' => Icons.favorite_outline_rounded,
+      'Medical & Lifestyle Tracking' => Icons.medical_services_outlined,
+      _ => Icons.check_circle_outline_rounded,
+    };
 
 class _Breakdown extends StatelessWidget {
   final Map<String, double> scores;
@@ -537,17 +627,19 @@ class _Breakdown extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Category breakdown',
-              style: AppTheme.font(
-                size: 16,
-                weight: FontWeight.w800,
-                color: context.c.ink,
-                letterSpacing: -0.4,
+            Expanded(
+              child: Text(
+                'Category breakdown',
+                style: AppTheme.font(
+                  size: 16,
+                  weight: FontWeight.w800,
+                  color: context.c.ink,
+                  letterSpacing: -0.4,
+                ),
               ),
             ),
+            const SizedBox(width: _gapSm),
             Text(
               '${entries.length} categories',
               style: AppTheme.font(
@@ -558,13 +650,15 @@ class _Breakdown extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        for (final entry in entries)
+        const SizedBox(height: _gapMd),
+        for (var i = 0; i < entries.length; i++)
           Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _BreakdownRow(
-              name: entry.key,
-              percent: entry.value,
+            padding: EdgeInsets.only(
+              bottom: i == entries.length - 1 ? 0 : _gapMd,
+            ),
+            child: _CategoryCard(
+              name: entries[i].key,
+              percent: entries[i].value,
             ),
           ),
       ],
@@ -572,61 +666,95 @@ class _Breakdown extends StatelessWidget {
   }
 }
 
-class _BreakdownRow extends StatelessWidget {
+/// One category, as its own card: glyph, name, percentage, band and bar.
+class _CategoryCard extends StatelessWidget {
   final String name;
   final double percent;
 
-  const _BreakdownRow({required this.name, required this.percent});
+  const _CategoryCard({required this.name, required this.percent});
 
   @override
   Widget build(BuildContext context) {
-    final color = categoryBarColor(context.c, percent);
-    final rounded = percent.round();
+    final clamped = percent.clamp(0, 100).toDouble();
+    final rounded = clamped.round();
+    final color = categoryBarColor(context.c, clamped);
+    final band = bandForPercent(clamped);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
+    return Semantics(
+      label: '$name, $rounded percent, ${band.label}',
+      container: true,
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
+        decoration: BoxDecoration(
+          color: context.c.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
+          border: Border.all(color: context.c.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: Text(
-                name,
-                style: AppTheme.font(
-                  size: 14,
-                  weight: FontWeight.w700,
-                  color: context.c.ink,
+            Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(categoryIcon(name), size: 18, color: color),
                 ),
-              ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Text(
+                    name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.font(
+                      size: 14,
+                      weight: FontWeight.w700,
+                      color: context.c.ink,
+                      height: 1.25,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: _gapSm),
+                Text(
+                  '$rounded%',
+                  style: AppTheme.font(
+                    size: 16,
+                    weight: FontWeight.w800,
+                    color: color,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 10),
-            Text(
-              '$rounded%',
-              style: AppTheme.font(
-                size: 12,
-                weight: FontWeight.w800,
-                color: color,
+            const SizedBox(height: 11),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: BandBadge(band: band, compact: true),
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: clamped / 100),
+                duration: const Duration(milliseconds: 700),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, _) => LinearProgressIndicator(
+                  value: value,
+                  minHeight: 10,
+                  backgroundColor: context.c.divider,
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 7),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(99),
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: (percent / 100).clamp(0, 1)),
-            duration: const Duration(milliseconds: 700),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, _) => LinearProgressIndicator(
-              value: value,
-              minHeight: 12,
-              backgroundColor: context.c.divider,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -772,51 +900,107 @@ class _Switch extends StatelessWidget {
   }
 }
 
-/// Who this report is about.
+/// Who this report is about, and when it was taken.
 ///
 /// The pet record as it stands today, not as it stood at the assessment:
 /// [PetInfo] keeps no historical snapshot, so a pet renamed or grown since
 /// will read with today's details. The scores above are the archived ones —
-/// only the identity is live.
+/// only the identity is live. Accepted for V1.
 class _AssessedPet extends StatelessWidget {
   final PetInfo? pet;
+  final DateTime completedAt;
 
-  const _AssessedPet({required this.pet});
+  const _AssessedPet({required this.pet, required this.completedAt});
 
   @override
   Widget build(BuildContext context) {
     final animal = pet;
-    if (animal == null) return const SizedBox.shrink();
+    final when = '${reportDate(completedAt)} · ${reportTime(completedAt)}';
 
     return AppCard(
       background: context.c.surfaceLow,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          PhotoAvatar(photoPath: animal.photoPath, size: 40),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+          if (animal != null) ...[
+            Semantics(
+              label: 'Pet: ${animal.name}, ${_petLine(animal)}',
+              container: true,
+              excludeSemantics: true,
+              child: Row(
+                children: [
+                  PhotoAvatar(photoPath: animal.photoPath, size: 42),
+                  const SizedBox(width: _gapMd),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          animal.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.font(
+                            size: 15,
+                            weight: FontWeight.w800,
+                            color: context.c.ink,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _petLine(animal),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.font(
+                            size: 12.5,
+                            color: context.c.body,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: _gapMd),
+            Divider(height: 1, color: context.c.borderSoft),
+            const SizedBox(height: _gapMd),
+          ],
+          Semantics(
+            label: 'Assessed on $when',
+            container: true,
+            excludeSemantics: true,
+            child: Row(
               children: [
+                Icon(
+                  Icons.event_available_outlined,
+                  size: 15,
+                  color: context.c.muted,
+                ),
+                const SizedBox(width: _gapSm),
                 Text(
-                  animal.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  'Assessed',
                   style: AppTheme.font(
-                    size: 15,
-                    weight: FontWeight.w800,
-                    color: context.c.ink,
-                    letterSpacing: -0.3,
+                    size: 12.5,
+                    weight: FontWeight.w700,
+                    color: context.c.muted,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  _petLine(animal),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.font(size: 12.5, color: context.c.body),
+                const SizedBox(width: _gapMd),
+                Expanded(
+                  child: Text(
+                    when,
+                    textAlign: TextAlign.right,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.font(
+                      size: 12.5,
+                      weight: FontWeight.w700,
+                      color: context.c.bodyStrong,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -825,6 +1009,30 @@ class _AssessedPet extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The calendar date a report was completed.
+@visibleForTesting
+String reportDate(DateTime when) {
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  final d = when.toLocal();
+  return '${d.day.toString().padLeft(2, '0')} ${months[d.month - 1]} ${d.year}';
+}
+
+/// The time of day it was completed, in 12-hour form.
+///
+/// Deliberately not locale-aware: the app has no date formatting anywhere
+/// else, and pulling `intl` in for one line would be a dependency decision,
+/// not a polish one.
+@visibleForTesting
+String reportTime(DateTime when) {
+  final t = when.toLocal();
+  final hour = t.hour % 12 == 0 ? 12 : t.hour % 12;
+  final minute = t.minute.toString().padLeft(2, '0');
+  return '$hour:$minute ${t.hour < 12 ? 'am' : 'pm'}';
 }
 
 /// Breed, age and weight on one line, skipping whatever was left blank.
