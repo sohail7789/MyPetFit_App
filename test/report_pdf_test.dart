@@ -71,24 +71,34 @@ void main() {
   });
 
   group('what the document prints', () {
-    test('categories rank worst first, with a stable tie-break', () {
-      final ranked = ReportPdf.rankedForReport(
-        resultWith(categories: const {
-          'Sleep & Nutrition': 92,
-          'Skin & Coat Health': 41,
-          'Zeta area': 41,
-          'Activity & Fitness': 66,
-        }),
+    test('categories print in the same order the screen shows them', () {
+      const stored = {
+        'Sleep & Nutrition': 92.0,
+        'Skin & Coat Health': 41.0,
+        'Zeta area': 41.0,
+        'Activity & Fitness': 66.0,
+      };
+
+      // The stored order, untouched — the report screen reads the same map
+      // the same way, so the printout and the phone cannot disagree.
+      expect(
+        ReportPdf.categoriesForReport(resultWith(categories: stored))
+            .map((e) => e.key),
+        stored.keys,
+      );
+    });
+
+    test('nothing is dropped or added on the way to the page', () {
+      final stored = {for (var i = 0; i < 9; i++) 'Area $i': i * 10.0};
+      final printed = ReportPdf.categoriesForReport(
+        resultWith(categories: stored),
       );
 
-      // Worst first is what a vet reads; equal scores order by name so the
-      // same report always prints identically.
-      expect(ranked.map((e) => e.key), [
-        'Skin & Coat Health',
-        'Zeta area',
-        'Activity & Fitness',
-        'Sleep & Nutrition',
-      ]);
+      expect(printed.length, stored.length);
+      expect(
+        {for (final e in printed) e.key: e.value},
+        stored,
+      );
     });
 
     test('an assessment stamp carries the date and the time', () {

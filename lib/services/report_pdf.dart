@@ -62,7 +62,7 @@ class ReportPdf {
       author: 'MyPetFit',
     );
 
-    final ranked = rankedForReport(result);
+    final categories = categoriesForReport(result);
 
     doc.addPage(
       pw.MultiPage(
@@ -100,11 +100,13 @@ class ReportPdf {
           _sectionTitle('Category breakdown'),
           pw.SizedBox(height: 3),
           pw.Text(
-            'Ranked lowest first — these are the areas to raise.',
+            'Every scored area from this assessment, in the order the app '
+            'shows them.',
             style: pw.TextStyle(fontSize: 10, color: _muted),
           ),
           pw.SizedBox(height: 8),
-          for (final entry in ranked) _categoryCard(entry.key, entry.value),
+          for (final entry in categories)
+            _categoryCard(entry.key, entry.value),
           pw.SizedBox(height: 10),
           _advice(result),
         ],
@@ -515,18 +517,17 @@ class ReportPdf {
 
   /// The report's categories in the order the document prints them.
   ///
-  /// Worst first: the point of handing this over is to talk about what needs
-  /// attention, and that is the order a vet reads it in. Deliberately not the
-  /// questionnaire order the app shows — the page says so above the list.
-  /// Ties break on name so the same report always prints identically.
+  /// The stored order, exactly as the report screen reads it. The document
+  /// used to rank worst-first on the argument that it is the order a vet
+  /// reads in, but a printout that disagrees with the screen it was made
+  /// from costs more than that ordering gained: an owner pointing at a row
+  /// on their phone and a vet reading the paper have to be looking at the
+  /// same list.
   @visibleForTesting
-  static List<MapEntry<String, double>> rankedForReport(ScoreResult result) {
-    return result.categoryScores.entries.toList()
-      ..sort((a, b) {
-        final byScore = a.value.compareTo(b.value);
-        return byScore != 0 ? byScore : a.key.compareTo(b.key);
-      });
-  }
+  static List<MapEntry<String, double>> categoriesForReport(
+    ScoreResult result,
+  ) =>
+      result.categoryScores.entries.toList();
 
   /// When the assessment was completed, to the minute.
   @visibleForTesting
