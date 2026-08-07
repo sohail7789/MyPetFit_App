@@ -117,7 +117,8 @@ void main() {
     ));
     await tester.pump();
 
-    await tester.tap(find.text('Retake assessment'));
+    // The quick action that replaced the 'Retake assessment' tile.
+    await tester.tap(find.text('Assessment'));
     await tester.pumpAndSettle();
 
     expect(find.text('QUIZ'), findsOneWidget);
@@ -141,7 +142,8 @@ void main() {
       pets: pets,
     ));
     await tester.pump();
-    await tester.tap(find.text('Retake assessment'));
+    // The quick action that replaced the 'Retake assessment' tile.
+    await tester.tap(find.text('Assessment'));
     await tester.pumpAndSettle();
 
     expect(quiz.answeredCount, 0);

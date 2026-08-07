@@ -188,7 +188,9 @@ void main() {
       // together rather than as two widgets.
       expect(find.text('78%'), findsOneWidget);
       expect(find.text('Good'), findsOneWidget);
-      expect(find.text('Assessed 2 days ago'), findsOneWidget);
+      // Cadence moved to the reminder banner in feature 5, so the hero and
+      // the banner no longer say the same thing.
+      expect(find.text('Last assessment 2 days ago'), findsOneWidget);
     });
 
     testWidgets('shows the trend once there is a previous report',

@@ -15,7 +15,6 @@ import '../../providers/pet_info_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../providers/quiz_provider.dart';
 import '../shop/widgets/product_tile.dart' show ProductArt, formatPrice;
-import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/design_image.dart';
 import '../../widgets/paw_mark.dart';
@@ -55,39 +54,12 @@ class HomeDashboardScreen extends StatelessWidget {
                       onTap: () => context.push(AppRoutes.quiz),
                     ),
                   ],
+                  if (assessmentReminder(quiz.result) case final reminder?) ...[
+                    const SizedBox(height: 12),
+                    _ReminderBanner(reminder: reminder),
+                  ],
                   const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _QuickAction(
-                          art: AppAssets.categoryFace(1),
-                          title: 'Retake assessment',
-                          subtitle: '45 questions · 6 min',
-                          // Straight into the questionnaire for the active
-                          // pet, the same way the pet profile's retake works.
-                          // This used to route via /consent, which asked
-                          // someone who had already signed it to sign it
-                          // again — consent is a gate the router owns once,
-                          // not a step in every assessment.
-                          onTap: () {
-                            context.read<QuizProvider>().reset();
-                            context.push(AppRoutes.quiz);
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _QuickAction(
-                          art: AppAssets.emoHappy,
-                          title: petName.isEmpty
-                              ? 'Your picks'
-                              : "$petName's picks",
-                          subtitle: 'Matched to the report',
-                          onTap: () => context.go(AppRoutes.shop),
-                        ),
-                      ),
-                    ],
-                  ),
+                  const _QuickActions(),
                   const SizedBox(height: 14),
                   _RecommendationCard(quiz: quiz, petName: petName),
                   const SizedBox(height: 14),
@@ -214,7 +186,13 @@ class _PetStrip extends StatelessWidget {
     final pets = context.watch<PetInfoProvider>();
     final pet = pets.activePet;
 
-    if (pet == null) return const _NoPetStrip();
+    if (pet == null) {
+      // Data-first: only a provider with nothing to show *and* nothing read
+      // yet gets the skeleton. Otherwise a returning user watched "Add your
+      // first pet" flash before their own pet arrived, which reads as data
+      // loss rather than as loading.
+      return pets.isLoaded ? const _NoPetStrip() : const _PetStripSkeleton();
+    }
 
     final switchable = pets.petCount > 1;
 
@@ -638,16 +616,19 @@ class _ScoreCard extends StatelessWidget {
                                 ),
                             ],
                           ),
-                        const SizedBox(height: 7),
-                        Text(
-                          result == null
-                              ? 'Take the 45-question assessment'
-                              : 'Assessed ${relativeDay(result.completedAt)}',
-                          style: AppTheme.font(
-                            size: 12.5,
-                            color: context.c.onAccent.withValues(alpha: 0.8),
+                        // Only the invitation. When a report exists, how long
+                        // ago it was is the reminder banner's line — saying
+                        // it in both places is the same sentence twice.
+                        if (result == null) ...[
+                          const SizedBox(height: 7),
+                          Text(
+                            'Take the 45-question assessment',
+                            style: AppTheme.font(
+                              size: 12.5,
+                              color: context.c.onAccent.withValues(alpha: 0.8),
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -911,54 +892,6 @@ class _ResumeCard extends StatelessWidget {
             Icons.arrow_forward_ios_rounded,
             size: 14,
             color: context.c.faint,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickAction extends StatelessWidget {
-  final String art;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _QuickAction({
-    required this.art,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      onTap: onTap,
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          DesignImage(art, width: 60, height: 60),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTheme.font(
-              size: 14,
-              weight: FontWeight.w800,
-              color: context.c.ink,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: AppTheme.font(
-              size: 12,
-              color: context.c.body,
-              height: 1.4,
-            ),
           ),
         ],
       ),
@@ -1714,6 +1647,10 @@ class _ViewProductButton extends StatelessWidget {
 }
 
 /// Nothing to recommend from, because nothing has been assessed.
+///
+/// Explains why the card is empty and stops there. It carried its own
+/// "Start Assessment" button, which — alongside the hero's CTA and the
+/// quick action — put three identical calls to action on one screen.
 class _NoAssessmentYet extends StatelessWidget {
   const _NoAssessmentYet();
 
@@ -1739,12 +1676,6 @@ class _NoAssessmentYet extends StatelessWidget {
               color: context.c.body,
               height: 1.45,
             ),
-          ),
-          const SizedBox(height: 13),
-          AppButton(
-            label: 'Start Assessment',
-            height: AppTheme.ctaHeightCompact,
-            onPressed: () => context.push(AppRoutes.quiz),
           ),
         ],
       ),
@@ -1846,6 +1777,301 @@ class _RecommendationSkeleton extends StatelessWidget {
             ),
             const SizedBox(height: 13),
             block(42),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Where a pet stands on assessment cadence.
+typedef AssessmentReminder = ({String label, IconData icon, bool isDue});
+
+/// How long an assessment stays current before another is worth taking.
+///
+/// Ninety days, matching the "retake in 3 months" already in the report
+/// card's advice — one cadence, stated in one place.
+const int _assessmentValidDays = 90;
+
+/// The cadence line for [latest], or null when nothing has been assessed.
+///
+/// Null rather than a "never assessed" string: the hero already carries that
+/// invitation, and a banner repeating it under a card that just said it is
+/// noise. The banner exists to say what the hero does not — whether the
+/// score on it is still current.
+@visibleForTesting
+AssessmentReminder? assessmentReminder(ScoreResult? latest, {DateTime? now}) {
+  if (latest == null) return null;
+
+  final today = DateUtils.dateOnly(now ?? DateTime.now());
+  final days =
+      today.difference(DateUtils.dateOnly(latest.completedAt.toLocal())).inDays;
+
+  if (days <= 0) {
+    return (
+      label: 'Assessment completed today',
+      icon: Icons.check_circle_rounded,
+      isDue: false,
+    );
+  }
+  if (days >= _assessmentValidDays) {
+    return (
+      label: 'Assessment due',
+      icon: Icons.event_repeat_rounded,
+      isDue: true,
+    );
+  }
+  return (
+    label: 'Last assessment ${relativeDay(latest.completedAt, now: now)}',
+    icon: Icons.schedule_rounded,
+    isDue: false,
+  );
+}
+
+/// The cadence line under the score.
+///
+/// Tappable only when something is due — a banner that merely reports a
+/// recent assessment has nowhere useful to send anyone.
+class _ReminderBanner extends StatelessWidget {
+  final AssessmentReminder reminder;
+
+  const _ReminderBanner({required this.reminder});
+
+  @override
+  Widget build(BuildContext context) {
+    final accent =
+        reminder.isDue ? context.c.warningText : context.c.actionText;
+
+    return Semantics(
+      button: reminder.isDue,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: reminder.isDue
+            ? () {
+                context.read<QuizProvider>().reset();
+                context.push(AppRoutes.quiz);
+              }
+            : null,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(13, 10, 13, 10),
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.09),
+            borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
+            border: Border.all(color: accent.withValues(alpha: 0.22)),
+          ),
+          child: Row(
+            children: [
+              Icon(reminder.icon, size: 16, color: accent),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  reminder.label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.font(
+                    size: 12.5,
+                    weight: FontWeight.w700,
+                    color: context.c.bodyStrong,
+                  ),
+                ),
+              ),
+              if (reminder.isDue) ...[
+                const SizedBox(width: 8),
+                Text(
+                  'Retake',
+                  style: AppTheme.font(
+                    size: 12.5,
+                    weight: FontWeight.w800,
+                    color: accent,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(Icons.arrow_forward_ios_rounded, size: 11, color: accent),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The four places someone goes from here.
+///
+/// A compact row rather than the two tall cards it replaces: four of those
+/// would push the recommendation and category cards off the fold, and this
+/// screen has already run out of vertical room to spend.
+class _QuickActions extends StatelessWidget {
+  const _QuickActions();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _QuickAction(
+            icon: Icons.assignment_turned_in_outlined,
+            label: 'Assessment',
+            semanticLabel: 'Start assessment',
+            // Same behaviour as the tile this replaces: clear the draft,
+            // then straight into the questionnaire. The router gates /quiz
+            // on consent, so an unsigned account is asked there and returned.
+            onTap: () {
+              context.read<QuizProvider>().reset();
+              context.push(AppRoutes.quiz);
+            },
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _QuickAction(
+            icon: Icons.insert_chart_outlined_rounded,
+            label: 'Reports',
+            semanticLabel: 'View reports',
+            onTap: () => context.go(AppRoutes.reportHistory),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _QuickAction(
+            icon: Icons.pets_outlined,
+            label: 'My pets',
+            semanticLabel: 'My pets',
+            onTap: () => context.push(AppRoutes.pets),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _QuickAction(
+            icon: Icons.storefront_outlined,
+            label: 'Shop',
+            semanticLabel: 'Shop products',
+            onTap: () => context.go(AppRoutes.shop),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// One quick action: a tinted glyph over a short label.
+class _QuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String semanticLabel;
+  final VoidCallback onTap;
+
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.semanticLabel,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      // A container that replaces the child's own semantics: the visible
+      // label is shortened to fit four across, and "Assessment" alone is a
+      // worse thing to hear read out than "Start assessment".
+      container: true,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 52,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: context.c.surfaceRaised,
+                borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
+              ),
+              child: Icon(icon, size: 22, color: context.c.actionText),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: AppTheme.font(
+                size: 11.5,
+                weight: FontWeight.w700,
+                color: context.c.bodyStrong,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The pet strip before SharedPreferences has been read.
+///
+/// Without it a returning user sees "Add your first pet" flash before their
+/// own pet arrives, which reads as data loss rather than as loading.
+class _PetStripSkeleton extends StatelessWidget {
+  const _PetStripSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Loading your pets',
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
+        decoration: BoxDecoration(
+          color: context.c.surfaceRaised,
+          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: context.c.divider,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: 0.35,
+                    child: Container(
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: context.c.divider,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: 0.6,
+                    child: Container(
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: context.c.divider,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

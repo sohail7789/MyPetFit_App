@@ -325,9 +325,10 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tap(find.text('Start Assessment'));
-      await tester.pumpAndSettle();
-      expect(find.text(AppRoutes.quiz), findsOneWidget);
+      // The card explains why it is empty and stops there. Feature 5 took
+      // its button away: the hero and the quick action already offer it, and
+      // three identical CTAs on one screen is not a polished empty state.
+      expect(find.text('Start Assessment'), findsNothing);
     });
 
     testWidgets('nothing tagged for the weakest area says so', (tester) async {
