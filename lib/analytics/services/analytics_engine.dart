@@ -1,5 +1,6 @@
 import '../domain/achievement_calculator.dart';
 import '../domain/category_trend_calculator.dart';
+import '../domain/extremes_calculator.dart';
 import '../domain/insight_calculator.dart';
 import '../domain/summary_calculator.dart';
 import '../models/analytics_snapshot.dart';
@@ -18,12 +19,14 @@ class AnalyticsEngine {
   final CategoryTrendCalculator categoryTrends;
   final InsightCalculator insights;
   final AchievementCalculator achievements;
+  final ExtremesCalculator extremes;
 
   const AnalyticsEngine({
     this.summary = const SummaryCalculator(),
     this.categoryTrends = const CategoryTrendCalculator(),
     this.insights = const InsightCalculator(),
     this.achievements = const AchievementCalculator(),
+    this.extremes = const ExtremesCalculator(),
   });
 
   AnalyticsSnapshot analyse(AssessmentSeries series) {
@@ -35,6 +38,7 @@ class AnalyticsEngine {
       categoryTrends: categoryTrends(series),
       insights: insights(series),
       achievements: achievements(series),
+      extremes: extremes(series),
     );
   }
 }

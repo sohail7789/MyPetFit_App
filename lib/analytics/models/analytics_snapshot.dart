@@ -3,6 +3,7 @@ import 'analytics_summary.dart';
 import 'assessment_series.dart';
 import 'category_trend.dart';
 import 'health_insight.dart';
+import 'trend_extremes.dart';
 
 /// Everything analytics has to say about one subject, computed once.
 ///
@@ -27,12 +28,20 @@ class AnalyticsSnapshot {
   /// Oldest earned first.
   final List<Achievement> achievements;
 
+  /// The peak, the trough and the current standing. Null with no history.
+  ///
+  /// [AnalyticsStatistics] carries the same scores as plain numbers for
+  /// summary cards; this carries the observations behind them, which is what
+  /// a graph needs to place and label a marker. They agree by construction.
+  final TrendExtremes? extremes;
+
   const AnalyticsSnapshot({
     required this.series,
     required this.summary,
     this.categoryTrends = const [],
     this.insights = const [],
     this.achievements = const [],
+    this.extremes,
   });
 
   /// A subject with nothing recorded. Every list empty, no trend claimed.

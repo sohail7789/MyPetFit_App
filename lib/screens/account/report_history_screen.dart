@@ -4,6 +4,11 @@ import 'package:provider/provider.dart';
 import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
+import '../../analytics/adapters/assessment_series_adapter.dart';
+import '../../analytics/models/assessment_point.dart';
+import '../../analytics/services/analytics_cache.dart';
+import '../../analytics/widgets/analytics_empty_state.dart';
+import '../../analytics/widgets/trend_graph.dart';
 import '../../models/pet_info.dart';
 import '../../models/score_band.dart';
 import '../../models/score_result.dart';
@@ -47,10 +52,16 @@ class ReportHistoryScreen extends StatelessWidget {
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
                       children: [
-                        if (history.length >= 2) ...[
-                          _TrendCard(history: history),
-                          const SizedBox(height: 18),
-                        ],
+                        // The analytics module hosted here rather than on a
+                        // screen of its own: navigation stays in one place
+                        // and the widgets stay reusable elsewhere.
+                        _TrendSection(
+                          history: history,
+                          petId: pet?.id ?? '',
+                          onOpenReport: (pointId) =>
+                              _openReport(context, history, pointId),
+                        ),
+                        const SizedBox(height: 18),
                         for (final group in groupHistory(history)) ...[
                           _GroupHeading(label: group.bucket.label),
                           const SizedBox(height: 10),
@@ -238,149 +249,6 @@ class _Empty extends StatelessWidget {
   }
 }
 
-class _TrendCard extends StatelessWidget {
-  final List<ScoreResult> history;
-
-  const _TrendCard({required this.history});
-
-  @override
-  Widget build(BuildContext context) {
-    final latest = history.first.percentageScore;
-    final previous = history[1].percentageScore;
-    final delta = latest - previous;
-    final up = delta >= 0;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.c.tintPanel,
-        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        border: Border.all(color: context.c.border),
-      ),
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('YOUR TREND', style: context.t.overline),
-              const SizedBox(height: 6),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    '$latest',
-                    style: AppTheme.font(
-                      size: 30,
-                      weight: FontWeight.w800,
-                      color: context.c.ink,
-                      letterSpacing: -1.2,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    up
-                        ? Icons.arrow_upward_rounded
-                        : Icons.arrow_downward_rounded,
-                    size: 12,
-                    color: up ? context.c.successText : context.c.warningText,
-                  ),
-                  Text(
-                    '${up ? '+' : ''}$delta',
-                    style: AppTheme.font(
-                      size: 12.5,
-                      weight: FontWeight.w800,
-                      color: up ? context.c.successText : context.c.warningText,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const Spacer(),
-          SizedBox(
-            width: 130,
-            height: 46,
-            child: CustomPaint(
-              painter: _SparklinePainter(
-                // Oldest → newest.
-                history.reversed.map((r) => r.percentageScore).toList(),
-                context.c.actionText,
-                context.c.fainter,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Simple polyline over the score history, with the newest point emphasised.
-class _SparklinePainter extends CustomPainter {
-  final List<int> scores;
-
-  /// A painter sits outside the widget tree, so the palette is passed in
-  /// rather than resolved from a context.
-  final Color lineColor;
-  final Color dotColor;
-
-  const _SparklinePainter(this.scores, this.lineColor, this.dotColor);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (scores.length < 2) return;
-
-    final maxScore = scores.reduce((a, b) => a > b ? a : b);
-    final minScore = scores.reduce((a, b) => a < b ? a : b);
-    final span = (maxScore - minScore).clamp(1, 100);
-
-    Offset pointAt(int i) {
-      final dx = scores.length == 1
-          ? size.width / 2
-          : 4 + (size.width - 8) * (i / (scores.length - 1));
-      final normalised = (scores[i] - minScore) / span;
-      final dy = size.height - 8 - (size.height - 18) * normalised;
-      return Offset(dx, dy);
-    }
-
-    final path = Path()..moveTo(pointAt(0).dx, pointAt(0).dy);
-    for (var i = 1; i < scores.length; i++) {
-      path.lineTo(pointAt(i).dx, pointAt(i).dy);
-    }
-
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = lineColor
-        ..strokeWidth = 2.5
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
-
-    for (var i = 0; i < scores.length; i++) {
-      final isLast = i == scores.length - 1;
-      canvas.drawCircle(
-        pointAt(i),
-        isLast ? 4 : 3,
-        Paint()
-          ..color = isLast ? lineColor : dotColor,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_SparklinePainter oldDelegate) =>
-      oldDelegate.scores != scores ||
-      oldDelegate.lineColor != lineColor ||
-      oldDelegate.dotColor != dotColor;
-}
-
-/// One entry on the timeline.
-///
-/// Everything shown comes off the stored [ScoreResult] and the pet record —
-/// nothing is recomputed, so a report reads the same today as the day it was
-/// filed.
 class _HistoryRow extends StatelessWidget {
   final HistoryEntry entry;
 
@@ -562,5 +430,76 @@ class _CurrentPill extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// The analytics trend, or an honest reason there isn't one.
+///
+/// A stateful host purely to hold the snapshot cache: analysis is cheap for
+/// five observations and is not for five hundred, and this screen rebuilds
+/// whenever the quiz provider notifies.
+class _TrendSection extends StatefulWidget {
+  final List<ScoreResult> history;
+  final String petId;
+  final ValueChanged<String> onOpenReport;
+
+  const _TrendSection({
+    required this.history,
+    required this.petId,
+    required this.onOpenReport,
+  });
+
+  @override
+  State<_TrendSection> createState() => _TrendSectionState();
+}
+
+class _TrendSectionState extends State<_TrendSection> {
+  static const _adapter = AssessmentSeriesAdapter();
+  final _cache = AnalyticsCache();
+
+  @override
+  Widget build(BuildContext context) {
+    // One observation is a starting point, not a direction. Drawing a graph
+    // through a single dot would look like a flat line, which is a claim the
+    // record does not support.
+    if (widget.history.length < 2) {
+      return AnalyticsEmptyState.needsSecondAssessment(
+        onStart: () => context.push(AppRoutes.quiz),
+      );
+    }
+
+    final series = _adapter.fromResults(
+      subjectId: widget.petId,
+      results: widget.history,
+    );
+
+    return TrendGraph(
+      snapshot: _cache.snapshotOf(series),
+      onOpenReport: widget.onOpenReport,
+    );
+  }
+}
+
+/// Opens the report a chart point belongs to.
+///
+/// The point carries a stable id; the route takes a position in the current
+/// history. Resolving the two here, at the moment of the tap, is what keeps
+/// analytics free of list indexes — and means a history that changed since
+/// the chart was drawn cannot open the wrong report. A point whose report
+/// has since been trimmed away simply does nothing.
+void _openReport(
+  BuildContext context,
+  List<ScoreResult> history,
+  String pointId,
+) {
+  for (var i = 0; i < history.length; i++) {
+    final id = AssessmentPoint.idFor(
+      history[i].petId ?? '',
+      history[i].completedAt,
+    );
+    if (id == pointId) {
+      context.push(AppRoutes.pastReport(i));
+      return;
+    }
   }
 }

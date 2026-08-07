@@ -290,9 +290,9 @@ void main() {
       expect(find.text('Good'), findsNWidgets(2));
       expect(find.text('Today · ${dateLabel(0)}'), findsOneWidget);
       expect(find.textContaining('Last month · '), findsOneWidget);
-      // The latest score appears twice: once on its row, once on the trend
-      // card that still sits above the timeline until feature 3 replaces it.
-      expect(find.text('80'), findsNWidgets(2));
+      // Once on its row. The trend graph above plots the score rather than
+      // printing it, so it no longer duplicates the figure.
+      expect(find.text('80'), findsOneWidget);
       expect(find.text('75'), findsOneWidget);
       expect(find.text('Current'), findsOneWidget);
     });

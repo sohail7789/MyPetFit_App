@@ -15,6 +15,7 @@ import 'package:mypetfit_app/providers/quiz_provider.dart';
 import 'package:mypetfit_app/screens/account/account_screen.dart';
 import 'package:mypetfit_app/screens/account/delete_account_screen.dart';
 import 'package:mypetfit_app/screens/account/legal_screen.dart';
+import 'package:mypetfit_app/analytics/widgets/trend_graph.dart';
 import 'package:mypetfit_app/screens/account/report_history_screen.dart';
 import 'package:mypetfit_app/screens/home/home_dashboard_screen.dart';
 import 'package:mypetfit_app/screens/report/report_card_screen.dart';
@@ -243,8 +244,10 @@ void main() {
       // The newest report is marked with a pill on the timeline row; it used
       // to be appended to the band label as "Excellent · current".
       expect(find.text('Current'), findsOneWidget);
-      // A trend needs two assessments to compare.
-      expect(find.text('YOUR TREND'), findsNothing);
+      // A trend needs two assessments to compare, so the graph is replaced
+      // by a state that says so rather than drawing a line through one dot.
+      expect(find.byType(TrendGraph), findsNothing);
+      expect(find.text('One assessment recorded'), findsOneWidget);
     });
 
     testWidgets('shows the trend once there are two assessments',
@@ -265,8 +268,13 @@ void main() {
       await tester.pumpWidget(_host(const ReportHistoryScreen(), quiz: quiz));
       await tester.pump();
 
-      expect(find.text('YOUR TREND'), findsOneWidget);
-      expect(find.text('-100'), findsOneWidget);
+      // The sparkline card became the analytics trend graph, which reports
+      // itself to a screen reader rather than printing a bare delta.
+      expect(find.byType(TrendGraph), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp(r'Health trend chart, 2 assessments')),
+        findsOneWidget,
+      );
     });
   });
 }
