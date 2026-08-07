@@ -240,7 +240,9 @@ void main() {
       await tester.pump();
 
       expect(find.text('100'), findsOneWidget);
-      expect(find.textContaining('current'), findsOneWidget);
+      // The newest report is marked with a pill on the timeline row; it used
+      // to be appended to the band label as "Excellent · current".
+      expect(find.text('Current'), findsOneWidget);
       // A trend needs two assessments to compare.
       expect(find.text('YOUR TREND'), findsNothing);
     });

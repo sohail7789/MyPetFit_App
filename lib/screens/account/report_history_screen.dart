@@ -4,28 +4,29 @@ import 'package:provider/provider.dart';
 import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
+import '../../models/pet_info.dart';
 import '../../models/score_band.dart';
 import '../../models/score_result.dart';
+import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/design_image.dart';
+import '../../widgets/photo_slot.dart';
 
 /// Screen 32 — Report history (the Report tab).
 class ReportHistoryScreen extends StatelessWidget {
   const ReportHistoryScreen({super.key});
 
-  static String _date(DateTime d) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${d.day} ${months[d.month - 1]} ${d.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final quiz = context.watch<QuizProvider>();
     final history = quiz.assessmentHistory;
+    // select, not watch: the timeline needs the pet's name and photo, and
+    // `activePet` is the same instance until the selection or the record
+    // changes, so this rebuilds when it should and not otherwise.
+    final pet = context.select<PetInfoProvider, PetInfo?>(
+      (pets) => pets.activePet,
+    );
 
     return Scaffold(
       backgroundColor: context.c.surface,
@@ -46,23 +47,29 @@ class ReportHistoryScreen extends StatelessWidget {
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
                       children: [
-                        if (history.length >= 2)
+                        if (history.length >= 2) ...[
                           _TrendCard(history: history),
-                        if (history.length >= 2) const SizedBox(height: 14),
-                        for (var i = 0; i < history.length; i++) ...[
-                          _HistoryRow(
-                            result: history[i],
-                            date: _date(history[i].completedAt),
-                            isCurrent: i == 0,
-                            // Every row opens its own report card, matching
-                            // the design (all rows carry a chevron). Older
-                            // rows used to have no handler at all, so the
-                            // history was a list you could look at but never
-                            // open.
-                            onTap: () =>
-                                context.push(AppRoutes.pastReport(i)),
-                          ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 18),
+                        ],
+                        for (final group in groupHistory(history)) ...[
+                          _GroupHeading(label: group.bucket.label),
+                          const SizedBox(height: 10),
+                          for (final entry in group.entries) ...[
+                            _HistoryRow(
+                              entry: entry,
+                              pet: pet,
+                              // The entry carries its position in the flat
+                              // newest-first list, which is what the route
+                              // indexes. Using the position within a group
+                              // would open the wrong report for every group
+                              // after the first.
+                              onTap: () => context.push(
+                                AppRoutes.pastReport(entry.index),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                          const SizedBox(height: 8),
                         ],
                         Padding(
                           padding: const EdgeInsets.fromLTRB(4, 2, 4, 0),
@@ -82,6 +89,119 @@ class ReportHistoryScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// How recently an assessment was taken, coarsely enough to group by.
+///
+/// Rolling windows counted back from today, not calendar periods: a report
+/// taken on the 31st should not jump from "This month" to "Older" overnight
+/// merely because the month rolled over.
+enum HistoryBucket {
+  today('Today'),
+  yesterday('Yesterday'),
+  lastSevenDays('Last 7 days'),
+  thisMonth('This month'),
+  older('Older');
+
+  const HistoryBucket(this.label);
+
+  final String label;
+}
+
+/// One assessment, with its position in the flat newest-first history.
+///
+/// The index travels with the result because it is what
+/// [AppRoutes.pastReport] addresses — grouping must not renumber it.
+typedef HistoryEntry = ({int index, ScoreResult result});
+
+typedef HistoryGroup = ({HistoryBucket bucket, List<HistoryEntry> entries});
+
+/// Which bucket [when] falls into, relative to [now].
+///
+/// A future timestamp buckets as today rather than falling off the scale:
+/// records sync from other handsets whose clocks disagree, and a report
+/// filed under "Older" because a phone was an hour fast would be worse
+/// than a day of imprecision.
+@visibleForTesting
+HistoryBucket bucketFor(DateTime when, {DateTime? now}) {
+  final today = DateUtils.dateOnly(now ?? DateTime.now());
+  final days = today.difference(DateUtils.dateOnly(when.toLocal())).inDays;
+
+  if (days <= 0) return HistoryBucket.today;
+  if (days == 1) return HistoryBucket.yesterday;
+  if (days < 7) return HistoryBucket.lastSevenDays;
+  if (days < 30) return HistoryBucket.thisMonth;
+  return HistoryBucket.older;
+}
+
+/// [history] split into buckets, newest first, preserving each report's
+/// original index.
+///
+/// Empty buckets are dropped rather than rendered as bare headings, and the
+/// input order is kept as given — QuizProvider already hands this back
+/// newest first, and re-sorting here would be a second opinion about
+/// ordering that could disagree with the provider's.
+@visibleForTesting
+List<HistoryGroup> groupHistory(List<ScoreResult> history, {DateTime? now}) {
+  final groups = <HistoryGroup>[];
+
+  for (var i = 0; i < history.length; i++) {
+    final bucket = bucketFor(history[i].completedAt, now: now);
+    final entry = (index: i, result: history[i]);
+
+    if (groups.isNotEmpty && groups.last.bucket == bucket) {
+      groups.last.entries.add(entry);
+    } else {
+      groups.add((bucket: bucket, entries: [entry]));
+    }
+  }
+
+  return groups;
+}
+
+/// The human-scale age of a report, for the row's own line.
+///
+/// Coarser than the bucket it sits under, and deliberately its own thing:
+/// under an "Earlier" heading, "3 months ago" is the part that carries
+/// information.
+@visibleForTesting
+String relativeReportDate(DateTime when, {DateTime? now}) {
+  final today = DateUtils.dateOnly(now ?? DateTime.now());
+  final days = today.difference(DateUtils.dateOnly(when.toLocal())).inDays;
+
+  if (days <= 0) return 'Today';
+  if (days == 1) return 'Yesterday';
+  if (days < 7) return '$days days ago';
+  if (days < 14) return 'Last week';
+  if (days < 30) return '${days ~/ 7} weeks ago';
+  if (days < 60) return 'Last month';
+  if (days < 365) return '${days ~/ 30} months ago';
+  return 'Over a year ago';
+}
+
+/// The calendar date, spelled out so a timeline entry is unambiguous.
+@visibleForTesting
+String exactReportDate(DateTime when) {
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  final local = when.toLocal();
+  return '${local.day} ${months[local.month - 1]} ${local.year}';
+}
+
+class _GroupHeading extends StatelessWidget {
+  final String label;
+
+  const _GroupHeading({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(label.toUpperCase(), style: context.t.overline),
     );
   }
 }
@@ -256,83 +376,189 @@ class _SparklinePainter extends CustomPainter {
       oldDelegate.dotColor != dotColor;
 }
 
+/// One entry on the timeline.
+///
+/// Everything shown comes off the stored [ScoreResult] and the pet record —
+/// nothing is recomputed, so a report reads the same today as the day it was
+/// filed.
 class _HistoryRow extends StatelessWidget {
-  final ScoreResult result;
-  final String date;
-  final bool isCurrent;
+  final HistoryEntry entry;
+
+  /// How many reports are retained, so the entry can be numbered.
+  /// The pet these reports belong to. Null only in the window before the
+  /// pet record has been read.
+  final PetInfo? pet;
+
   final VoidCallback? onTap;
 
   const _HistoryRow({
-    required this.result,
-    required this.date,
-    required this.isCurrent,
+    required this.entry,
+    required this.pet,
     this.onTap,
   });
 
+  bool get _isCurrent => entry.index == 0;
+
   @override
   Widget build(BuildContext context) {
+    final result = entry.result;
     final band = result.category;
+    final petName = pet?.name.trim() ?? '';
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
-        decoration: BoxDecoration(
-          color: context.c.surface,
-          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-          border: Border.all(color: context.c.border),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: band.bandTint(context.c),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                '${result.percentageScore}',
-                style: AppTheme.font(
-                  size: 17,
-                  weight: FontWeight.w800,
-                  color: band.bandColor(context.c),
-                ),
-              ),
+    return Semantics(
+      button: onTap != null,
+      label: [
+        if (petName.isNotEmpty) petName,
+        '${result.percentageScore} percent',
+        band.label,
+        relativeReportDate(result.completedAt),
+      ].join(', '),
+      container: true,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+          decoration: BoxDecoration(
+            color: context.c.surface,
+            borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+            border: Border.all(
+              color: _isCurrent ? band.bandLine(context.c) : context.c.border,
+              width: _isCurrent ? 1.5 : 1,
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    date,
-                    style: AppTheme.font(
-                      size: 14.5,
-                      weight: FontWeight.w800,
-                      color: context.c.ink,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: band.bandTint(context.c),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                alignment: Alignment.center,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${result.percentageScore}',
+                      style: AppTheme.font(
+                        size: 18,
+                        weight: FontWeight.w800,
+                        color: band.bandColor(context.c),
+                        letterSpacing: -0.5,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${band.label}${isCurrent ? ' · current' : ''}',
-                    style: AppTheme.font(
-                      size: 12.5,
-                      weight: FontWeight.w700,
+                    Icon(
+                      band.bandGlyph,
+                      size: 12,
                       color: band.bandColor(context.c),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (onTap != null)
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: context.c.faint,
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Whose report this is. Skipped entirely before the pet
+                    // record has been read, so the row never renders an
+                    // orphaned avatar next to an empty name.
+                    if (petName.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          PhotoAvatar(photoPath: pet!.photoPath, size: 20),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              petName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTheme.font(
+                                size: 14,
+                                weight: FontWeight.w800,
+                                color: context.c.ink,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                    ],
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            band.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTheme.font(
+                              size: 12.5,
+                              weight: FontWeight.w700,
+                              color: band.bandColor(context.c),
+                            ),
+                          ),
+                        ),
+                        // On the band line rather than beside the name, so
+                        // the marker survives a row that has no pet on it.
+                        if (_isCurrent) ...[
+                          const SizedBox(width: 6),
+                          _CurrentPill(band: band),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${relativeReportDate(result.completedAt)} · '
+                      '${exactReportDate(result.completedAt)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.font(size: 12, color: context.c.muted),
+                    ),
+                  ],
+                ),
               ),
-          ],
+              if (onTap != null) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: context.c.faint,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Marks the newest report, which is the one the rest of the app treats as
+/// the pet's current standing.
+class _CurrentPill extends StatelessWidget {
+  final HealthCategory band;
+
+  const _CurrentPill({required this.band});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: band.bandTint(context.c),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        'Current',
+        style: AppTheme.font(
+          size: 10,
+          weight: FontWeight.w800,
+          color: band.bandColor(context.c),
+          letterSpacing: 0.4,
         ),
       ),
     );
