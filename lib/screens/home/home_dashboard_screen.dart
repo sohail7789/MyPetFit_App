@@ -6,11 +6,16 @@ import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../data/questions_data.dart';
 import '../../models/pet_info.dart';
+import '../../models/product.dart';
+import '../../models/product_palette.dart';
 import '../../models/score_band.dart';
 import '../../models/score_result.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/pet_info_provider.dart';
+import '../../providers/product_provider.dart';
 import '../../providers/quiz_provider.dart';
+import '../shop/widgets/product_tile.dart' show ProductArt, formatPrice;
+import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/design_image.dart';
 import '../../widgets/paw_mark.dart';
@@ -83,6 +88,8 @@ class HomeDashboardScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 14),
+                  _RecommendationCard(quiz: quiz, petName: petName),
                   const SizedBox(height: 14),
                   _CategoryCard(quiz: quiz),
                 ],
@@ -1331,6 +1338,514 @@ class _CategorySkeleton extends StatelessWidget {
             bar(0.55),
             bar(0.7),
             bar(0.4),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Products merchandising has tagged for the pet's weakest scoring area.
+///
+/// Deterministic and explicit: the weakest category from the latest report
+/// is matched against each product's `recommendedFor`. Nothing is inferred
+/// from a product's name, description or shop category, so a product appears
+/// here only because someone put it there.
+class _RecommendationCard extends StatelessWidget {
+  final QuizProvider quiz;
+  final String petName;
+
+  const _RecommendationCard({required this.quiz, required this.petName});
+
+  @override
+  Widget build(BuildContext context) {
+    // Watched here rather than by the dashboard, so the catalog arriving
+    // repaints this card instead of every card on the screen.
+    final catalog = context.watch<ProductProvider>();
+
+    final ranked = rankedCategories(quiz.result);
+    if (ranked.isEmpty) {
+      return quiz.isLoaded
+          ? const _NoAssessmentYet()
+          : const _RecommendationSkeleton();
+    }
+
+    final weakest = ranked.first.key;
+    if (catalog.loading) return const _RecommendationSkeleton();
+
+    final matches = recommendedProducts(catalog.products, weakest);
+    if (matches.isEmpty) return const _NoRecommendations();
+
+    return _RecommendationShell(
+      petName: petName,
+      child: matches.length == 1
+          ? _FeaturedProduct(product: matches.single)
+          : _ProductCarousel(products: matches),
+    );
+  }
+}
+
+/// Products tagged for [category], in the order the catalog returned them.
+///
+/// No ranking: Firestore order is merchandising's order, and inventing a
+/// sort here would quietly override it.
+@visibleForTesting
+List<Product> recommendedProducts(List<Product> catalog, String category) =>
+    catalog.where((p) => p.recommendedFor.contains(category)).toList();
+
+/// Title, subtitle and whatever presentation the matches call for.
+class _RecommendationShell extends StatelessWidget {
+  final String petName;
+  final Widget child;
+
+  const _RecommendationShell({required this.petName, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            petName.isEmpty ? 'Recommended for you' : 'Recommended for $petName',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.font(
+              size: 14,
+              weight: FontWeight.w800,
+              color: context.c.ink,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Based on your latest assessment',
+            style: AppTheme.font(size: 12.5, color: context.c.body),
+          ),
+          const SizedBox(height: 13),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+/// The single-match presentation: art beside the copy, full-width CTA.
+class _FeaturedProduct extends StatelessWidget {
+  final Product product;
+
+  const _FeaturedProduct({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = ProductPalette.of(context, product.category);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 92,
+              height: 92,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: palette.tint,
+                borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: ProductArt(product: product, pawSize: 34),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _CategoryChip(label: product.displayTag),
+                  const SizedBox(height: 6),
+                  Text(
+                    product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.font(
+                      size: 14.5,
+                      weight: FontWeight.w800,
+                      color: context.c.ink,
+                      height: 1.25,
+                    ),
+                  ),
+                  if (_blurbOf(product) case final blurb?) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      blurb,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.font(
+                        size: 12,
+                        color: context.c.body,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 6),
+                  Text(
+                    formatPrice(product.price),
+                    style: AppTheme.font(
+                      size: 16,
+                      weight: FontWeight.w800,
+                      color: context.c.ink,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 13),
+        _ViewProductButton(product: product),
+      ],
+    );
+  }
+}
+
+/// The many-match presentation.
+///
+/// A fixed height with horizontal scrolling: the card lives in a vertical
+/// list, so the row has no height of its own to inherit, and letting the
+/// tallest product decide it would make the dashboard jump as the catalog
+/// loads.
+class _ProductCarousel extends StatelessWidget {
+  final List<Product> products;
+
+  const _ProductCarousel({required this.products});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 254,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        padding: EdgeInsets.zero,
+        itemCount: products.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 11),
+        itemBuilder: (context, i) => SizedBox(
+          width: 168,
+          child: _CarouselProduct(product: products[i]),
+        ),
+      ),
+    );
+  }
+}
+
+class _CarouselProduct extends StatelessWidget {
+  final Product product;
+
+  const _CarouselProduct({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = ProductPalette.of(context, product.category);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.c.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
+        border: Border.all(color: context.c.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 82,
+            color: palette.tint,
+            padding: const EdgeInsets.all(8),
+            child: ProductArt(product: product, pawSize: 30),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _CategoryChip(label: product.displayTag),
+                  const SizedBox(height: 6),
+                  // Expanded, so the copy gives up room before the price and
+                  // the CTA do — those must never be pushed off the card.
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          product.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.font(
+                            size: 13,
+                            weight: FontWeight.w700,
+                            color: context.c.ink,
+                            height: 1.25,
+                          ),
+                        ),
+                        if (_blurbOf(product) case final blurb?) ...[
+                          const SizedBox(height: 4),
+                          Flexible(
+                            child: Text(
+                              blurb,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTheme.font(
+                                size: 11.5,
+                                color: context.c.body,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    formatPrice(product.price),
+                    maxLines: 1,
+                    style: AppTheme.font(
+                      size: 14.5,
+                      weight: FontWeight.w800,
+                      color: context.c.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _ViewProductButton(product: product, compact: true),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The short line under a product name.
+///
+/// `purpose` is the design's "why this pick" copy and reads better here than
+/// the full description; the description stands in when a product has not
+/// been given one, and neither is guaranteed.
+String? _blurbOf(Product product) {
+  for (final copy in [product.purpose, product.description]) {
+    if (copy.trim().isNotEmpty) return copy.trim();
+  }
+  return null;
+}
+
+class _CategoryChip extends StatelessWidget {
+  final String label;
+
+  const _CategoryChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    if (label.trim().isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: context.c.tint,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: AppTheme.font(
+          size: 10.5,
+          weight: FontWeight.w800,
+          color: context.c.actionText,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens the existing product detail screen. Nothing there changes.
+class _ViewProductButton extends StatelessWidget {
+  final Product product;
+  final bool compact;
+
+  const _ViewProductButton({required this.product, this.compact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final height = compact ? 32.0 : 42.0;
+
+    return Semantics(
+      button: true,
+      label: 'View ${product.name}',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () =>
+            context.push('${AppRoutes.productDetail}/${product.id}'),
+        child: Container(
+          height: height,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: context.c.action,
+            borderRadius: BorderRadius.circular(height / 2),
+          ),
+          child: Text(
+            'View Product',
+            maxLines: 1,
+            style: AppTheme.font(
+              size: compact ? 12 : 13.5,
+              weight: FontWeight.w800,
+              color: context.c.onAccent,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Nothing to recommend from, because nothing has been assessed.
+class _NoAssessmentYet extends StatelessWidget {
+  const _NoAssessmentYet();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Recommendations',
+            style: AppTheme.font(
+              size: 14,
+              weight: FontWeight.w800,
+              color: context.c.ink,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Complete an assessment to receive personalized recommendations.',
+            style: AppTheme.font(
+              size: 12.5,
+              color: context.c.body,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 13),
+          AppButton(
+            label: 'Start Assessment',
+            height: AppTheme.ctaHeightCompact,
+            onPressed: () => context.push(AppRoutes.quiz),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Assessed, but merchandising has tagged nothing for the weakest area.
+///
+/// Deliberately does not name that area: the category summary sits directly
+/// below and already calls it out under "NEEDS WORK", so repeating it here
+/// is duplication rather than context.
+class _NoRecommendations extends StatelessWidget {
+  const _NoRecommendations();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Recommendations',
+            style: AppTheme.font(
+              size: 14,
+              weight: FontWeight.w800,
+              color: context.c.ink,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'No recommendations available yet.',
+            style: AppTheme.font(
+              size: 12.5,
+              color: context.c.body,
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Placeholder cards while the catalog is in flight.
+class _RecommendationSkeleton extends StatelessWidget {
+  const _RecommendationSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget block(double height, {double widthFactor = 1}) =>
+        FractionallySizedBox(
+          alignment: Alignment.centerLeft,
+          widthFactor: widthFactor,
+          child: Container(
+            height: height,
+            decoration: BoxDecoration(
+              color: context.c.divider,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        );
+
+    return Semantics(
+      label: 'Loading recommendations',
+      child: AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            block(13, widthFactor: 0.5),
+            const SizedBox(height: 8),
+            block(10, widthFactor: 0.7),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Container(
+                  width: 92,
+                  height: 92,
+                  decoration: BoxDecoration(
+                    color: context.c.divider,
+                    borderRadius:
+                        BorderRadius.circular(AppTheme.radiusCardSmall),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      block(11, widthFactor: 0.4),
+                      const SizedBox(height: 8),
+                      block(11),
+                      const SizedBox(height: 8),
+                      block(11, widthFactor: 0.6),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 13),
+            block(42),
           ],
         ),
       ),

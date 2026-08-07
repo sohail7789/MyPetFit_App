@@ -22,6 +22,7 @@ Product testProduct({
   double rating = 0,
   int reviewCount = 0,
   String imageUrl = '',
+  List<String> recommendedFor = const [],
 }) =>
     Product(
       id: id,
@@ -38,6 +39,7 @@ Product testProduct({
       slug: id,
       imageUrl: imageUrl,
       weight: '200 g',
+      recommendedFor: recommendedFor,
       active: true,
       featured: featured,
       inStock: true,

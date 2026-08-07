@@ -15,6 +15,7 @@ import 'package:mypetfit_app/screens/home/home_dashboard_screen.dart';
 
 import 'support/fake_cloud.dart';
 import 'support/network_image_stub.dart';
+import 'support/product_fixtures.dart';
 
 /// Sprint 1, feature 3 — the category summary.
 ///
@@ -94,6 +95,8 @@ void main() {
         ChangeNotifierProvider.value(value: pets),
         ChangeNotifierProvider.value(value: quiz),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        // The dashboard's recommendation card reads the catalog.
+        ChangeNotifierProvider(create: (_) => emptyCatalog()),
       ],
       child: MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );

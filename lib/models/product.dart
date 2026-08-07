@@ -35,6 +35,17 @@ class Product {
   final List<String> idealUsage;
   final List<String> targetPets;
 
+  /// Assessment categories this product is recommended for, named exactly as
+  /// `healthCategories` names them — "Skin & Coat Health" and so on.
+  ///
+  /// Merchandising decides this, not the app: nothing is inferred from the
+  /// name, description or category, so a product appears against an area
+  /// only because someone put it there. A product may serve several areas.
+  ///
+  /// Empty for any document written before the field existed, which means it
+  /// is never recommended rather than being wrongly recommended everywhere.
+  final List<String> recommendedFor;
+
   final Timestamp? createdAt;
 
   const Product({
@@ -63,6 +74,7 @@ class Product {
     required this.keyBenefits,
     required this.idealUsage,
     required this.targetPets,
+    this.recommendedFor = const [],
     this.createdAt,
   });
 
@@ -134,6 +146,8 @@ class Product {
           List<String>.from(map['idealUsage'] ?? []),
       targetPets:
           List<String>.from(map['targetPets'] ?? []),
+      recommendedFor:
+          List<String>.from(map['recommendedFor'] ?? []),
       createdAt: map['createdAt'],
     );
   }
@@ -164,6 +178,7 @@ class Product {
       'keyBenefits': keyBenefits,
       'idealUsage': idealUsage,
       'targetPets': targetPets,
+      'recommendedFor': recommendedFor,
       'createdAt': createdAt,
     };
   }

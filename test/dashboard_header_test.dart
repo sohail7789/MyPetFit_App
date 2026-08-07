@@ -14,6 +14,7 @@ import 'package:mypetfit_app/screens/home/home_dashboard_screen.dart';
 
 import 'support/fake_cloud.dart';
 import 'support/network_image_stub.dart';
+import 'support/product_fixtures.dart';
 
 /// Sprint 1, feature 1 — the header is real provider data.
 ///
@@ -71,6 +72,8 @@ void main() {
       providers: [
         ChangeNotifierProvider.value(value: pets),
         ChangeNotifierProvider.value(value: auth ?? AuthProvider()),
+        // The dashboard's recommendation card reads the catalog.
+        ChangeNotifierProvider(create: (_) => emptyCatalog()),
         ChangeNotifierProvider(
           create: (_) => QuizProvider(service: FakeCloud()),
         ),

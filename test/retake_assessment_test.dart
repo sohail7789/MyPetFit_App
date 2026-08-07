@@ -16,6 +16,7 @@ import 'package:mypetfit_app/screens/home/home_dashboard_screen.dart';
 
 import 'support/fake_cloud.dart';
 import 'support/network_image_stub.dart';
+import 'support/product_fixtures.dart';
 
 /// Starting an assessment must never route through the consent form.
 ///
@@ -73,6 +74,8 @@ void main() {
         ChangeNotifierProvider.value(value: quiz),
         ChangeNotifierProvider.value(value: pets),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        // The dashboard's recommendation card reads the catalog.
+        ChangeNotifierProvider(create: (_) => emptyCatalog()),
       ],
       child: MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );

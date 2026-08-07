@@ -20,11 +20,14 @@ import 'package:mypetfit_app/screens/home/home_dashboard_screen.dart';
 import 'package:mypetfit_app/screens/report/report_card_screen.dart';
 import 'package:mypetfit_app/widgets/app_button.dart';
 import 'support/network_image_stub.dart';
+import 'support/product_fixtures.dart';
 
 Widget _host(Widget child, {QuizProvider? quiz}) => MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => quiz ?? QuizProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        // The dashboard's recommendation card reads the catalog.
+        ChangeNotifierProvider(create: (_) => emptyCatalog()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => PetInfoProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
