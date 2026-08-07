@@ -11,6 +11,7 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../config/theme.dart';
+import '../data/category_order.dart';
 import '../models/pet_info.dart';
 import '../models/score_band.dart';
 import '../models/score_result.dart';
@@ -560,17 +561,17 @@ class ReportPdf {
 
   /// The report's categories in the order the document prints them.
   ///
-  /// The stored order, exactly as the report screen reads it. The document
-  /// used to rank worst-first on the argument that it is the order a vet
-  /// reads in, but a printout that disagrees with the screen it was made
-  /// from costs more than that ordering gained: an owner pointing at a row
-  /// on their phone and a vet reading the paper have to be looking at the
-  /// same list.
+  /// Questionnaire order, which is the same order the report screen renders
+  /// — an owner pointing at a row on their phone and a vet reading the paper
+  /// have to be looking at the same list. Reading the stored map directly
+  /// gave that only by luck: Firestore does not guarantee field order, so a
+  /// cloud-restored report could print in a different sequence than it
+  /// displayed.
   @visibleForTesting
   static List<MapEntry<String, double>> categoriesForReport(
     ScoreResult result,
   ) =>
-      result.categoryScores.entries.toList();
+      orderedCategoryScores(result.categoryScores);
 
   /// When the assessment was completed, to the minute.
   @visibleForTesting

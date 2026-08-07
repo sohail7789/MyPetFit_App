@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
+import '../../data/category_order.dart';
 import '../../models/pet_info.dart';
 import '../../models/score_band.dart';
 import '../../models/score_result.dart';
@@ -652,7 +653,9 @@ class _Breakdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final entries = scores.entries.toList();
+    // Questionnaire order, not map order — see orderedCategoryScores. A
+    // report restored from the cloud can arrive arranged differently.
+    final entries = orderedCategoryScores(scores);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

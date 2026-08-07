@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mypetfit_app/data/category_order.dart';
 import 'package:mypetfit_app/models/pet_info.dart';
 import 'package:mypetfit_app/models/score_result.dart';
 import 'package:mypetfit_app/services/report_pdf.dart';
@@ -72,19 +73,40 @@ void main() {
 
   group('what the document prints', () {
     test('categories print in the same order the screen shows them', () {
+      // Deliberately scrambled, as a cloud-restored report can arrive: the
+      // document must not print in whatever order the map happened to carry.
       const stored = {
         'Sleep & Nutrition': 92.0,
         'Skin & Coat Health': 41.0,
-        'Zeta area': 41.0,
-        'Activity & Fitness': 66.0,
+        'Activity & Fitness Level': 66.0,
       };
 
-      // The stored order, untouched — the report screen reads the same map
-      // the same way, so the printout and the phone cannot disagree.
+      // Questionnaire order, which is what the report screen renders through
+      // the same helper — so the printout and the phone cannot disagree.
       expect(
         ReportPdf.categoriesForReport(resultWith(categories: stored))
             .map((e) => e.key),
-        stored.keys,
+        orderedCategoryScores(stored).map((e) => e.key),
+      );
+      expect(
+        ReportPdf.categoriesForReport(resultWith(categories: stored))
+            .map((e) => e.key),
+        ['Skin & Coat Health', 'Activity & Fitness Level', 'Sleep & Nutrition'],
+      );
+    });
+
+    test('an area the questionnaire no longer defines still prints', () {
+      // Historical reports are immutable records; a retired category must
+      // not vanish from one.
+      const stored = {
+        'Retired Wellness Area': 55.0,
+        'Skin & Coat Health': 41.0,
+      };
+
+      expect(
+        ReportPdf.categoriesForReport(resultWith(categories: stored))
+            .map((e) => e.key),
+        ['Skin & Coat Health', 'Retired Wellness Area'],
       );
     });
 
