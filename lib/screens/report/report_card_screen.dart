@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
+import '../../models/pet_info.dart';
 import '../../models/score_band.dart';
 import '../../models/score_result.dart';
 import '../../providers/pet_info_provider.dart';
@@ -12,6 +13,7 @@ import '../../services/report_pdf.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/design_image.dart';
+import '../../widgets/photo_slot.dart';
 
 /// Screen 23 — Fitness report card, and 23b/32b when opened from history.
 ///
@@ -42,10 +44,53 @@ class _ReportCardScreenState extends State<ReportCardScreen>
   bool _remind = true;
   bool _sharing = false;
 
+  /// The report this screen is showing, captured the first time it resolves.
+  ///
+  /// [historyIndex] addresses a position in [QuizProvider.assessmentHistory],
+  /// and that list is bound to the *active* pet and trimmed as it grows.
+  /// Re-reading it on every rebuild meant switching pets with a report open
+  /// swapped the document underneath the reader — same index, different
+  /// animal — and a trim shifted every index by one. A historical report is
+  /// a record: once opened, it is the one that stays on screen.
+  ScoreResult? _shown;
+
   @override
   void initState() {
     super.initState();
     _countUp.forward();
+  }
+
+  /// The stored report to render, resolved once.
+  ///
+  /// Returns null until something resolves, so a screen reached before the
+  /// history has loaded still picks the report up on a later build rather
+  /// than freezing an empty state forever.
+  ScoreResult? _resolve(QuizProvider quiz) {
+    if (_shown != null) return _shown;
+
+    final index = widget.historyIndex;
+    final history = quiz.assessmentHistory;
+
+    return _shown = index == null
+        ? quiz.result
+        : (index >= 0 && index < history.length ? history[index] : null);
+  }
+
+  /// The pet [result] was recorded against.
+  ///
+  /// By id, not by whichever pet happens to be selected: a report opened for
+  /// one pet while another is active would otherwise be labelled — and
+  /// exported — under the wrong animal. Records written before results were
+  /// scoped per pet carry no id and fall back to the active pet, which is
+  /// the only pet those installs ever had.
+  PetInfo? _petFor(ScoreResult result, PetInfoProvider pets) {
+    final id = result.petId;
+    if (id == null) return pets.activePet;
+
+    for (final pet in pets.pets) {
+      if (pet.id == id) return pet;
+    }
+    return null;
   }
 
   /// Renders the report card to PDF and opens the system share sheet, so it
@@ -55,6 +100,10 @@ class _ReportCardScreenState extends State<ReportCardScreen>
     setState(() => _sharing = true);
 
     final pets = context.read<PetInfoProvider>();
+    // The pet this report belongs to, not the selected one — otherwise a
+    // past report exported while another pet is active carried that pet's
+    // name over the first pet's scores.
+    final pet = _petFor(result, pets);
     // Captured before the await: on iPad the share sheet needs the rect of
     // the control that opened it or it throws.
     final box = context.findRenderObject() as RenderBox?;
@@ -65,7 +114,7 @@ class _ReportCardScreenState extends State<ReportCardScreen>
     try {
       await ReportPdf.share(
         result: result,
-        pet: pets.activePet,
+        pet: pet,
         owner: pets.ownerInfo,
         origin: origin,
       );
@@ -105,11 +154,7 @@ class _ReportCardScreenState extends State<ReportCardScreen>
   Widget build(BuildContext context) {
     final quiz = context.watch<QuizProvider>();
     final history = quiz.assessmentHistory;
-    final index = widget.historyIndex;
-
-    final result = index == null
-        ? quiz.result
-        : (index >= 0 && index < history.length ? history[index] : null);
+    final result = _resolve(quiz);
 
     if (result == null) {
       // Reached without a completed assessment — send them to take one.
@@ -183,6 +228,10 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                     result: result,
                     countUp: _countUp,
                     previous: _previousScore(history),
+                  ),
+                  const SizedBox(height: 14),
+                  _AssessedPet(
+                    pet: _petFor(result, context.watch<PetInfoProvider>()),
                   ),
                   const SizedBox(height: 18),
                   _Breakdown(scores: result.categoryScores),
@@ -721,4 +770,89 @@ class _Switch extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Who this report is about.
+///
+/// The pet record as it stands today, not as it stood at the assessment:
+/// [PetInfo] keeps no historical snapshot, so a pet renamed or grown since
+/// will read with today's details. The scores above are the archived ones —
+/// only the identity is live.
+class _AssessedPet extends StatelessWidget {
+  final PetInfo? pet;
+
+  const _AssessedPet({required this.pet});
+
+  @override
+  Widget build(BuildContext context) {
+    final animal = pet;
+    if (animal == null) return const SizedBox.shrink();
+
+    return AppCard(
+      background: context.c.surfaceLow,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Row(
+        children: [
+          PhotoAvatar(photoPath: animal.photoPath, size: 40),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  animal.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.font(
+                    size: 15,
+                    weight: FontWeight.w800,
+                    color: context.c.ink,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _petLine(animal),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.font(size: 12.5, color: context.c.body),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Breed, age and weight on one line, skipping whatever was left blank.
+///
+/// Local to this screen on purpose. The dashboard formats a pet's age too,
+/// but that helper is `@visibleForTesting` — deliberately not a shared API —
+/// and promoting it would mean editing a Dashboard file. See the note in the
+/// Feature 2 summary: both belong in shared domain code, in their own
+/// commit, not smuggled in here.
+String _petLine(PetInfo pet) {
+  final years = pet.ageYears;
+  final months = pet.ageMonths;
+
+  final age = switch ((years, months)) {
+    (0, 0) => null,
+    (0, final m) => m == 1 ? '1 month' : '$m months',
+    (final y, _) when y > 2 || months == 0 => y == 1 ? '1 year' : '$y years',
+    (final y, final m) => '$y yr $m mo',
+  };
+
+  final weight = pet.weightKg > 0
+      ? '${pet.weightKg.toStringAsFixed(pet.weightKg % 1 == 0 ? 0 : 1)} kg'
+      : null;
+
+  final parts = [
+    if (pet.breed.trim().isNotEmpty) pet.breed.trim(),
+    ?age,
+    ?weight,
+  ];
+  return parts.isEmpty ? 'No details recorded' : parts.join(' · ');
 }

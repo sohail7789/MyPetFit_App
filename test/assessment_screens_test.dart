@@ -5,14 +5,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mypetfit_app/config/theme.dart';
 import 'package:mypetfit_app/data/questions_data.dart';
 import 'package:mypetfit_app/models/score_result.dart';
+import 'package:mypetfit_app/providers/pet_info_provider.dart';
 import 'package:mypetfit_app/providers/quiz_provider.dart';
 import 'package:mypetfit_app/screens/consent/consent_screen.dart';
 import 'package:mypetfit_app/screens/quiz/quiz_screen.dart';
 import 'package:mypetfit_app/screens/report/report_card_screen.dart';
 import 'package:mypetfit_app/widgets/app_button.dart';
 
-Widget _host(Widget child, {QuizProvider? quiz}) => ChangeNotifierProvider(
-      create: (_) => quiz ?? QuizProvider(),
+Widget _host(Widget child, {QuizProvider? quiz}) => MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => quiz ?? QuizProvider()),
+        // The report card names the pet a report was recorded against, so
+        // it reads this during build rather than only when sharing.
+        ChangeNotifierProvider(create: (_) => PetInfoProvider()),
+      ],
       child: MaterialApp(theme: AppTheme.light, home: child),
     );
 
