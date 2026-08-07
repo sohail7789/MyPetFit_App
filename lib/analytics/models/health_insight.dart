@@ -1,3 +1,5 @@
+import 'insight_severity.dart';
+
 /// What an insight is about.
 ///
 /// A closed set so every consumer can render all of them — a switch with no
@@ -34,11 +36,20 @@ class HealthInsight {
   /// a screen showing only the top few shows the ones that matter most.
   final int weight;
 
+  /// How much attention the finding deserves.
+  ///
+  /// Set by the calculator, never by a formatter or a widget — see
+  /// [InsightSeverity]. A dashboard highlighting one finding and a digest
+  /// email ranking several must agree, and they only can if the judgement
+  /// travels with the data.
+  final InsightSeverity severity;
+
   const HealthInsight({
     required this.kind,
     this.subject,
     this.deltaPoints,
     this.weight = 0,
+    this.severity = InsightSeverity.neutral,
   });
 
   @override
@@ -47,10 +58,12 @@ class HealthInsight {
       other.kind == kind &&
       other.subject == subject &&
       other.deltaPoints == deltaPoints &&
-      other.weight == weight;
+      other.weight == weight &&
+      other.severity == severity;
 
   @override
-  int get hashCode => Object.hash(kind, subject, deltaPoints, weight);
+  int get hashCode =>
+      Object.hash(kind, subject, deltaPoints, weight, severity);
 
   @override
   String toString() =>

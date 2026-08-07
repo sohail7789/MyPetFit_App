@@ -9,6 +9,7 @@ import '../../analytics/models/assessment_point.dart';
 import '../../analytics/services/analytics_cache.dart';
 import '../../analytics/widgets/analytics_empty_state.dart';
 import '../../analytics/widgets/category_evolution_list.dart';
+import '../../analytics/widgets/insight_list.dart';
 import '../../analytics/widgets/trend_graph.dart';
 import '../../models/pet_info.dart';
 import '../../models/score_band.dart';
@@ -483,6 +484,13 @@ class _TrendSectionState extends State<_TrendSection> {
           snapshot: snapshot,
           onOpenReport: widget.onOpenReport,
         ),
+        // Three windows on the same history, each answering a different
+        // question: the graph covers the recorded history, the insights the
+        // most recent change, the category cards first recorded to latest.
+        if (snapshot.insights.isNotEmpty) ...[
+          const SizedBox(height: 22),
+          InsightList(insights: snapshot.insights),
+        ],
         // Analysis above the record: the graph says where the pet is going,
         // the categories say which areas are taking it there, and the
         // timeline below is what actually happened.

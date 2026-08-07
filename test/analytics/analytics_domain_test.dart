@@ -368,11 +368,14 @@ void main() {
         }),
       ]));
 
+      // One decline and one improvement, so neither is a superlative —
+      // "declined the most" only means something when something else also
+      // declined. See health_insights_test.dart for the competing cases.
       final byKind = {for (final i in found) i.kind: i};
-      expect(byKind[InsightKind.categoryDeclinedMost]?.subject, 'Digestive');
-      expect(byKind[InsightKind.categoryDeclinedMost]?.deltaPoints, -9);
-      expect(byKind[InsightKind.categoryImprovedMost]?.subject, 'Skin');
-      expect(byKind[InsightKind.categoryImprovedMost]?.deltaPoints, 19);
+      expect(byKind[InsightKind.categoryDeclined]?.subject, 'Digestive');
+      expect(byKind[InsightKind.categoryDeclined]?.deltaPoints, -9);
+      expect(byKind[InsightKind.categoryImproved]?.subject, 'Skin');
+      expect(byKind[InsightKind.categoryImproved]?.deltaPoints, 19);
       // Activity moved by one — inside the noise band, so it is not a finding.
       expect(found.any((i) => i.subject == 'Activity'), isFalse);
     });

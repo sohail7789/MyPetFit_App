@@ -12,9 +12,13 @@ import 'package:flutter_test/flutter_test.dart';
 /// This is the test that makes "the UI should not care where data comes
 /// from" true instead of aspirational.
 void main() {
+  /// Everything that must run without a widget tree — a server-side job, a
+  /// PDF renderer, a web dashboard or a veterinarian portal's backend.
   const pureDirectories = [
     'lib/analytics/models',
     'lib/analytics/domain',
+    'lib/analytics/services',
+    'lib/analytics/presentation',
   ];
 
   List<File> dartFilesIn(String path) {
@@ -28,7 +32,7 @@ void main() {
   }
 
   group('analytics purity', () {
-    test('models and domain import no Flutter', () {
+    test('models, domain, services and presentation import no Flutter', () {
       final offenders = <String>[];
 
       for (final directory in pureDirectories) {
@@ -52,7 +56,7 @@ void main() {
       );
     });
 
-    test('models and domain never reach for a provider', () {
+    test('the pure layers never reach for a provider', () {
       // Providers are the adapter's business. A calculator that reads one
       // cannot be handed a smart collar's history, which is the whole point
       // of the module.
