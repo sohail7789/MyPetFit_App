@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../config/assets.dart';
-import '../../config/constants.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../models/pet_info.dart';
@@ -576,21 +575,6 @@ class _Trend extends StatelessWidget {
       ],
     );
   }
-}
-
-/// The band a single category's percentage falls into.
-///
-/// Reads the same [AppConstants] cutoffs the overall band uses, so a
-/// category label can never disagree with the colour beside it or with the
-/// headline band. Presentation only — the stored value is untouched.
-@visibleForTesting
-HealthCategory bandForPercent(double percent) {
-  if (percent <= AppConstants.criticalMax) return HealthCategory.critical;
-  if (percent <= AppConstants.needsImprovementMax) {
-    return HealthCategory.needsImprovement;
-  }
-  if (percent <= AppConstants.goodMax) return HealthCategory.good;
-  return HealthCategory.excellent;
 }
 
 /// A glyph for each assessment category.

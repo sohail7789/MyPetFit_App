@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' show Rect;
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -45,22 +46,23 @@ class ReportPdf {
   }
 
   /// Renders the report and returns the PDF bytes.
+  /// [generatedAt] stamps the footer. Injectable so the document is
+  /// reproducible in a test; production leaves it to the clock.
   static Future<List<int>> build({
     required ScoreResult result,
     PetInfo? pet,
     OwnerInfo? owner,
+    DateTime? generatedAt,
   }) async {
     await _loadFonts();
+    final stampedAt = generatedAt ?? DateTime.now();
 
     final doc = pw.Document(
       title: 'MyPetFit Fitness Report Card',
       author: 'MyPetFit',
     );
 
-    // Worst first: the point of handing this over is to talk about what
-    // needs attention.
-    final ranked = result.categoryScores.entries.toList()
-      ..sort((a, b) => a.value.compareTo(b.value));
+    final ranked = rankedForReport(result);
 
     doc.addPage(
       pw.MultiPage(
@@ -68,11 +70,22 @@ class ReportPdf {
         margin: const pw.EdgeInsets.fromLTRB(38, 34, 38, 32),
         theme: pw.ThemeData.withFont(base: _regular!, bold: _bold!),
         footer: (context) => pw.Container(
-          alignment: pw.Alignment.centerRight,
           margin: const pw.EdgeInsets.only(top: 12),
-          child: pw.Text(
-            'Page ${context.pageNumber} of ${context.pagesCount}',
-            style: pw.TextStyle(fontSize: 9, color: _muted),
+          child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              // When the document was produced, which is not when the
+              // assessment was taken — a vet handed a printout needs to know
+              // both, and only the assessment date appears in the header.
+              pw.Text(
+                'MyPetFit · generated ${generationStamp(stampedAt)}',
+                style: pw.TextStyle(fontSize: 8.5, color: _muted),
+              ),
+              pw.Text(
+                'Page ${context.pageNumber} of ${context.pagesCount}',
+                style: pw.TextStyle(fontSize: 8.5, color: _muted),
+              ),
+            ],
           ),
         ),
         build: (context) => [
@@ -91,7 +104,7 @@ class ReportPdf {
             style: pw.TextStyle(fontSize: 10, color: _muted),
           ),
           pw.SizedBox(height: 8),
-          for (final entry in ranked) _categoryBar(entry.key, entry.value),
+          for (final entry in ranked) _categoryCard(entry.key, entry.value),
           pw.SizedBox(height: 10),
           _advice(result),
         ],
@@ -175,7 +188,7 @@ class ReportPdf {
             ),
             pw.SizedBox(height: 3),
             pw.Text(
-              _longDate(result.completedAt),
+              assessedStamp(result.completedAt),
               style: pw.TextStyle(fontSize: 10, color: _body),
             ),
           ],
@@ -320,17 +333,29 @@ class ReportPdf {
     );
   }
 
-  static pw.Widget _categoryBar(String name, double percent) {
+  /// One category as a bordered card: name, percentage, band and bar.
+  ///
+  /// Mirrors the on-screen card so the printout and the app agree — a vet
+  /// reading the PDF and an owner reading the phone should be looking at the
+  /// same document.
+  static pw.Widget _categoryCard(String name, double percent) {
     final clamped = percent.clamp(0, 100).toDouble();
-    final accent = PdfColor.fromInt(categoryBarColor(AppColors.light, clamped).toARGB32());
+    final accent =
+        PdfColor.fromInt(categoryBarColor(AppColors.light, clamped).toARGB32());
+    final band = bandForPercent(clamped);
 
     return pw.Container(
-      margin: const pw.EdgeInsets.only(bottom: 5),
+      margin: const pw.EdgeInsets.only(bottom: 7),
+      padding: const pw.EdgeInsets.fromLTRB(11, 9, 11, 10),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: _rule),
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Expanded(
                 child: pw.Text(
@@ -342,17 +367,41 @@ class ReportPdf {
                   ),
                 ),
               ),
+              pw.SizedBox(width: 10),
+              // The band beside the figure, so a scanned column of cards
+              // reads as words rather than as numbers needing a key.
+              pw.Container(
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: pw.BoxDecoration(
+                  color: PdfColor.fromInt(
+                    band.bandTint(AppColors.light).toARGB32(),
+                  ),
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Text(
+                  band.label,
+                  style: pw.TextStyle(
+                    fontSize: 8,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColor.fromInt(
+                      band.bandColor(AppColors.light).toARGB32(),
+                    ),
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 8),
               pw.Text(
                 '${clamped.round()}%',
                 style: pw.TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: pw.FontWeight.bold,
                   color: accent,
                 ),
               ),
             ],
           ),
-          pw.SizedBox(height: 4),
+          pw.SizedBox(height: 6),
           // Track with a flex-proportioned fill on top, mirroring the app's
           // breakdown bars. Expressed as flex weights out of 1000 because
           // the pdf widget set has no fractional sizing.
@@ -463,4 +512,38 @@ class ReportPdf {
       '${date.year}-${_two(date.month)}-${_two(date.day)}';
 
   static String _two(int value) => value.toString().padLeft(2, '0');
+
+  /// The report's categories in the order the document prints them.
+  ///
+  /// Worst first: the point of handing this over is to talk about what needs
+  /// attention, and that is the order a vet reads it in. Deliberately not the
+  /// questionnaire order the app shows — the page says so above the list.
+  /// Ties break on name so the same report always prints identically.
+  @visibleForTesting
+  static List<MapEntry<String, double>> rankedForReport(ScoreResult result) {
+    return result.categoryScores.entries.toList()
+      ..sort((a, b) {
+        final byScore = a.value.compareTo(b.value);
+        return byScore != 0 ? byScore : a.key.compareTo(b.key);
+      });
+  }
+
+  /// When the assessment was completed, to the minute.
+  @visibleForTesting
+  static String assessedStamp(DateTime when) {
+    final t = when.toLocal();
+    return '${_longDate(t)} at ${_clock(t)}';
+  }
+
+  /// When the document was produced.
+  @visibleForTesting
+  static String generationStamp(DateTime when) {
+    final t = when.toLocal();
+    return '${_isoDate(t)} ${_clock(t)}';
+  }
+
+  static String _clock(DateTime t) {
+    final hour = t.hour % 12 == 0 ? 12 : t.hour % 12;
+    return '$hour:${_two(t.minute)} ${t.hour < 12 ? 'am' : 'pm'}';
+  }
 }

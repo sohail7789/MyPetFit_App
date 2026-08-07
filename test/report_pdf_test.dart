@@ -69,4 +69,118 @@ void main() {
     );
     expect(bytes, isNotEmpty);
   });
+
+  group('what the document prints', () {
+    test('categories rank worst first, with a stable tie-break', () {
+      final ranked = ReportPdf.rankedForReport(
+        resultWith(categories: const {
+          'Sleep & Nutrition': 92,
+          'Skin & Coat Health': 41,
+          'Zeta area': 41,
+          'Activity & Fitness': 66,
+        }),
+      );
+
+      // Worst first is what a vet reads; equal scores order by name so the
+      // same report always prints identically.
+      expect(ranked.map((e) => e.key), [
+        'Skin & Coat Health',
+        'Zeta area',
+        'Activity & Fitness',
+        'Sleep & Nutrition',
+      ]);
+    });
+
+    test('an assessment stamp carries the date and the time', () {
+      expect(
+        ReportPdf.assessedStamp(DateTime(2026, 2, 14, 14, 35)),
+        '14 February 2026 at 2:35 pm',
+      );
+      expect(
+        ReportPdf.assessedStamp(DateTime(2026, 2, 14, 0, 5)),
+        '14 February 2026 at 12:05 am',
+      );
+    });
+
+    test('the generation stamp sorts and reads unambiguously', () {
+      expect(
+        ReportPdf.generationStamp(DateTime(2026, 8, 8, 12, 0)),
+        '2026-08-08 12:00 pm',
+      );
+      expect(
+        ReportPdf.generationStamp(DateTime(2026, 8, 8, 23, 9)),
+        '2026-08-08 11:09 pm',
+      );
+    });
+
+    test('the stamps are independent of each other', () async {
+      // A six-month-old report generated today must show both dates, not one
+      // standing in for the other.
+      final assessed = DateTime(2026, 2, 14, 9, 0);
+      final generated = DateTime(2026, 8, 8, 17, 30);
+
+      expect(ReportPdf.assessedStamp(assessed), contains('14 February 2026'));
+      expect(ReportPdf.generationStamp(generated), contains('2026-08-08'));
+
+      final bytes = await ReportPdf.build(
+        result: resultWith().copyWith(petId: 'p1'),
+        generatedAt: generated,
+      );
+      expect(bytes, isNotEmpty);
+    });
+  });
+
+  group('the document builds for every shape of report', () {
+    test('with no pet and no owner on file', () async {
+      final bytes = await ReportPdf.build(result: resultWith());
+      expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
+    });
+
+    test('with no category breakdown at all', () async {
+      // Records written before categoryScores existed decode to an empty map.
+      final bytes = await ReportPdf.build(
+        result: resultWith(categories: const {}),
+      );
+      expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
+    });
+
+    test('at both ends of the scale', () async {
+      for (final percent in [0, 100]) {
+        final bytes = await ReportPdf.build(
+          result: resultWith(
+            percent: percent,
+            categories: {'Skin & Coat Health': percent.toDouble()},
+          ),
+        );
+        expect(bytes, isNotEmpty, reason: 'failed at $percent%');
+      }
+    });
+
+    test('nine long-named categories still produce a document', () async {
+      // The category cards add nesting, and pagination is where that would
+      // show up first.
+      final bytes = await ReportPdf.build(
+        result: resultWith(
+          categories: {
+            for (var i = 0; i < 9; i++)
+              'An Extremely Long Assessment Category Name Number $i':
+                  (i * 11).toDouble(),
+          },
+        ),
+        pet: PetInfo(
+          id: 'p1',
+          name: 'Bartholomew',
+          breed: 'Rhodesian Ridgeback',
+          ageYears: 4,
+          ageMonths: 0,
+          gender: PetGender.female,
+          weightKg: 31.5,
+          heightCm: 64,
+          microchipNumber: '900123456789012',
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
+    });
+  });
 }

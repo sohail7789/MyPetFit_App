@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mypetfit_app/config/routes.dart';
 import 'package:mypetfit_app/config/theme.dart';
 import 'package:mypetfit_app/models/pet_info.dart';
+import 'package:mypetfit_app/models/score_band.dart';
 import 'package:mypetfit_app/models/score_result.dart';
 import 'package:mypetfit_app/providers/cart_provider.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';

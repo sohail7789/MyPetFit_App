@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/assets.dart';
+import '../config/constants.dart';
 import '../config/theme.dart';
 import 'score_result.dart';
 
@@ -94,8 +95,26 @@ extension ScoreBand on HealthCategory {
 /// Colour for a single category's breakdown bar, using the same cutoffs as
 /// the overall bands.
 Color categoryBarColor(AppColors c, double percent) {
-  if (percent <= 25) return c.critical;
-  if (percent <= 50) return c.warningText;
-  if (percent <= 75) return c.successText;
+  if (percent <= AppConstants.criticalMax) return c.critical;
+  if (percent <= AppConstants.needsImprovementMax) return c.warningText;
+  if (percent <= AppConstants.goodMax) return c.successText;
   return c.info;
+}
+
+/// The band a single category's percentage falls into.
+///
+/// Lives beside [categoryBarColor] because the two must always agree: a
+/// category labelled "Good" with a red bar is worse than either alone. Both
+/// read the same [AppConstants] cutoffs the overall band is scored against,
+/// so none of the three can drift apart.
+///
+/// Presentation only. Nothing here scores anything — it maps an already
+/// stored percentage to the band that describes it.
+HealthCategory bandForPercent(double percent) {
+  if (percent <= AppConstants.criticalMax) return HealthCategory.critical;
+  if (percent <= AppConstants.needsImprovementMax) {
+    return HealthCategory.needsImprovement;
+  }
+  if (percent <= AppConstants.goodMax) return HealthCategory.good;
+  return HealthCategory.excellent;
 }
