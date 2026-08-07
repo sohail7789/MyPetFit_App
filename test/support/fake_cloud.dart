@@ -11,12 +11,25 @@ import 'package:mypetfit_app/services/firestore_service.dart';
 /// pets all round-trip through it — so the restore path can be tested as it
 /// actually runs rather than one reconcile call at a time.
 class FakeCloud implements FirestoreService {
-  FakeCloud({this.consent, this.owner, List<PetInfo>? pets, this.offline})
-      : pets = [...?pets];
+  FakeCloud({
+    this.consent,
+    this.owner,
+    List<PetInfo>? pets,
+    Map<String, List<ScoreResult>>? assessments,
+    this.offline,
+  })  : pets = [...?pets],
+        assessments = {
+          for (final e in (assessments ?? {}).entries) e.key: [...e.value],
+        };
 
   ConsentState? consent;
   OwnerProfile? owner;
   List<PetInfo> pets;
+
+  /// Stored reports per pet id. Seeding these and calling
+  /// `loadAssessmentsFromFirestore` gives a QuizProvider real history through
+  /// its own restore path, rather than needing a test-only setter on it.
+  Map<String, List<ScoreResult>> assessments;
 
   /// When set, every read throws it — the offline case.
   final Object? offline;
@@ -77,13 +90,22 @@ class FakeCloud implements FirestoreService {
   }
 
   @override
-  Future<void> saveAssessment(String petId, ScoreResult result) async {}
+  Future<void> saveAssessment(String petId, ScoreResult result) async {
+    _checkOnline();
+    assessments.putIfAbsent(petId, () => []).insert(0, result);
+  }
 
   @override
-  Future<List<ScoreResult>> getAssessments(String petId) async => const [];
+  Future<List<ScoreResult>> getAssessments(String petId) async {
+    _checkOnline();
+    return [...?assessments[petId]];
+  }
 
   @override
-  Future<Map<String, List<ScoreResult>>> getAllAssessments() async => const {};
+  Future<Map<String, List<ScoreResult>>> getAllAssessments() async {
+    _checkOnline();
+    return {for (final e in assessments.entries) e.key: [...e.value]};
+  }
 
   @override
   Future<List<Product>> getProducts() async => const [];

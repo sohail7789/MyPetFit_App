@@ -6,6 +6,7 @@ import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../models/pet_info.dart';
 import '../../models/score_band.dart';
+import '../../models/score_result.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
@@ -551,6 +552,7 @@ class _ScoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final history = quiz.assessmentHistory;
     final result = quiz.result;
 
     return Container(
@@ -582,6 +584,7 @@ class _ScoreCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _ScoreRing(percent: result?.percentageScore),
                   const SizedBox(width: 14),
@@ -598,23 +601,42 @@ class _ScoreCard extends StatelessWidget {
                             letterSpacing: 1,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          result == null
-                              ? 'Not assessed yet'
-                              : result.category.label,
-                          style: AppTheme.font(
-                            size: 20,
-                            weight: FontWeight.w800,
-                            color: context.c.onAccent,
-                            letterSpacing: -0.5,
+                        const SizedBox(height: 6),
+                        if (result == null)
+                          Text(
+                            'Not assessed yet',
+                            style: AppTheme.font(
+                              size: 20,
+                              weight: FontWeight.w800,
+                              color: context.c.onAccent,
+                              letterSpacing: -0.5,
+                            ),
+                          )
+                        else
+                          // Wrap, not Row: at larger text scales the band and
+                          // the trend stop fitting on one line, and a Row
+                          // clips the trend rather than moving it down.
+                          Wrap(
+                            spacing: 7,
+                            runSpacing: 7,
+                            children: [
+                              _HeroChip(
+                                icon: result.category.bandGlyph,
+                                label: result.category.label,
+                                emphasised: true,
+                              ),
+                              if (scoreTrend(history) case final delta?)
+                                _HeroChip(
+                                  icon: trendIcon(delta),
+                                  label: trendLabel(delta),
+                                ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 7),
                         Text(
                           result == null
                               ? 'Take the 45-question assessment'
-                              : 'Last assessed ${_date(result.completedAt)}',
+                              : 'Assessed ${relativeDay(result.completedAt)}',
                           style: AppTheme.font(
                             size: 12.5,
                             color: context.c.onAccent.withValues(alpha: 0.8),
@@ -641,12 +663,101 @@ class _ScoreCard extends StatelessWidget {
     );
   }
 
-  static String _date(DateTime d) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${d.day} ${months[d.month - 1]}';
+}
+
+/// Points gained or lost against the previous assessment, or null when there
+/// is nothing to compare against.
+///
+/// [history] is newest first — QuizProvider inserts at the head and sorts
+/// descending after a cloud load — so the comparison is the first two
+/// entries, and a pet's very first report has no trend rather than a
+/// flattering "+78".
+@visibleForTesting
+int? scoreTrend(List<ScoreResult> history) {
+  if (history.length < 2) return null;
+  return history.first.percentageScore - history[1].percentageScore;
+}
+
+@visibleForTesting
+String trendLabel(int delta) {
+  if (delta > 0) return 'Improved by $delta%';
+  if (delta < 0) return 'Dropped by ${delta.abs()}%';
+  return 'No change';
+}
+
+@visibleForTesting
+IconData trendIcon(int delta) {
+  if (delta > 0) return Icons.arrow_upward_rounded;
+  if (delta < 0) return Icons.arrow_downward_rounded;
+  return Icons.remove_rounded;
+}
+
+/// How long ago something happened, in the words someone would use.
+///
+/// Coarsens as it recedes: exact days for the first week, then weeks, then
+/// months. Precision past that is noise on a dashboard — what matters is
+/// whether the last assessment was recent, not that it was 43 days ago.
+///
+/// A [when] in the future reads as today. Device clocks drift, records sync
+/// from other handsets, and "in -1 days" is worse than a day's imprecision.
+@visibleForTesting
+String relativeDay(DateTime when, {DateTime? now}) {
+  final today = DateUtils.dateOnly(now ?? DateTime.now());
+  final days = today.difference(DateUtils.dateOnly(when.toLocal())).inDays;
+
+  if (days <= 0) return 'today';
+  if (days == 1) return 'yesterday';
+  if (days < 7) return '$days days ago';
+  if (days < 14) return 'last week';
+  if (days < 30) return '${days ~/ 7} weeks ago';
+  if (days < 60) return 'last month';
+  if (days < 365) return '${days ~/ 30} months ago';
+  return 'over a year ago';
+}
+
+/// A translucent pill on the hero gradient.
+///
+/// Deliberately not tinted with the band's own colour: the band palette is
+/// built to sit on the light card surface, and dropping #E8654E onto the
+/// accent gradient reads as an error state rather than a score.
+class _HeroChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool emphasised;
+
+  const _HeroChip({
+    required this.icon,
+    required this.label,
+    this.emphasised = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final onAccent = context.c.onAccent;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(9, 5, 11, 5),
+      decoration: BoxDecoration(
+        color: onAccent.withValues(alpha: emphasised ? 0.22 : 0.13),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: onAccent),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: AppTheme.font(
+              size: 13,
+              weight: emphasised ? FontWeight.w800 : FontWeight.w600,
+              color: onAccent,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -679,8 +790,24 @@ class _ScoreRing extends StatelessWidget {
               ),
             ),
           ),
-          Text(
-            percent == null ? '—' : '$percent',
+          // The % rides as a smaller baseline-aligned suffix so the figure
+          // itself keeps the weight, and the pair still fits the ring at the
+          // 1.3 text scale the app clamps to.
+          Text.rich(
+            TextSpan(
+              text: percent == null ? '—' : '$percent',
+              children: [
+                if (percent != null)
+                  TextSpan(
+                    text: '%',
+                    style: AppTheme.font(
+                      size: 12,
+                      weight: FontWeight.w700,
+                      color: context.c.onAccent.withValues(alpha: 0.85),
+                    ),
+                  ),
+              ],
+            ),
             style: AppTheme.font(
               size: 19,
               weight: FontWeight.w800,

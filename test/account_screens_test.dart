@@ -75,6 +75,13 @@ void main() {
 
     testWidgets('shows the score and report CTA once assessed',
         (tester) async {
+      // A taller view than the 800x600 default: the dashboard's list is
+      // lazy, and the focus card sits below the fold on a short screen now
+      // that the hero carries a band and a trend.
+      tester.view.physicalSize = const Size(1200, 3000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
       await tester.pumpWidget(
         _host(const HomeDashboardScreen(), quiz: _scored()),
       );
