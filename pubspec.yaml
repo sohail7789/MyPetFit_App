@@ -28,6 +28,7 @@ dependencies:
   share_plus: ^13.3.0
   path_provider: ^2.1.6
   image_picker: ^1.2.3
+  printing: ^5.14.3
 
 dev_dependencies:
   flutter_test:

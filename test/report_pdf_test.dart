@@ -193,4 +193,49 @@ void main() {
       expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
     });
   });
+
+  group('printing shares the document with sharing', () {
+    test('both paths file the report under the same name', () {
+      final result = resultWith();
+      final pet = PetInfo(
+        id: 'p1',
+        name: 'Bruno The Third',
+        breed: 'Beagle',
+        ageYears: 3,
+        ageMonths: 0,
+        gender: PetGender.male,
+        weightKg: 12,
+        heightCm: 38,
+        updatedAt: DateTime.utc(2026, 1, 1),
+      );
+
+      // Punctuation and spaces are not filename material.
+      expect(
+        ReportPdf.documentName(result: result, pet: pet),
+        'MyPetFit-report-Bruno-The-Third-2026-08-02',
+      );
+    });
+
+    test('a report with no pet still gets a filename', () {
+      expect(
+        ReportPdf.documentName(result: resultWith()),
+        'MyPetFit-report-pet-2026-08-02',
+      );
+    });
+
+    test('the name is stamped with the assessment, not with today', () {
+      // A six-month-old report printed today files under its own date.
+      final old = ScoreResult(
+        rawScore: 40,
+        maxPossibleScore: 100,
+        percentageScore: 40,
+        category: HealthCategory.needsImprovement,
+        completedAt: DateTime(2025, 12, 25),
+      );
+      expect(
+        ReportPdf.documentName(result: old),
+        endsWith('2025-12-25'),
+      );
+    });
+  });
 }

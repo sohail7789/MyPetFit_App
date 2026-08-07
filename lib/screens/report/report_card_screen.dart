@@ -43,6 +43,14 @@ class _ReportCardScreenState extends State<ReportCardScreen>
 
   bool _remind = true;
   bool _sharing = false;
+  bool _printing = false;
+
+  /// Whether this device can print. Null until asked.
+  ///
+  /// Resolved once rather than on every build, and the control stays hidden
+  /// until the answer arrives — a print button that opens nothing is worse
+  /// than one that is absent.
+  bool? _canPrint;
 
   /// The report this screen is showing, captured the first time it resolves.
   ///
@@ -58,6 +66,39 @@ class _ReportCardScreenState extends State<ReportCardScreen>
   void initState() {
     super.initState();
     _countUp.forward();
+    _resolvePrinting();
+  }
+
+  Future<void> _resolvePrinting() async {
+    final can = await ReportPdf.canPrint();
+    if (mounted) setState(() => _canPrint = can);
+  }
+
+  /// Sends the same document [share] would send to the print dialog.
+  Future<void> _printReport(ScoreResult result) async {
+    if (_printing) return;
+    setState(() => _printing = true);
+
+    final pets = context.read<PetInfoProvider>();
+    final pet = _petFor(result, pets);
+
+    try {
+      await ReportPdf.printDocument(
+        result: result,
+        pet: pet,
+        owner: pets.ownerInfo,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Couldn't print the report: $error"),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _printing = false);
+    }
   }
 
   /// The stored report to render, resolved once.
@@ -240,11 +281,19 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: _gapMd),
                   _ShareButton(
                     busy: _sharing,
                     onPressed: _sharing ? null : () => _shareReport(result),
                   ),
+                  // Only where the platform can actually print.
+                  if (_canPrint ?? false) ...[
+                    const SizedBox(height: _gapSm),
+                    _PrintButton(
+                      busy: _printing,
+                      onPressed: _printing ? null : () => _printReport(result),
+                    ),
+                  ],
                   // The reminder is a forward-looking setting, so it belongs
                   // on the live report rather than on an archived one.
                   if (!widget.isHistorical) ...[
@@ -1047,4 +1096,77 @@ String _petLine(PetInfo pet) {
     ?weight,
   ];
   return parts.isEmpty ? 'No details recorded' : parts.join(' · ');
+}
+
+/// Sends the report to the platform print dialog.
+///
+/// Quieter than the share button by design: sharing is the common path to a
+/// vet, printing is the occasional one to a clinic file, and two equally
+/// loud controls would make the choice look harder than it is.
+class _PrintButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final bool busy;
+
+  const _PrintButton({required this.onPressed, this.busy = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      enabled: onPressed != null,
+      label: busy ? 'Preparing the report to print' : 'Print report',
+      container: true,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onPressed,
+        child: Container(
+          // Comfortably past the 48dp minimum touch target, and it holds at
+          // larger text scales because the height is a floor, not a fix.
+          constraints: const BoxConstraints(minHeight: 50),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: context.c.surfaceLow,
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: context.c.border),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (busy)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(context.c.bodyStrong),
+                  ),
+                )
+              else
+                Icon(
+                  Icons.print_outlined,
+                  size: 17,
+                  color: context.c.bodyStrong,
+                ),
+              const SizedBox(width: 9),
+              Flexible(
+                child: Text(
+                  busy ? 'Preparing…' : 'Print report',
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  style: AppTheme.font(
+                    size: 14.5,
+                    weight: FontWeight.w700,
+                    color: context.c.bodyStrong,
+                    height: 1.25,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

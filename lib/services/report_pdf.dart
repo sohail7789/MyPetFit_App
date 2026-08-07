@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data' show Uint8List;
 import 'dart:ui' show Rect;
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
@@ -6,6 +7,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../config/theme.dart';
@@ -14,13 +16,15 @@ import '../models/score_band.dart';
 import '../models/score_result.dart';
 
 /// Builds the fitness report card as a PDF and hands it to the platform
-/// share sheet.
+/// share sheet or print dialog.
 ///
 /// This is the artefact the owner takes to the vet, so it is laid out as a
 /// document rather than a screenshot of the app: the score and band up top,
-/// the full category breakdown ranked worst-first (which is the order a vet
-/// wants to read it in), and the pet and owner details needed to file it
-/// against a patient record.
+/// the full category breakdown in the order the app shows it, and the pet
+/// and owner details needed to file it against a patient record.
+///
+/// [build] is the single source of the document. Sharing and printing both
+/// go through it, so a mailed copy and a printed one can never differ.
 class ReportPdf {
   ReportPdf._();
 
@@ -116,6 +120,47 @@ class ReportPdf {
     return doc.save();
   }
 
+  /// Builds the PDF and hands it to the platform print dialog.
+  ///
+  /// Separate from [share] rather than folded into it: the share sheet is
+  /// how a report reaches a vet over WhatsApp or mail, and printing is how
+  /// it reaches a clinic file. Nothing about the document differs — the same
+  /// [build] produces both, so a printed copy and a shared one can never
+  /// disagree.
+  ///
+  /// Returns false when the user dismisses the dialog without printing, and
+  /// on the platforms where printing is unavailable.
+  static Future<bool> printDocument({
+    required ScoreResult result,
+    PetInfo? pet,
+    OwnerInfo? owner,
+  }) async {
+    final bytes = await build(result: result, pet: pet, owner: owner);
+
+    return Printing.layoutPdf(
+      name: documentName(result: result, pet: pet),
+      onLayout: (_) async => Uint8List.fromList(bytes),
+    );
+  }
+
+  /// Whether this device can print at all.
+  ///
+  /// Android before API 19 and some desktop configurations cannot, and a
+  /// print control that opens nothing is worse than one that is absent.
+  static Future<bool> canPrint() => Printing.info().then((i) => i.canPrint);
+
+  /// The document's filename, without extension.
+  ///
+  /// Shared by the share sheet and the print dialog so a report is filed
+  /// under the same name however it leaves the app.
+  @visibleForTesting
+  static String documentName({required ScoreResult result, PetInfo? pet}) {
+    final name = (pet?.name.trim().isNotEmpty ?? false)
+        ? pet!.name.trim().replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-')
+        : 'pet';
+    return 'MyPetFit-report-$name-${_isoDate(result.completedAt)}';
+  }
+
   /// Builds the PDF, writes it to a temp file and opens the share sheet.
   ///
   /// [origin] positions the sheet on iPad, where a share sheet without a
@@ -129,11 +174,9 @@ class ReportPdf {
     final bytes = await build(result: result, pet: pet, owner: owner);
 
     final dir = await getTemporaryDirectory();
-    final petName = (pet?.name.trim().isNotEmpty ?? false)
-        ? pet!.name.trim().replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-')
-        : 'pet';
-    final stamp = _isoDate(result.completedAt);
-    final file = File('${dir.path}/MyPetFit-report-$petName-$stamp.pdf');
+    final file = File(
+      '${dir.path}/${documentName(result: result, pet: pet)}.pdf',
+    );
     await file.writeAsBytes(bytes, flush: true);
 
     final subject = (pet?.name.trim().isNotEmpty ?? false)
