@@ -1,5 +1,6 @@
 import '../models/assessment_series.dart';
 import '../models/category_trend.dart';
+import 'category_sort.dart';
 
 /// Turns a history into one trend per health area.
 class CategoryTrendCalculator {
@@ -28,23 +29,12 @@ class CategoryTrendCalculator {
       }
     }
 
-    final trends = [
+    // Ordered by the shared comparator rather than a copy of the rule here:
+    // "worst decline first" is stated once, so a caller asking for it
+    // through CategorySortMode and this default cannot drift apart.
+    return sortCategoryTrends([
       for (final entry in byName.entries)
         CategoryTrend(name: entry.key, points: entry.value),
-    ];
-
-    trends.sort((a, b) {
-      final da = a.delta;
-      final db = b.delta;
-
-      if (da == null && db == null) return a.name.compareTo(b.name);
-      if (da == null) return 1;
-      if (db == null) return -1;
-
-      final byDelta = da.compareTo(db);
-      return byDelta != 0 ? byDelta : a.name.compareTo(b.name);
-    });
-
-    return trends;
+    ]);
   }
 }

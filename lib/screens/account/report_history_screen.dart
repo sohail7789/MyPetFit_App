@@ -8,6 +8,7 @@ import '../../analytics/adapters/assessment_series_adapter.dart';
 import '../../analytics/models/assessment_point.dart';
 import '../../analytics/services/analytics_cache.dart';
 import '../../analytics/widgets/analytics_empty_state.dart';
+import '../../analytics/widgets/category_evolution_list.dart';
 import '../../analytics/widgets/trend_graph.dart';
 import '../../models/pet_info.dart';
 import '../../models/score_band.dart';
@@ -473,9 +474,23 @@ class _TrendSectionState extends State<_TrendSection> {
       results: widget.history,
     );
 
-    return TrendGraph(
-      snapshot: _cache.snapshotOf(series),
-      onOpenReport: widget.onOpenReport,
+    final snapshot = _cache.snapshotOf(series);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TrendGraph(
+          snapshot: snapshot,
+          onOpenReport: widget.onOpenReport,
+        ),
+        // Analysis above the record: the graph says where the pet is going,
+        // the categories say which areas are taking it there, and the
+        // timeline below is what actually happened.
+        if (snapshot.categoryTrends.isNotEmpty) ...[
+          const SizedBox(height: 22),
+          CategoryEvolutionList(trends: snapshot.categoryTrends),
+        ],
+      ],
     );
   }
 }
