@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
+import '../../data/questions_data.dart';
 import '../../models/pet_info.dart';
 import '../../models/score_band.dart';
 import '../../models/score_result.dart';
@@ -82,10 +83,8 @@ class HomeDashboardScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (quiz.result != null) ...[
-                    const SizedBox(height: 14),
-                    _FocusCard(quiz: quiz),
-                  ],
+                  const SizedBox(height: 14),
+                  _CategoryCard(quiz: quiz),
                 ],
               ),
             ),
@@ -960,18 +959,31 @@ class _QuickAction extends StatelessWidget {
   }
 }
 
-/// "This week's focus" — the three weakest categories from the last report,
-/// so the advice reflects real answers rather than fixed copy.
-class _FocusCard extends StatelessWidget {
+/// Every scored category from the last report, weakest first, with the
+/// strongest and weakest called out above them.
+///
+/// Weakest first because the list is meant to be acted on: the categories a
+/// user can do something about belong at the top, not buried under the ones
+/// already going well.
+///
+/// Replaces the old "This week's focus", which showed the same data cut to
+/// three rows and only appeared once a report existed.
+class _CategoryCard extends StatelessWidget {
   final QuizProvider quiz;
 
-  const _FocusCard({required this.quiz});
+  const _CategoryCard({required this.quiz});
 
   @override
   Widget build(BuildContext context) {
-    final scores = quiz.result!.categoryScores.entries.toList()
-      ..sort((a, b) => a.value.compareTo(b.value));
-    final weakest = scores.take(3).toList();
+    // Data first: a restored report is worth showing even if the local read
+    // has not finished flipping isLoaded, and a skeleton drawn over real
+    // scores is a worse answer than the scores.
+    final ranked = rankedCategories(quiz.result);
+    if (ranked.isEmpty) {
+      return quiz.isLoaded
+          ? const _CategoryPreview()
+          : const _CategorySkeleton();
+    }
 
     return AppCard(
       background: context.c.surfaceLow,
@@ -980,48 +992,347 @@ class _FocusCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const DesignImage(AppAssets.emoTilt, width: 40, height: 40),
-              const SizedBox(width: 10),
-              Text(
-                "This week's focus",
-                style: AppTheme.font(
-                  size: 14,
-                  weight: FontWeight.w800,
-                  color: context.c.ink,
+              Expanded(
+                child: Text(
+                  'Category breakdown',
+                  style: AppTheme.font(
+                    size: 14,
+                    weight: FontWeight.w800,
+                    color: context.c.ink,
+                  ),
                 ),
+              ),
+              Text(
+                '${ranked.length} areas',
+                style: AppTheme.font(size: 12, color: context.c.muted),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          for (final entry in weakest)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 9),
+          // One scored category means best and worst are the same row, and
+          // two tiles saying the same thing reads as a bug.
+          if (ranked.length > 1) ...[
+            const SizedBox(height: 12),
+            // IntrinsicHeight so the two tiles match even when one name
+            // wraps to a second line. `stretch` alone cannot do it here:
+            // the row's height is unbounded inside the scrolling column, and
+            // stretching against an unbounded cross axis fails to lay out.
+            IntrinsicHeight(
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 6, right: 10),
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: categoryBarColor(context.c, entry.value),
-                      shape: BoxShape.circle,
+                  Expanded(
+                    child: _ExtremeTile(
+                      caption: 'STRONGEST',
+                      entry: ranked.last,
+                      icon: Icons.trending_up_rounded,
                     ),
                   ),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      '${entry.key} — ${entry.value.round()}%',
-                      style: AppTheme.font(
-                        size: 13,
-                        color: context.c.bodyStrong,
-                        height: 1.45,
-                      ),
+                    child: _ExtremeTile(
+                      caption: 'NEEDS WORK',
+                      entry: ranked.first,
+                      icon: Icons.trending_down_rounded,
                     ),
                   ),
                 ],
               ),
             ),
+          ],
+          const SizedBox(height: 14),
+          for (var i = 0; i < ranked.length; i++)
+            Padding(
+              padding: EdgeInsets.only(bottom: i == ranked.length - 1 ? 0 : 11),
+              child: _CategoryBar(entry: ranked[i]),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+/// Scored categories from [result], weakest first.
+///
+/// Empty when there is no report, and also when a report carries no
+/// breakdown — records written before `categoryScores` existed decode to an
+/// empty map, and those should fall to the same preview as a new account
+/// rather than rendering a card with nothing in it.
+///
+/// Ties break on the category name so the order cannot shuffle between
+/// rebuilds for two areas that happen to score the same.
+@visibleForTesting
+List<MapEntry<String, double>> rankedCategories(ScoreResult? result) {
+  final scores = result?.categoryScores ?? const <String, double>{};
+  return scores.entries.toList()
+    ..sort((a, b) {
+      final byScore = a.value.compareTo(b.value);
+      return byScore != 0 ? byScore : a.key.compareTo(b.key);
+    });
+}
+
+/// The strongest or weakest area, called out above the full list.
+class _ExtremeTile extends StatelessWidget {
+  final String caption;
+  final MapEntry<String, double> entry;
+  final IconData icon;
+
+  const _ExtremeTile({
+    required this.caption,
+    required this.entry,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = categoryBarColor(context.c, entry.value);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
+        border: Border.all(color: accent.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 13, color: accent),
+              const SizedBox(width: 4),
+              Text(
+                caption,
+                style: AppTheme.font(
+                  size: 10.5,
+                  weight: FontWeight.w800,
+                  color: accent,
+                  letterSpacing: 0.7,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Text(
+            entry.key,
+            // Two lines: the longest category names run to 28 characters and
+            // will not fit a half-width tile on one.
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.font(
+              size: 13,
+              weight: FontWeight.w700,
+              color: context.c.ink,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '${entry.value.round()}%',
+            style: AppTheme.font(
+              size: 17,
+              weight: FontWeight.w800,
+              color: accent,
+              letterSpacing: -0.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One category: its name, its score, and a bar coloured by the same
+/// cutoffs the overall bands use.
+class _CategoryBar extends StatelessWidget {
+  final MapEntry<String, double> entry;
+
+  const _CategoryBar({required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    final percent = entry.value.clamp(0, 100).toDouble();
+    final accent = categoryBarColor(context.c, percent);
+
+    return Semantics(
+      label: '${entry.key}, ${percent.round()} percent',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  entry.key,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.font(
+                    size: 13,
+                    color: context.c.bodyStrong,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${percent.round()}%',
+                style: AppTheme.font(
+                  size: 12.5,
+                  weight: FontWeight.w800,
+                  color: accent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: percent / 100),
+              duration: const Duration(milliseconds: 650),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, _) => LinearProgressIndicator(
+                value: value,
+                minHeight: 6,
+                backgroundColor: context.c.divider,
+                valueColor: AlwaysStoppedAnimation<Color>(accent),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// What the assessment covers, before there is a report to show.
+///
+/// The nine real category names rather than a "no data" line: someone who
+/// has not been assessed learns what they would get, which is a better use
+/// of the space than repeating the hero's invitation.
+class _CategoryPreview extends StatelessWidget {
+  const _CategoryPreview();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      background: context.c.surfaceLow,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'What the assessment covers',
+            style: AppTheme.font(
+              size: 14,
+              weight: FontWeight.w800,
+              color: context.c.ink,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Each area is scored separately, so you can see exactly where to '
+            'start.',
+            style: AppTheme.font(
+              size: 12.5,
+              color: context.c.body,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 13),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: [
+              for (final category in healthCategories)
+                if (category.maxScore > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.c.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: context.c.border),
+                    ),
+                    child: Text(
+                      category.name,
+                      style: AppTheme.font(
+                        size: 12,
+                        weight: FontWeight.w600,
+                        color: context.c.body,
+                      ),
+                    ),
+                  ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Placeholder rows while the persisted assessments are still being read.
+///
+/// The router only lands on the dashboard once startup reports ready, so
+/// this is a narrow window — but the screen is also reachable by tab while
+/// a reload is in flight, and empty space there reads as "no data".
+class _CategorySkeleton extends StatelessWidget {
+  const _CategorySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget bar(double widthFactor) => Padding(
+          padding: const EdgeInsets.only(bottom: 11),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: widthFactor,
+                child: Container(
+                  height: 11,
+                  decoration: BoxDecoration(
+                    color: context.c.divider,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 7),
+              Container(
+                height: 6,
+                decoration: BoxDecoration(
+                  color: context.c.divider,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ],
+          ),
+        );
+
+    return Semantics(
+      label: 'Loading category breakdown',
+      child: AppCard(
+        background: context.c.surfaceLow,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: 0.45,
+              child: Container(
+                height: 13,
+                decoration: BoxDecoration(
+                  color: context.c.divider,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            bar(0.55),
+            bar(0.7),
+            bar(0.4),
+          ],
+        ),
       ),
     );
   }

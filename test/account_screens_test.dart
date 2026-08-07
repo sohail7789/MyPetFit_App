@@ -89,7 +89,9 @@ void main() {
 
       expect(find.text('Excellent'), findsOneWidget);
       expect(find.text('View report card'), findsOneWidget);
-      expect(find.text("This week's focus"), findsOneWidget);
+      // "This week's focus" was the three weakest categories; the category
+      // summary supersedes it with the full breakdown.
+      expect(find.text('Category breakdown'), findsOneWidget);
     });
 
     testWidgets('offers to resume a part-finished assessment',
