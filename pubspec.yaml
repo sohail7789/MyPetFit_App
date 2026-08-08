@@ -36,6 +36,11 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # Drives the real app on a device or emulator. The suites under
+  # integration_test/ are deliberately built on fakes rather than production
+  # Firebase — see integration_test/README.md.
+  integration_test:
+    sdk: flutter
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
   image_picker_platform_interface: ^2.11.1
