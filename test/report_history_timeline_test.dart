@@ -296,12 +296,14 @@ void main() {
       // kept stable once history is trimmed.
       expect(find.text('Bruno'), findsNWidgets(2));
       expect(find.textContaining('#'), findsNothing);
-      expect(find.text('Good'), findsNWidgets(2));
+      // Two rows, plus the band on the health overview's headline.
+      expect(find.text('Good'), findsNWidgets(3));
       expect(find.text('Today · ${dateLabel(0)}'), findsOneWidget);
       expect(find.textContaining('Last month · '), findsOneWidget);
-      // Once on its row. The trend graph above plots the score rather than
-      // printing it, so it no longer duplicates the figure.
-      expect(find.text('80'), findsOneWidget);
+      // The latest score twice — its row and the overview's headline. The
+      // trend graph between them plots scores rather than printing them, so
+      // it still adds no copy of either figure.
+      expect(find.text('80'), findsNWidgets(2));
       expect(find.text('75'), findsOneWidget);
       expect(find.text('Current'), findsOneWidget);
     });
@@ -416,9 +418,12 @@ void main() {
       await tester.pumpWidget(host(quiz, pets));
       await tester.pump();
 
+      // Twice each: the health overview reports the pet's standing above the
+      // timeline, and the row repeats it as part of the record. "Current" is
+      // the row's alone, so it is what proves the row rendered.
+      expect(find.text('80'), findsNWidgets(2));
+      expect(find.text('Good'), findsNWidgets(2));
       // No name line at all rather than an avatar beside empty text.
-      expect(find.text('80'), findsOneWidget);
-      expect(find.text('Good'), findsOneWidget);
       expect(find.text('Current'), findsOneWidget);
     });
   });

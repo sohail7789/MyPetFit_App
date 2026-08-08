@@ -3,13 +3,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mypetfit_app/analytics/adapters/assessment_series_adapter.dart';
+import 'package:mypetfit_app/analytics/domain/overview_calculator.dart';
+import 'package:mypetfit_app/analytics/services/analytics_engine.dart';
+import 'package:mypetfit_app/analytics/widgets/analytics_overview_card.dart';
 import 'package:mypetfit_app/config/theme.dart';
 import 'package:mypetfit_app/data/questions_data.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';
 import 'package:mypetfit_app/providers/app_startup_provider.dart';
+import 'package:mypetfit_app/providers/product_provider.dart';
 import 'package:mypetfit_app/providers/quiz_provider.dart';
 import 'package:mypetfit_app/screens/account/report_history_screen.dart';
 import 'package:mypetfit_app/screens/report/report_card_screen.dart';
+
+import 'support/product_fixtures.dart';
 
 /// Answers every scored question with the option at [rank] (0 = best) and
 /// records a result.
@@ -84,7 +91,7 @@ void main() {
   });
 
   group('report history', () {
-    Widget host(QuizProvider quiz) {
+    Widget host(QuizProvider quiz, {ProductProvider? catalog}) {
       final router = GoRouter(
         initialLocation: '/report-history',
         routes: [
@@ -106,6 +113,10 @@ void main() {
         providers: [
           ChangeNotifierProvider.value(value: quiz),
           ChangeNotifierProvider(create: (_) => PetInfoProvider()),
+          // The health overview names a focus area, and the screen resolves
+          // that to stock — so this tab now needs a catalog in scope, the
+          // way the dashboard always has.
+          ChangeNotifierProvider(create: (_) => catalog ?? emptyCatalog()),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light,
@@ -164,6 +175,105 @@ void main() {
 
       expect(find.text('No report yet'), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+
+    /// Feature 6 — the health overview, and the seam between the domain's
+    /// focus area and the catalog that fills it.
+    group('the health overview', () {
+      void sizeUp(WidgetTester tester) {
+        tester.view.physicalSize = const Size(1200, 4000);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+      }
+
+      /// What the domain would name as the focus area for [quiz]'s record.
+      String focusFor(QuizProvider quiz) {
+        const adapter = AssessmentSeriesAdapter();
+        const calculator = OverviewCalculator();
+
+        final snapshot = const AnalyticsEngine().analyse(
+          adapter.fromResults(
+            subjectId: 'p1',
+            results: quiz.assessmentHistory,
+          ),
+        );
+
+        return calculator(snapshot, now: DateTime.now()).focus!.categoryName;
+      }
+
+      testWidgets('summarises the record above the evidence for it',
+          (tester) async {
+        sizeUp(tester);
+        final quiz = _scored();
+
+        await tester.pumpWidget(host(quiz));
+        await tester.pump();
+
+        expect(find.byType(AnalyticsOverviewCard), findsOneWidget);
+        expect(find.text('Health overview'), findsOneWidget);
+        // The summary and the timeline read the same record, so the newest
+        // score appears in both.
+        expect(
+          find.text('${quiz.result!.percentageScore}'),
+          findsNWidgets(2),
+        );
+      });
+
+      testWidgets('a single assessment still gets a summary', (tester) async {
+        sizeUp(tester);
+
+        await tester.pumpWidget(host(_scored()));
+        await tester.pump();
+
+        // The graph cannot draw a direction from one point, but the score,
+        // the band and the cadence are all real and worth reporting.
+        expect(find.byType(AnalyticsOverviewCard), findsOneWidget);
+        expect(find.text('One assessment recorded'), findsOneWidget);
+        expect(find.text('Next assessment'), findsOneWidget);
+      });
+
+      testWidgets('the focus area resolves through the dashboard’s mapping',
+          (tester) async {
+        sizeUp(tester);
+        final quiz = _scored();
+        final area = focusFor(quiz);
+
+        final tagged = testProduct(
+          id: 'focus-support',
+          name: 'Focus Area Support',
+          recommendedFor: [area],
+        );
+
+        await tester.pumpWidget(
+          host(quiz, catalog: loadedTestCatalog([tagged])),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Recommended for $area'), findsOneWidget);
+        expect(find.text('Focus Area Support'), findsOneWidget);
+      });
+
+      testWidgets('nothing tagged for the area leaves no empty slot',
+          (tester) async {
+        sizeUp(tester);
+        final quiz = _scored();
+
+        // Stock exists, but merchandising tagged none of it for this area.
+        final untagged = testProduct(
+          id: 'unrelated',
+          name: 'Unrelated Product',
+          recommendedFor: const ['Not A Real Category'],
+        );
+
+        await tester.pumpWidget(
+          host(quiz, catalog: loadedTestCatalog([untagged])),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AnalyticsOverviewCard), findsOneWidget);
+        expect(find.textContaining('Recommended for'), findsNothing);
+        expect(find.text('Unrelated Product'), findsNothing);
+      });
     });
   });
 }

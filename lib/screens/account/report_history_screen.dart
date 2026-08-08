@@ -5,18 +5,24 @@ import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../analytics/adapters/assessment_series_adapter.dart';
+import '../../analytics/domain/overview_calculator.dart';
 import '../../analytics/models/assessment_point.dart';
+import '../../analytics/models/recommendation_focus.dart';
 import '../../analytics/services/analytics_cache.dart';
 import '../../analytics/widgets/analytics_empty_state.dart';
+import '../../analytics/widgets/analytics_overview_card.dart';
 import '../../analytics/widgets/category_evolution_list.dart';
 import '../../analytics/widgets/insight_list.dart';
 import '../../analytics/widgets/milestone_list.dart';
 import '../../analytics/widgets/trend_graph.dart';
+import '../../data/product_recommendations.dart';
 import '../../models/pet_info.dart';
 import '../../models/score_band.dart';
 import '../../models/score_result.dart';
 import '../../providers/pet_info_provider.dart';
+import '../../providers/product_provider.dart';
 import '../../providers/quiz_provider.dart';
+import '../shop/widgets/product_tile.dart' show ProductArt, formatPrice;
 import '../../widgets/app_button.dart';
 import '../../widgets/design_image.dart';
 import '../../widgets/photo_slot.dart';
@@ -458,19 +464,11 @@ class _TrendSection extends StatefulWidget {
 
 class _TrendSectionState extends State<_TrendSection> {
   static const _adapter = AssessmentSeriesAdapter();
+  static const _overview = OverviewCalculator();
   final _cache = AnalyticsCache();
 
   @override
   Widget build(BuildContext context) {
-    // One observation is a starting point, not a direction. Drawing a graph
-    // through a single dot would look like a flat line, which is a claim the
-    // record does not support.
-    if (widget.history.length < 2) {
-      return AnalyticsEmptyState.needsSecondAssessment(
-        onStart: () => context.push(AppRoutes.quiz),
-      );
-    }
-
     final series = _adapter.fromResults(
       subjectId: widget.petId,
       results: widget.history,
@@ -478,32 +476,159 @@ class _TrendSectionState extends State<_TrendSection> {
 
     final snapshot = _cache.snapshotOf(series);
 
+    // One clock reading for the whole build, so the summary and the card it
+    // is rendered into cannot straddle midnight.
+    final now = DateTime.now();
+
+    // Derived here rather than inside the snapshot: a snapshot is cached and
+    // immutable, so a due date stored in one would still be yesterday's
+    // tomorrow when the screen is reopened.
+    final overview = _overview(snapshot, now: now);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TrendGraph(
-          snapshot: snapshot,
-          onOpenReport: widget.onOpenReport,
+        // The executive summary, above the evidence for it. Everything below
+        // this card is the detail behind a line in it.
+        AnalyticsOverviewCard(
+          overview: overview,
+          now: now,
+          recommendation: _Recommendation(focus: overview.focus),
         ),
-        // Three windows on the same history, each answering a different
-        // question: the graph covers the recorded history, the insights the
-        // most recent change, the category cards first recorded to latest.
-        if (snapshot.insights.isNotEmpty) ...[
+        // One observation is a starting point, not a direction. Drawing a
+        // graph through a single dot would look like a flat line, which is a
+        // claim the record does not support — but the summary above still
+        // has a score, a band and a cadence to report, so it stays.
+        if (widget.history.length < 2) ...[
+          const SizedBox(height: 18),
+          AnalyticsEmptyState.needsSecondAssessment(
+            onStart: () => context.push(AppRoutes.quiz),
+          ),
+        ] else ...[
           const SizedBox(height: 22),
-          InsightList(insights: snapshot.insights),
-        ],
-        // Analysis above the record: the graph says where the pet is going,
-        // the categories say which areas are taking it there, and the
-        // timeline below is what actually happened.
-        if (snapshot.categoryTrends.isNotEmpty) ...[
-          const SizedBox(height: 22),
-          CategoryEvolutionList(trends: snapshot.categoryTrends),
-        ],
-        if (snapshot.milestones.isNotEmpty) ...[
-          const SizedBox(height: 22),
-          MilestoneList(milestones: snapshot.milestones),
+          TrendGraph(
+            snapshot: snapshot,
+            onOpenReport: widget.onOpenReport,
+          ),
+          // Three windows on the same history, each answering a different
+          // question: the graph covers the recorded history, the insights the
+          // most recent change, the category cards first recorded to latest.
+          if (snapshot.insights.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            InsightList(insights: snapshot.insights),
+          ],
+          // Analysis above the record: the graph says where the pet is going,
+          // the categories say which areas are taking it there, and the
+          // timeline below is what actually happened.
+          if (snapshot.categoryTrends.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            CategoryEvolutionList(trends: snapshot.categoryTrends),
+          ],
+          if (snapshot.milestones.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            MilestoneList(milestones: snapshot.milestones),
+          ],
         ],
       ],
+    );
+  }
+}
+
+/// The catalog's answer to the focus area the domain named.
+///
+/// The screen's job, not the analytics module's: the card takes a finished
+/// widget, and everything that knows what a `Product` is stays on this side
+/// of the boundary. Renders nothing when there is no focus, no catalog yet,
+/// or nothing tagged for the area — an executive summary with a blank
+/// merchandising slot is worse than one without the slot.
+class _Recommendation extends StatelessWidget {
+  final RecommendationFocus? focus;
+
+  const _Recommendation({required this.focus});
+
+  @override
+  Widget build(BuildContext context) {
+    final area = focus;
+    if (area == null) return const SizedBox.shrink();
+
+    // Watched here rather than by the section, so the catalog arriving
+    // repaints this line instead of re-rendering the whole analytics stack.
+    final catalog = context.watch<ProductProvider>();
+    if (catalog.loading) return const SizedBox.shrink();
+
+    // The same mapping the dashboard recommends from, called rather than
+    // reimplemented.
+    final matches = recommendedProducts(catalog.products, area.categoryName);
+    if (matches.isEmpty) return const SizedBox.shrink();
+
+    final product = matches.first;
+
+    return Semantics(
+      button: true,
+      label: 'Recommended for ${area.categoryName}: ${product.name}, '
+          '${formatPrice(product.price)}',
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () =>
+            context.push('${AppRoutes.productDetail}/${product.id}'),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(11, 10, 12, 10),
+          decoration: BoxDecoration(
+            color: context.c.tintPanel,
+            borderRadius: BorderRadius.circular(AppTheme.radiusCardSmall),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 38,
+                height: 38,
+                child: ProductArt(product: product, pawSize: 20),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Recommended for ${area.categoryName}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.font(
+                        size: 11.5,
+                        weight: FontWeight.w700,
+                        color: context.c.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.font(
+                        size: 13,
+                        weight: FontWeight.w800,
+                        color: context.c.ink,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                formatPrice(product.price),
+                style: AppTheme.font(
+                  size: 13,
+                  weight: FontWeight.w800,
+                  color: context.c.actionText,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

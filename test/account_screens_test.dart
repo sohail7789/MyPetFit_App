@@ -235,12 +235,19 @@ void main() {
 
     testWidgets('lists a completed report and marks it current',
         (tester) async {
+      // Tall enough to reach the timeline: the health overview now sits above
+      // it, and a lazily built list will not render a row below the fold.
+      tester.view.physicalSize = const Size(1200, 3000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
       await tester.pumpWidget(
         _host(const ReportHistoryScreen(), quiz: _scored()),
       );
       await tester.pump();
 
-      expect(find.text('100'), findsOneWidget);
+      // Once in the overview's headline, once on the timeline row.
+      expect(find.text('100'), findsNWidgets(2));
       // The newest report is marked with a pill on the timeline row; it used
       // to be appended to the band label as "Excellent · current".
       expect(find.text('Current'), findsOneWidget);

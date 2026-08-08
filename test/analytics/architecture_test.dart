@@ -56,6 +56,41 @@ void main() {
       );
     });
 
+    test('the pure layers carry no cloud dependency', () {
+      // The rule that keeps the recommendation honest. `Product` is a
+      // Firestore-backed type, so a domain that returned one would drag
+      // Firebase into a veterinarian portal's backend, a digest job and a
+      // server-rendered PDF. Analytics names a category; whichever surface
+      // owns a catalog resolves it to stock.
+      const cloudPackages = [
+        'package:cloud_firestore/',
+        'package:firebase_core/',
+        'package:firebase_auth/',
+        'package:firebase_storage/',
+      ];
+
+      final offenders = <String>[];
+
+      for (final directory in pureDirectories) {
+        for (final file in dartFilesIn(directory)) {
+          for (final line in file.readAsLinesSync()) {
+            final trimmed = line.trim();
+            if (!trimmed.startsWith('import ')) continue;
+            if (cloudPackages.any(trimmed.contains)) {
+              offenders.add('${file.path}: $trimmed');
+            }
+          }
+        }
+      }
+
+      expect(
+        offenders,
+        isEmpty,
+        reason: 'analytics/models, domain, services and presentation must run '
+            'with no Firebase in scope.\n${offenders.join('\n')}',
+      );
+    });
+
     test('the pure layers never reach for a provider', () {
       // Providers are the adapter's business. A calculator that reads one
       // cannot be handed a smart collar's history, which is the whole point

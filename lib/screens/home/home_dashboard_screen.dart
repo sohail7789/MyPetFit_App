@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../config/assets.dart';
 import '../../config/routes.dart';
+import '../../analytics/models/assessment_cadence.dart';
 import '../../config/theme.dart';
+import '../../data/product_recommendations.dart';
 import '../../data/questions_data.dart';
 import '../../models/pet_info.dart';
 import '../../models/product.dart';
@@ -1318,14 +1320,6 @@ class _RecommendationCard extends StatelessWidget {
   }
 }
 
-/// Products tagged for [category], in the order the catalog returned them.
-///
-/// No ranking: Firestore order is merchandising's order, and inventing a
-/// sort here would quietly override it.
-@visibleForTesting
-List<Product> recommendedProducts(List<Product> catalog, String category) =>
-    catalog.where((p) => p.recommendedFor.contains(category)).toList();
-
 /// Title, subtitle and whatever presentation the matches call for.
 class _RecommendationShell extends StatelessWidget {
   final String petName;
@@ -1787,12 +1781,6 @@ class _RecommendationSkeleton extends StatelessWidget {
 /// Where a pet stands on assessment cadence.
 typedef AssessmentReminder = ({String label, IconData icon, bool isDue});
 
-/// How long an assessment stays current before another is worth taking.
-///
-/// Ninety days, matching the "retake in 3 months" already in the report
-/// card's advice — one cadence, stated in one place.
-const int _assessmentValidDays = 90;
-
 /// The cadence line for [latest], or null when nothing has been assessed.
 ///
 /// Null rather than a "never assessed" string: the hero already carries that
@@ -1814,7 +1802,15 @@ AssessmentReminder? assessmentReminder(ScoreResult? latest, {DateTime? now}) {
       isDue: false,
     );
   }
-  if (days >= _assessmentValidDays) {
+  // The retake interval is the analytics module's policy, not this screen's.
+  // It used to be a private constant here, a second copy of the ninety days
+  // the report card advises in prose — the banner and the health overview
+  // must never disagree about whether an assessment is due.
+  final due = AssessmentCadence.standard.dueFrom(
+    latest.completedAt,
+    now: now ?? DateTime.now(),
+  );
+  if (due != null && due.isDue) {
     return (
       label: 'Assessment due',
       icon: Icons.event_repeat_rounded,

@@ -6,6 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mypetfit_app/config/routes.dart';
 import 'package:mypetfit_app/config/theme.dart';
+// The mapping moved out of the dashboard so Report History's health overview
+// could recommend from the identical rule. The tests below are unchanged —
+// which is the point: behaviour did not move with it.
+import 'package:mypetfit_app/data/product_recommendations.dart';
 import 'package:mypetfit_app/models/pet_info.dart';
 import 'package:mypetfit_app/models/product.dart';
 import 'package:mypetfit_app/models/score_result.dart';
