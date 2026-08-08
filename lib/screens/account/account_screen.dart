@@ -23,6 +23,7 @@ class AccountScreen extends StatelessWidget {
   Future<void> _logOut(BuildContext context) async {
     // Resolved before the first await so nothing reaches for a stale context.
     final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final quiz = context.read<QuizProvider>();
     final cart = context.read<CartProvider>();
     final address = context.read<AddressProvider>();
@@ -40,7 +41,23 @@ class AccountScreen extends StatelessWidget {
     // without this the next person to sign in on this device inherits
     // that verdict and none of their own data is ever fetched.
     startup.reset();
-    await auth.signOut();
+
+    try {
+      await auth.signOut();
+    } catch (error) {
+      // The session did not end. Staying put and saying so is the honest
+      // outcome — sending someone to the sign-in screen while their Firebase
+      // session is still live is exactly the state this fix exists to
+      // prevent.
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text("Couldn't sign out: $error"),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     router.go(AppRoutes.signIn);
   }
 

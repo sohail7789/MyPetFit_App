@@ -6,6 +6,16 @@ import '../services/auth_service.dart';
 class AuthProvider extends ChangeNotifier {
   static const _key = 'auth_state';
 
+  /// Ends the Firebase and Google sessions.
+  ///
+  /// Injected only by tests, and resolved lazily at call time: reaching for
+  /// [AuthService.instance] eagerly would touch `FirebaseAuth.instance` in
+  /// every widget test that merely constructs a provider.
+  final Future<void> Function()? _endSession;
+
+  AuthProvider({@visibleForTesting Future<void> Function()? endSession})
+      : _endSession = endSession;
+
   bool _isSignedIn = false;
   bool _isLoaded = false;
   String _username = '';
@@ -124,7 +134,21 @@ class AuthProvider extends ChangeNotifier {
   }
 
 
+  /// Ends the session everywhere, not just on this screen.
+  ///
+  /// The fields below are what the UI reads; the *Firebase* session is what
+  /// grants Firestore access. Clearing only the former left
+  /// `FirebaseAuth.currentUser` signed in after a logout, so
+  /// [FirestoreService] — which derives every path from that uid — could
+  /// still read and write the previous account's records. On a shared device
+  /// that is one person's health data reachable from another's session.
+  ///
+  /// The session is ended **first**, and a failure propagates without
+  /// clearing the local fields: an app that says "signed out" while the
+  /// session is alive is worse than one that reports it could not sign out.
   Future<void> signOut() async {
+    await (_endSession ?? AuthService.instance.signOut)();
+
     _isSignedIn = false;
     _username = '';
     _email = '';
