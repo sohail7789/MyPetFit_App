@@ -1,4 +1,4 @@
-import 'dart:ui' show SemanticsAction;
+import 'dart:ui' show SemanticsAction, Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -143,9 +143,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // The platform's own expanded flag, not an English word in a label.
+      //
+      // Tristate, not bool: `Tristate.none` means the node never declared an
+      // expanded state at all, which a screen reader announces as a plain
+      // button. Asserting `Tristate.isFalse` is therefore the stronger claim
+      // — the section says it is collapsed rather than saying nothing.
       expect(
         tester.getSemantics(heading).getSemanticsData().flagsCollection.isExpanded,
-        isFalse,
+        Tristate.isFalse,
       );
 
       activate(tester, heading);
@@ -153,7 +158,7 @@ void main() {
 
       expect(
         tester.getSemantics(heading).getSemanticsData().flagsCollection.isExpanded,
-        isTrue,
+        Tristate.isTrue,
       );
 
       handle.dispose();

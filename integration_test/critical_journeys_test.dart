@@ -50,21 +50,24 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // The two answers that must not need a tap.
+      // The two answers that must not need a tap. These are above the fold on
+      // any phone, so they are the only things this test may assert before
+      // scrolling: on a real viewport the list below is not merely off-screen,
+      // it has not been built. The widget suite, which sizes the surface up
+      // until everything fits, is what asserts the sections all exist at once
+      // — see report_history_disclosure_test.dart.
       expect(find.byType(AnalyticsOverviewCard), findsOneWidget);
       expect(find.byType(TrendGraph), findsOneWidget);
 
-      // Four records, so the timeline is closed — and the newest is visible
-      // anyway. This is the disclosure rule, verified against a real
-      // viewport rather than an assumed one.
-      expect(find.text('Assessment timeline'), findsOneWidget);
-
       // Real scrolling through a lazily built list, which is the part a
-      // widget test's oversized viewport never exercises.
+      // widget test's oversized viewport never exercises. Taken in the order
+      // the sections are laid out, which is the order a reader meets them.
+      final scrollable = find.byType(Scrollable).first;
+
       await tester.scrollUntilVisible(
         find.text('Category progress'),
         200,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: scrollable,
       );
       await tester.pumpAndSettle();
 
@@ -72,6 +75,38 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(CategoryTrendCard), findsWidgets);
+
+      // Four records, so the timeline is closed — and the newest is visible
+      // anyway. This is the disclosure rule, verified against a real
+      // viewport rather than an assumed one.
+      await tester.scrollUntilVisible(
+        find.text('Assessment timeline'),
+        200,
+        scrollable: scrollable,
+      );
+      await tester.pumpAndSettle();
+
+      final timeline = find.byKey(const ValueKey('timeline'));
+      expect(
+        find.descendant(of: timeline, matching: find.text('Assessment timeline')),
+        findsOneWidget,
+      );
+      // Closed: the control still offers the rest, and the grouped body that
+      // only an open section builds was never constructed.
+      expect(
+        find.descendant(of: timeline, matching: find.text('View all')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: timeline, matching: find.text('OLDER')),
+        findsNothing,
+      );
+      // …and the newest assessment is on screen regardless, in full.
+      expect(
+        find.descendant(of: timeline, matching: find.text('Current')),
+        findsOneWidget,
+      );
+
       expect(tester.takeException(), isNull);
     });
 
