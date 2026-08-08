@@ -36,8 +36,7 @@ sheet, and whether a Crashlytics report actually arrives.
 | Suite | Proves |
 |---|---|
 | `critical_journeys_test.dart` | assessment → report → history → pet switching, on a device, with no cross-pet contamination |
-| `startup_recovery_test.dart` | the Firebase-unavailable screen and that its retry re-runs initialisation |
-| `accessibility_test.dart` | the controls a screen reader must be able to operate are operable on a real platform |
+| `startup_and_accessibility_test.dart` | the Firebase-unavailable screen and that its retry re-runs initialisation; and that the controls a screen reader must be able to operate are operable on a real platform |
 
 ## Blocked — needs work outside this repository
 
