@@ -6,12 +6,19 @@ import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../analytics/adapters/assessment_series_adapter.dart';
 import '../../analytics/domain/overview_calculator.dart';
+import '../../analytics/models/analytics_overview.dart';
+import '../../analytics/models/analytics_snapshot.dart';
 import '../../analytics/models/assessment_point.dart';
+import '../../analytics/models/health_insight.dart';
+import '../../analytics/models/insight_severity.dart';
 import '../../analytics/models/recommendation_focus.dart';
 import '../../analytics/services/analytics_cache.dart';
 import '../../analytics/widgets/analytics_empty_state.dart';
+import '../../analytics/widgets/analytics_loading_state.dart';
 import '../../analytics/widgets/analytics_overview_card.dart';
+import '../../analytics/widgets/analytics_section.dart';
 import '../../analytics/widgets/category_evolution_list.dart';
+import '../../analytics/widgets/insight_card.dart';
 import '../../analytics/widgets/insight_list.dart';
 import '../../analytics/widgets/milestone_list.dart';
 import '../../analytics/widgets/trend_graph.dart';
@@ -54,57 +61,31 @@ class ReportHistoryScreen extends StatelessWidget {
               child: Text('Report history', style: context.t.h2),
             ),
             Expanded(
-              child: history.isEmpty
-                  // Into the questionnaire, not back through consent — see
-                  // the dashboard's retake action.
-                  ? _Empty(onStart: () => context.push(AppRoutes.quiz))
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
-                      children: [
-                        // The analytics module hosted here rather than on a
-                        // screen of its own: navigation stays in one place
-                        // and the widgets stay reusable elsewhere.
-                        _TrendSection(
-                          history: history,
-                          petId: pet?.id ?? '',
-                          onOpenReport: (pointId) =>
-                              _openReport(context, history, pointId),
-                        ),
-                        const SizedBox(height: 18),
-                        for (final group in groupHistory(history)) ...[
-                          _GroupHeading(label: group.bucket.label),
-                          const SizedBox(height: 10),
-                          for (final entry in group.entries) ...[
-                            _HistoryRow(
-                              entry: entry,
-                              pet: pet,
-                              // The entry carries its position in the flat
-                              // newest-first list, which is what the route
-                              // indexes. Using the position within a group
-                              // would open the wrong report for every group
-                              // after the first.
-                              onTap: () => context.push(
-                                AppRoutes.pastReport(entry.index),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                          ],
-                          const SizedBox(height: 8),
-                        ],
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(4, 2, 4, 0),
-                          child: Text(
-                            'Retake every 3 months to keep the trend '
-                            'meaningful.',
-                            style: AppTheme.font(
-                              size: 12.5,
-                              color: context.c.muted,
-                              height: 1.55,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+              child: switch ((history.isEmpty, quiz.isLoaded)) {
+                // Nothing to show *and* the read is still in flight. An
+                // invitation to start would be telling someone they have no
+                // reports while their reports are on their way back.
+                (true, false) => const Padding(
+                    padding: EdgeInsets.fromLTRB(22, 16, 22, 24),
+                    child: AnalyticsLoadingState(),
+                  ),
+                // Read, and genuinely empty. Into the questionnaire, not back
+                // through consent — see the dashboard's retake action.
+                (true, true) =>
+                  _Empty(onStart: () => context.push(AppRoutes.quiz)),
+                // The analytics module hosted here rather than on a screen of
+                // its own: navigation stays in one place and the widgets stay
+                // reusable elsewhere.
+                //
+                // Keyed by pet, so switching subjects rebuilds the body from
+                // scratch: no expanded section, no cached snapshot and no
+                // selected chart point survives from the previous pet.
+                (false, _) => _HistoryBody(
+                    key: ValueKey(pet?.id ?? ''),
+                    history: history,
+                    pet: pet,
+                  ),
+              },
             ),
           ],
         ),
@@ -442,36 +423,46 @@ class _CurrentPill extends StatelessWidget {
   }
 }
 
-/// The analytics trend, or an honest reason there isn't one.
+/// Everything below the screen's title: the summary, the evidence for it, and
+/// the record itself.
 ///
-/// A stateful host purely to hold the snapshot cache: analysis is cheap for
-/// five observations and is not for five hundred, and this screen rebuilds
-/// whenever the quiz provider notifies.
-class _TrendSection extends StatefulWidget {
+/// **Two things are always visible and four are a tap away.** The overview
+/// answers "how is my pet", the graph answers "which way is this going", and
+/// what remains is the evidence behind those two answers. Someone who wants
+/// only the answer should not have to scroll past the working.
+///
+/// Nothing here decides a health figure. Every value comes from the one
+/// [AnalyticsSnapshot] computed at the top of this build, and expanding a
+/// section changes what is drawn and nothing else.
+///
+/// Stateful to hold the snapshot cache. Disclosure state belongs to the
+/// sections themselves — see [AnalyticsSection] — and is discarded with this
+/// widget when the screen is keyed to a different pet.
+class _HistoryBody extends StatefulWidget {
   final List<ScoreResult> history;
-  final String petId;
-  final ValueChanged<String> onOpenReport;
+  final PetInfo? pet;
 
-  const _TrendSection({
-    required this.history,
-    required this.petId,
-    required this.onOpenReport,
-  });
+  const _HistoryBody({super.key, required this.history, required this.pet});
 
   @override
-  State<_TrendSection> createState() => _TrendSectionState();
+  State<_HistoryBody> createState() => _HistoryBodyState();
 }
 
-class _TrendSectionState extends State<_TrendSection> {
+class _HistoryBodyState extends State<_HistoryBody> {
   static const _adapter = AssessmentSeriesAdapter();
   static const _overview = OverviewCalculator();
   final _cache = AnalyticsCache();
 
+  /// Beyond this many records the timeline is detail rather than headline.
+  static const _timelineFitsUncollapsed = 3;
+
   @override
   Widget build(BuildContext context) {
+    final history = widget.history;
+
     final series = _adapter.fromResults(
-      subjectId: widget.petId,
-      results: widget.history,
+      subjectId: widget.pet?.id ?? '',
+      results: history,
     );
 
     final snapshot = _cache.snapshotOf(series);
@@ -485,8 +476,14 @@ class _TrendSectionState extends State<_TrendSection> {
     // tomorrow when the screen is reopened.
     final overview = _overview(snapshot, now: now);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    // A single observation carries no comparison, so the sections that exist
+    // to compare are absent rather than empty. The invitation below the
+    // overview says so once — repeating it under three more headings would be
+    // three ways of saying the same thing.
+    final hasTrend = history.length >= 2;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
       children: [
         // The executive summary, above the evidence for it. Everything below
         // this card is the detail behind a line in it.
@@ -495,11 +492,12 @@ class _TrendSectionState extends State<_TrendSection> {
           now: now,
           recommendation: _Recommendation(focus: overview.focus),
         ),
+
         // One observation is a starting point, not a direction. Drawing a
         // graph through a single dot would look like a flat line, which is a
-        // claim the record does not support — but the summary above still
-        // has a score, a band and a cadence to report, so it stays.
-        if (widget.history.length < 2) ...[
+        // claim the record does not support — but the summary above still has
+        // a score, a band and a cadence to report, so it stays.
+        if (!hasTrend) ...[
           const SizedBox(height: 18),
           AnalyticsEmptyState.needsSecondAssessment(
             onStart: () => context.push(AppRoutes.quiz),
@@ -508,28 +506,249 @@ class _TrendSectionState extends State<_TrendSection> {
           const SizedBox(height: 22),
           TrendGraph(
             snapshot: snapshot,
-            onOpenReport: widget.onOpenReport,
+            onOpenReport: (pointId) =>
+                _openReport(context, history, pointId),
           ),
-          // Three windows on the same history, each answering a different
-          // question: the graph covers the recorded history, the insights the
-          // most recent change, the category cards first recorded to latest.
           if (snapshot.insights.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            InsightList(insights: snapshot.insights),
+            const SizedBox(height: 20),
+            _InsightsSection(snapshot: snapshot, overview: overview),
           ],
-          // Analysis above the record: the graph says where the pet is going,
-          // the categories say which areas are taking it there, and the
-          // timeline below is what actually happened.
           if (snapshot.categoryTrends.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            CategoryEvolutionList(trends: snapshot.categoryTrends),
+            const SizedBox(height: 20),
+            _CategorySection(snapshot: snapshot),
           ],
           if (snapshot.milestones.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            MilestoneList(milestones: snapshot.milestones),
+            const SizedBox(height: 20),
+            _MilestoneSection(snapshot: snapshot),
           ],
         ],
+
+        const SizedBox(height: 20),
+        _TimelineSection(
+          history: history,
+          pet: widget.pet,
+          initiallyExpanded: history.length <= _timelineFitsUncollapsed,
+        ),
+
+        // The footer here used to advise retaking every three months. The
+        // overview now says when *this* pet's next assessment falls due, to
+        // the day — the general rule underneath it was the same guidance
+        // told twice, and the weaker telling of the two.
       ],
+    );
+  }
+}
+
+/// What changed since the last assessment.
+///
+/// Closed by default: the overview above already leads with the finding that
+/// carried the most weight. What it cannot promise is that the *most urgent*
+/// finding was also the heaviest one — so when a caution or an alert is
+/// ranked below the headline, it is lifted into the closed summary. Nothing
+/// that deserves attention today sits behind a tap.
+class _InsightsSection extends StatelessWidget {
+  final AnalyticsSnapshot snapshot;
+  final AnalyticsOverview overview;
+
+  const _InsightsSection({required this.snapshot, required this.overview});
+
+  @override
+  Widget build(BuildContext context) {
+    final insights = snapshot.insights;
+    final pressing = _mostPressing(insights);
+
+    return AnalyticsSection(
+      key: const ValueKey('insights'),
+      title: 'What changed',
+      // Names the window explicitly, exactly as the list itself does: the
+      // graph covers the recorded history and the category cards cover first
+      // to latest, and three comparisons on one screen read as contradicting
+      // each other unless each says what it compares.
+      subtitle: 'Compared with your previous assessment.',
+      collapsedSummary: pressing != null && pressing != overview.topInsight
+          // The urgent finding the headline did not lead with.
+          ? InsightCard(insight: pressing)
+          // Otherwise the headline has already said the important part, and
+          // repeating it here would be the same sentence twice. Say how much
+          // more there is instead.
+          : _SummaryLine(
+              label: insights.length == 1
+                  ? '1 finding'
+                  : '${insights.length} findings',
+            ),
+      builder: (context) => InsightList(
+        insights: insights,
+        showHeader: false,
+      ),
+    );
+  }
+
+  /// The finding that most deserves attention, or null when none is pressing.
+  ///
+  /// Severity, not weight. The calculator ranks by how far something moved;
+  /// this asks how much it matters, using the severity the domain already
+  /// decided. No new scale is invented here, and no calculation is repeated.
+  HealthInsight? _mostPressing(List<HealthInsight> insights) {
+    HealthInsight? found;
+
+    for (final insight in insights) {
+      if (insight.severity != InsightSeverity.alert &&
+          insight.severity != InsightSeverity.caution) {
+        continue;
+      }
+      // An alert outranks a caution; between equals the earlier one wins,
+      // which is the heavier one, because the list arrives weighted.
+      if (found == null ||
+          (insight.severity == InsightSeverity.alert &&
+              found.severity != InsightSeverity.alert)) {
+        found = insight;
+      }
+    }
+
+    return found;
+  }
+}
+
+/// How each area of health has moved.
+///
+/// Closed by default, and its summary reports coverage rather than a verdict:
+/// the overview already names the biggest rise and the biggest fall, so
+/// naming one again here would be the same fact in two places. What it cannot
+/// tell you is how much is being tracked.
+class _CategorySection extends StatelessWidget {
+  final AnalyticsSnapshot snapshot;
+
+  const _CategorySection({required this.snapshot});
+
+  @override
+  Widget build(BuildContext context) {
+    final trends = snapshot.categoryTrends;
+
+    return AnalyticsSection(
+      key: const ValueKey('categories'),
+      title: 'Category progress',
+      subtitle: 'First recorded to latest, across your recorded history.',
+      collapsedSummary: _SummaryLine(
+        label: trends.length == 1
+            ? '1 area tracked'
+            : '${trends.length} areas tracked',
+      ),
+      builder: (context) => CategoryEvolutionList(
+        trends: trends,
+        showHeader: false,
+      ),
+    );
+  }
+}
+
+/// What the record has reached.
+///
+/// A single milestone is not worth hiding — the tap would cost more than the
+/// row it saves — so one opens and several stay closed. None at all means no
+/// section: an empty disclosure heading is a promise of content that is not
+/// there.
+class _MilestoneSection extends StatelessWidget {
+  final AnalyticsSnapshot snapshot;
+
+  const _MilestoneSection({required this.snapshot});
+
+  @override
+  Widget build(BuildContext context) {
+    final milestones = snapshot.milestones;
+
+    return AnalyticsSection(
+      key: const ValueKey('milestones'),
+      // Not "Health milestones", which is what the overview card calls its
+      // one-line summary of the same subject. Two identical headings on one
+      // screen read as the same section twice; this one names what is
+      // actually inside it — the whole record, in order.
+      title: 'Milestone history',
+      subtitle: 'Moments worth remembering, in the order they happened.',
+      initiallyExpanded: milestones.length == 1,
+      collapsedSummary: _SummaryLine(label: '${milestones.length} earned'),
+      builder: (context) => MilestoneList(
+        milestones: milestones,
+        showHeader: false,
+      ),
+    );
+  }
+}
+
+/// The record itself.
+///
+/// **The newest assessment is never behind the control.** Closing this hides
+/// history, not the fact that an assessment exists — someone opening the tab
+/// to check their latest result should find it without asking for it.
+class _TimelineSection extends StatelessWidget {
+  final List<ScoreResult> history;
+  final PetInfo? pet;
+  final bool initiallyExpanded;
+
+  const _TimelineSection({
+    required this.history,
+    required this.pet,
+    required this.initiallyExpanded,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnalyticsSection(
+      key: const ValueKey('timeline'),
+      title: 'Assessment timeline',
+      subtitle: history.length == 1
+          ? '1 assessment on this device.'
+          : '${history.length} assessments on this device.',
+      initiallyExpanded: initiallyExpanded,
+      expandLabel: 'View all',
+      collapseLabel: 'Show less',
+      // The most recent record, in full, exactly as it reads in the list.
+      collapsedSummary: _row(context, (index: 0, result: history.first)),
+      builder: (context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final group in groupHistory(history)) ...[
+            _GroupHeading(label: group.bucket.label),
+            const SizedBox(height: 10),
+            for (final entry in group.entries) ...[
+              _row(context, entry),
+              const SizedBox(height: 10),
+            ],
+            const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _row(BuildContext context, HistoryEntry entry) => _HistoryRow(
+        entry: entry,
+        pet: pet,
+        // The entry carries its position in the flat newest-first list, which
+        // is what the route indexes. Using the position within a group would
+        // open the wrong report for every group after the first — and the
+        // summary row above is index zero for the same reason.
+        onTap: () => context.push(AppRoutes.pastReport(entry.index)),
+      );
+}
+
+/// One quiet line standing in for a closed section.
+///
+/// Deliberately plain: a closed section should read as a heading with a note,
+/// not as a card competing with the summary above it.
+class _SummaryLine extends StatelessWidget {
+  final String label;
+
+  const _SummaryLine({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: AppTheme.font(
+        size: 12.5,
+        weight: FontWeight.w700,
+        color: context.c.body,
+      ),
     );
   }
 }

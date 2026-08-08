@@ -275,6 +275,12 @@ void main() {
       await tester.pumpWidget(host(quiz, await withPets([pet('p1', 'Bruno')])));
       await tester.pumpAndSettle();
 
+      // Five records is more than the timeline shows uncollapsed, so the
+      // grouping lives behind the disclosure now. The grouping contract
+      // itself is unchanged, and this asserts exactly what it always did.
+      await tester.tap(find.text('Assessment timeline'));
+      await tester.pumpAndSettle();
+
       expect(find.text('TODAY'), findsOneWidget);
       expect(find.text('YESTERDAY'), findsOneWidget);
       expect(find.text('LAST 7 DAYS'), findsOneWidget);

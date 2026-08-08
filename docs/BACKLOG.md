@@ -10,7 +10,7 @@ re-deriving the reasoning.
 ## Progressive disclosure for analytics surfaces
 
 **Raised:** Sprint 3, after Feature 5 (health milestones).
-**Status:** Deferred. Not to be attempted during Sprint 3.
+**Status:** ✅ Completed in Sprint 3, Feature 7.
 
 ### The problem
 
@@ -39,9 +39,13 @@ are simply many of them.
 * Default expansion is a product decision per section, not a uniform "all
   collapsed": the most recent change probably opens, a ten-entry milestone
   history probably does not.
-* Expansion state persists across visits within a session at minimum, so a
-  reader who opens category evolution does not have to reopen it every time
-  they return to the tab.
+* Expansion is **local UI state for the current visit, never persisted** —
+  not to SharedPreferences, not to Firestore, not to a provider. It survives
+  ordinary rebuilds, resets when the pet changes, and starts from the
+  defaults each time the screen is built. *(Corrected during Feature 7: an
+  earlier draft of this item proposed persisting it. A reading posture is not
+  a preference worth storing, and a remembered expansion would eventually
+  show one pet's section state over another's record.)*
 * The mechanism is a reusable widget in `lib/analytics/widgets`, not bespoke
   per section, so the veterinarian portal and web dashboard inherit the same
   behaviour.
@@ -57,3 +61,17 @@ are simply many of them.
 * Retention is capped per pet today (see `AssessmentSeriesAdapter.fromQuiz`),
   so section lengths are currently bounded. When the cap is raised, density
   stops being a layout preference and becomes a usability requirement.
+
+### How it shipped
+
+Feature 7 delivered it as `AnalyticsSection` — a provider-free disclosure
+primitive that builds its detail only while open — with the health overview
+and the trend graph left always visible, and insights, category progress,
+milestone history and the assessment timeline behind headings. The closed
+state of each carries what must not wait for a tap: an unled caution, the
+coverage counts, and the newest assessment row in full.
+
+One thing found on the way: Report History branched on `history.isEmpty`
+without consulting `QuizProvider.isLoaded`, so a cold start could show "No
+reports yet" over history that was still being restored. Fixed with the
+existing `AnalyticsLoadingState`, and covered by a regression test.

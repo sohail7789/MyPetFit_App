@@ -227,7 +227,13 @@ void main() {
 
   group('32 Report history', () {
     testWidgets('shows an empty state before any assessment', (tester) async {
-      await tester.pumpWidget(_host(const ReportHistoryScreen()));
+      // Read, and genuinely empty. The screen now tells that apart from a
+      // read still in flight, so the provider has to have finished loading
+      // for this to be the state under test at all.
+      final quiz = QuizProvider();
+      await quiz.init();
+
+      await tester.pumpWidget(_host(const ReportHistoryScreen(), quiz: quiz));
       await tester.pump();
 
       expect(find.text('No reports yet'), findsOneWidget);
@@ -259,6 +265,12 @@ void main() {
 
     testWidgets('shows the trend once there are two assessments',
         (tester) async {
+      // Tall enough to reach the graph: it sits below the health overview in
+      // a lazily built list, so a short viewport never constructs it.
+      tester.view.physicalSize = const Size(1200, 3000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
       final quiz = _scored();
       // A second, weaker assessment becomes the newest entry.
       quiz.reset();

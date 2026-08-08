@@ -20,12 +20,18 @@ class MilestoneList extends StatelessWidget {
   final String title;
   final String subtitle;
 
+  /// Whether to draw the heading. False when a disclosure heading above
+  /// already names the section; true by default so existing callers are
+  /// unaffected.
+  final bool showHeader;
+
   const MilestoneList({
     super.key,
     required this.milestones,
     this.formatter = const DefaultMilestoneFormatter(),
     this.title = 'Health milestones',
     this.subtitle = 'Moments worth remembering, in the order they happened.',
+    this.showHeader = true,
   });
 
   @override
@@ -35,36 +41,38 @@ class MilestoneList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Semantics(
-          header: true,
-          container: true,
-          excludeSemantics: true,
-          label: '$title. $subtitle',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: AppTheme.font(
-                  size: 16,
-                  weight: FontWeight.w800,
-                  color: context.c.ink,
-                  letterSpacing: -0.4,
+        if (showHeader) ...[
+          Semantics(
+            header: true,
+            container: true,
+            excludeSemantics: true,
+            label: '$title. $subtitle',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTheme.font(
+                    size: 16,
+                    weight: FontWeight.w800,
+                    color: context.c.ink,
+                    letterSpacing: -0.4,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                subtitle,
-                style: AppTheme.font(
-                  size: 12.5,
-                  color: context.c.muted,
-                  height: 1.45,
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: AppTheme.font(
+                    size: 12.5,
+                    color: context.c.muted,
+                    height: 1.45,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
+        ],
         for (var i = 0; i < milestones.length; i++)
           Padding(
             padding:

@@ -182,10 +182,16 @@ void main() {
 
     final pets = await consentedOwnerWithPet();
 
+    // Loaded and empty, which is the state that earns the invitation. A read
+    // still in flight now shows a skeleton instead — see the loading race
+    // covered in report_history_disclosure_test.dart.
+    final quiz = QuizProvider(service: FakeCloud());
+    await quiz.init();
+
     await tester.pumpWidget(host(
       screen: const ReportHistoryScreen(),
       location: AppRoutes.reportHistory,
-      quiz: QuizProvider(service: FakeCloud()),
+      quiz: quiz,
       pets: pets,
     ));
     await tester.pump();
