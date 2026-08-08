@@ -10,8 +10,11 @@ import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
+import '../../services/account_deletion.dart';
+import '../../services/auth_service.dart' show ReauthenticationRequired;
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/app_field.dart';
 import '../../widgets/design_image.dart';
 import '../../widgets/labeled_field.dart';
 import '../../widgets/settings_tile.dart';
@@ -19,9 +22,28 @@ import '../../widgets/settings_tile.dart';
 /// Screen 36 — Delete account.
 ///
 /// The design gates the destructive action behind typing DELETE; that gate is
-/// kept, and the wipe clears every local provider before signing out.
+/// kept.
+///
+/// **This screen used to delete nothing.** It cleared the local providers,
+/// signed out and announced "Account deleted" — while the Firebase account
+/// and every document under `users/{uid}` remained. That is a false statement
+/// to the user about their own data, and it fails both stores' deletion
+/// requirements.
+///
+/// The order below is deliberate: cloud data, then the account, then local
+/// state, and only then the confirmation screen. Nothing local is cleared
+/// until the deletion has actually succeeded, so a failure leaves the user
+/// with their account *and* their data intact, and tells them so.
 class DeleteAccountScreen extends StatefulWidget {
-  const DeleteAccountScreen({super.key});
+  /// The deletion steps, injectable so this destructive flow can be tested
+  /// without Firebase. Production passes nothing.
+  @visibleForTesting
+  final AccountDeletion deletion;
+
+  const DeleteAccountScreen({
+    super.key,
+    this.deletion = const AccountDeletion(),
+  });
 
   @override
   State<DeleteAccountScreen> createState() => _DeleteAccountScreenState();
@@ -38,16 +60,58 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
 
   bool get _ready => _confirm.text.trim().toUpperCase() == 'DELETE';
 
+  /// True while the deletion is in flight, so the button cannot be pressed
+  /// twice into a half-deleted account.
+  bool _deleting = false;
+
   Future<void> _delete() async {
+    if (_deleting) return;
+
     // Resolved before the first await so nothing reaches for a stale context.
     final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final quiz = context.read<QuizProvider>();
     final cart = context.read<CartProvider>();
     final pets = context.read<PetInfoProvider>();
     final address = context.read<AddressProvider>();
     final auth = context.read<AuthProvider>();
     final startup = context.read<AppStartupProvider>();
+    final deletion = widget.deletion;
 
+    setState(() => _deleting = true);
+
+    try {
+      // Documents first: they are scoped to the uid, so they must go while a
+      // session still exists to reach them.
+      await deletion.deleteUserData();
+
+      try {
+        await deletion.deleteAccount();
+      } on ReauthenticationRequired {
+        // Recoverable, and the only failure that is. Firebase judged the
+        // session too old to delete with; prove who they are and retry.
+        final confirmed = await _reauthenticate(deletion);
+        if (!confirmed) {
+          if (mounted) setState(() => _deleting = false);
+          return;
+        }
+        await deletion.deleteAccount();
+      }
+    } catch (error) {
+      // Nothing local has been touched, so the account is still usable.
+      if (mounted) setState(() => _deleting = false);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            "Your account was not deleted: $error",
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // The account is gone. Only now is it true to clear the device.
     await quiz.resetAll();
     await cart.reset();
     await pets.reset();
@@ -56,8 +120,57 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     // without this the next person to sign in on this device inherits
     // that verdict and none of their own data is ever fetched.
     startup.reset();
-    await auth.signOut();
+
+    // Deleting the account already ends the Firebase session, so a failure
+    // here means the local flags outlived an account that no longer exists —
+    // worth clearing, not worth blocking the confirmation over.
+    try {
+      await auth.signOut();
+    } catch (_) {}
+
     router.go(AppRoutes.accountDeleted);
+  }
+
+  /// Asks the user to prove who they are, using the provider they signed up
+  /// with. Returns false when they cancel.
+  Future<bool> _reauthenticate(AccountDeletion deletion) async {
+    final isGoogle = (deletion.providerId ?? '').contains('google');
+
+    if (isGoogle) {
+      try {
+        await deletion.reauthenticateWithGoogle();
+        return true;
+      } catch (error) {
+        if (!mounted) return false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not confirm your Google account: $error'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return false;
+      }
+    }
+
+    final password = await showDialog<String>(
+      context: context,
+      builder: (context) => _PasswordPrompt(),
+    );
+    if (password == null || password.isEmpty) return false;
+
+    try {
+      await deletion.reauthenticateWithPassword(password);
+      return true;
+    } catch (error) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$error'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return false;
+    }
   }
 
   @override
@@ -131,10 +244,12 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
               child: Column(
                 children: [
                   AppButton(
-                    label: 'Delete my account',
+                    label: _deleting
+                        ? 'Deleting your account…'
+                        : 'Delete my account',
                     variant: AppButtonVariant.danger,
                     height: AppTheme.ctaHeightCompact,
-                    onPressed: _ready ? _delete : null,
+                    onPressed: _ready && !_deleting ? _delete : null,
                   ),
                   const SizedBox(height: 12),
                   AppButton(
@@ -197,6 +312,61 @@ class AccountDeletedScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Confirms the account password before a deletion Firebase judged stale.
+///
+/// Deliberately spare: this is not a sign-in form, it is the last thing
+/// standing between someone and losing their pet's health record, so it says
+/// what it is for and offers an obvious way out.
+class _PasswordPrompt extends StatefulWidget {
+  @override
+  State<_PasswordPrompt> createState() => _PasswordPromptState();
+}
+
+class _PasswordPromptState extends State<_PasswordPrompt> {
+  final _password = TextEditingController();
+
+  @override
+  void dispose() {
+    _password.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: context.c.surface,
+      title: Text('Confirm your password', style: context.t.h2),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "You've been signed in a while, so please confirm your password "
+            'before your account is deleted.',
+            style: context.t.bodyText,
+          ),
+          const SizedBox(height: 14),
+          AppField(
+            hint: 'Your password',
+            controller: _password,
+            obscure: true,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(_password.text),
+          child: const Text('Confirm'),
+        ),
+      ],
     );
   }
 }

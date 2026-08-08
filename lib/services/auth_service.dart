@@ -2,6 +2,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+/// Firebase will not perform a destructive operation on a stale session.
+///
+/// Its own type rather than a string comparison at the call site: deleting an
+/// account is the one place where "we could not do it *yet*" and "we could
+/// not do it" must never be confused, because the first is recoverable by
+/// asking the user to confirm who they are and the second is not.
+class ReauthenticationRequired implements Exception {
+  const ReauthenticationRequired();
+
+  @override
+  String toString() =>
+      'Please confirm who you are before deleting your account.';
+}
+
 class AuthService {
   AuthService._();
 
@@ -176,6 +190,90 @@ class AuthService {
             e.message ?? 'Failed to send reset email.',
           );
       }
+    }
+  }
+
+  /// Which sign-in method the current session used.
+  ///
+  /// Re-authentication has to be performed with the provider the account was
+  /// created under — asking a Google user for a password would be asking for
+  /// something they never set.
+  String? get currentProviderId {
+    final providers = _auth.currentUser?.providerData;
+    if (providers == null || providers.isEmpty) return null;
+    return providers.first.providerId;
+  }
+
+  /// Proves the session is recent enough to delete the account with.
+  ///
+  /// Firebase refuses destructive operations on a stale session
+  /// (`requires-recent-login`). The caller performs this only when asked to,
+  /// because a fresh session needs no re-authentication and prompting anyway
+  /// would be a password box for no reason.
+  Future<void> reauthenticateWithPassword(String password) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No signed-in account.');
+
+    final email = user.email;
+    if (email == null || email.isEmpty) {
+      throw Exception('This account has no password to confirm.');
+    }
+
+    try {
+      await user.reauthenticateWithCredential(
+        EmailAuthProvider.credential(email: email, password: password),
+      );
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'wrong-password':
+        case 'invalid-credential':
+          throw Exception('That password is not correct.');
+        default:
+          throw Exception(e.message ?? 'Could not confirm your password.');
+      }
+    }
+  }
+
+  /// Re-runs the Google sign-in so the session is fresh enough to delete.
+  Future<void> reauthenticateWithGoogle() async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No signed-in account.');
+
+    final googleUser = await GoogleSignIn().signIn();
+    if (googleUser == null) {
+      throw Exception('Google sign-in was cancelled.');
+    }
+
+    final googleAuth = await googleUser.authentication;
+
+    await user.reauthenticateWithCredential(
+      GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      ),
+    );
+  }
+
+  /// Deletes the Firebase Authentication account itself.
+  ///
+  /// Call **after** the user's Firestore data is gone: the security rules
+  /// scope every document to the signed-in uid, so deleting the account
+  /// first would strand that data with no session able to reach it.
+  ///
+  /// Throws [ReauthenticationRequired] when Firebase judges the session too
+  /// old, which is the one failure the caller is expected to recover from
+  /// rather than report.
+  Future<void> deleteAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No signed-in account.');
+
+    try {
+      await user.delete();
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        throw const ReauthenticationRequired();
+      }
+      throw Exception(e.message ?? 'Could not delete the account.');
     }
   }
 

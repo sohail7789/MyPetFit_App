@@ -87,7 +87,26 @@ class FakeCloud implements FirestoreService {
   Future<void> deletePet(String petId) async {
     _checkOnline();
     pets.removeWhere((p) => p.id == petId);
+    assessments.remove(petId);
   }
+
+  /// Everything the account owned, gone — the same cascade the real service
+  /// performs, so a test can assert on what survives rather than on which
+  /// calls were made.
+  @override
+  Future<void> deleteAllUserData() async {
+    _checkOnline();
+    userDataDeletions++;
+    for (final pet in [...pets]) {
+      await deletePet(pet.id);
+    }
+    consent = null;
+    owner = null;
+  }
+
+  /// How many times the account's data was deleted, so a test can prove the
+  /// cascade ran exactly once.
+  int userDataDeletions = 0;
 
   @override
   Future<void> saveAssessment(String petId, ScoreResult result) async {

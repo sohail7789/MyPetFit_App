@@ -281,4 +281,37 @@ class FirestoreService {
     await petRef.delete();
   }
 
+  /// Deletes everything this app stores for the signed-in user.
+  ///
+  /// The same cascade problem as [deletePet], one level up: Firestore does
+  /// not delete subcollections with their parent, so `users/{uid}` cannot
+  /// simply be removed — the pets, and the assessments beneath them, would
+  /// survive as orphans that nothing can reach and nobody can audit. Deepest
+  /// first, parent last.
+  ///
+  /// Owner profile and consent live as fields on `users/{uid}`, so they go
+  /// with that document.
+  ///
+  /// Deliberately not batched across pets: a partial failure must leave a
+  /// consistent, reachable state rather than half a household. Each pet
+  /// completes or throws, and the user document is only removed once every
+  /// pet beneath it is gone — so a failure mid-way leaves an account that
+  /// still owns whatever remains, which is recoverable, rather than a user
+  /// record pointing at nothing.
+  ///
+  /// Throws [NotSignedInException] when there is no session. The caller must
+  /// treat any throw as "the account still exists".
+  Future<void> deleteAllUserData() async {
+    final uid = _uid;
+
+    final userRef = _firestore.collection('users').doc(uid);
+
+    final pets = await userRef.collection('pets').get();
+    for (final pet in pets.docs) {
+      await deletePet(pet.id);
+    }
+
+    await userRef.delete();
+  }
+
 }

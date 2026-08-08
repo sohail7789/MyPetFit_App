@@ -93,6 +93,9 @@ class FakeCatalogService implements FirestoreService {
   Future<void> deletePet(String petId) async {}
 
   @override
+  Future<void> deleteAllUserData() async {}
+
+  @override
   Future<void> saveOwnerProfile(
       OwnerProfile profile,
       ) async {}
@@ -164,6 +167,9 @@ class PendingCatalogService implements FirestoreService {
 
   @override
   Future<void> deletePet(String petId) async {}
+
+  @override
+  Future<void> deleteAllUserData() async {}
 
   @override
   Future<void> saveOwnerProfile(
