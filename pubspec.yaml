@@ -29,6 +29,8 @@ dependencies:
   path_provider: ^2.1.6
   image_picker: ^1.2.3
   printing: ^5.14.3
+  sign_in_with_apple: ^8.1.0
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:

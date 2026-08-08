@@ -80,6 +80,22 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
+  Future<void> _signInWithApple() async {
+    try {
+      await context.read<AuthProvider>().signInWithApple();
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -217,6 +233,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             const SizedBox(height: 16),
                             SocialRow(
                               onGoogle: _signInWithGoogle,
+                              onApple: _signInWithApple,
                             ),
                             const SizedBox(height: 20),
                             InlineLink(

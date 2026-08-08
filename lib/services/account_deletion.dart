@@ -33,4 +33,7 @@ class AccountDeletion {
 
   Future<void> reauthenticateWithGoogle() =>
       AuthService.instance.reauthenticateWithGoogle();
+
+  Future<void> reauthenticateWithApple() =>
+      AuthService.instance.reauthenticateWithApple();
 }

@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 /// Firebase will not perform a destructive operation on a stale session.
 ///
@@ -193,6 +198,85 @@ class AuthService {
     }
   }
 
+  /// Signs in with Apple and exchanges the result for a Firebase session.
+  ///
+  /// **The nonce is the security of this flow.** Apple returns an identity
+  /// token that anyone holding it could replay; binding it to a random value
+  /// we generated, and handing Apple only the SHA-256 of that value, means a
+  /// token captured in transit cannot be presented back to Firebase — it
+  /// carries a hash whose original only this sign-in attempt knows.
+  ///
+  /// Apple returns the user's name **only on the very first authorisation**
+  /// for an app, and never again. So it is folded into the Firebase profile
+  /// here rather than being fetched later, and only when Firebase has no
+  /// display name of its own — on a returning sign-in, `givenName` is null
+  /// and overwriting would blank a name the account already had.
+  ///
+  /// The email may be Apple's private relay address. That is a real address
+  /// which forwards, and the app treats it as any other.
+  Future<UserCredential> signInWithApple() async {
+    final rawNonce = _rawNonce();
+
+    final AuthorizationCredentialAppleID appleCredential;
+    try {
+      appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: const [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: sha256.convert(utf8.encode(rawNonce)).toString(),
+      );
+    } on SignInWithAppleAuthorizationException catch (e) {
+      // Backing out is not a failure worth shouting about.
+      if (e.code == AuthorizationErrorCode.canceled) {
+        throw Exception('Apple sign in was cancelled.');
+      }
+      throw Exception(e.message.isNotEmpty
+          ? e.message
+          : 'Apple sign in failed.');
+    }
+
+    final credential = await _auth.signInWithCredential(
+      OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        rawNonce: rawNonce,
+      ),
+    );
+
+    final user = credential.user;
+    if (user != null) {
+      final given = appleCredential.givenName ?? '';
+      final family = appleCredential.familyName ?? '';
+      final fullName = '$given $family'.trim();
+
+      if (fullName.isNotEmpty && (user.displayName ?? '').isEmpty) {
+        await user.updateDisplayName(fullName);
+      }
+
+      // Merged rather than set: a returning user already has a document, and
+      // a fresh `set` would wipe whatever they have since filled in.
+      await _firestore.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'email': user.email ?? '',
+        if (fullName.isNotEmpty) 'name': fullName,
+        'lastLogin': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+
+    return credential;
+  }
+
+  /// A cryptographically random string for one Apple authorisation.
+  String _rawNonce([int length = 32]) {
+    const chars =
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => chars[random.nextInt(chars.length)],
+    ).join();
+  }
+
   /// Which sign-in method the current session used.
   ///
   /// Re-authentication has to be performed with the provider the account was
@@ -250,6 +334,27 @@ class AuthService {
       GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
+      ),
+    );
+  }
+
+  /// Re-runs the Apple authorisation so the session is fresh enough to
+  /// delete. Apple accounts have no password to confirm.
+  Future<void> reauthenticateWithApple() async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No signed-in account.');
+
+    final rawNonce = _rawNonce();
+
+    final appleCredential = await SignInWithApple.getAppleIDCredential(
+      scopes: const [AppleIDAuthorizationScopes.email],
+      nonce: sha256.convert(utf8.encode(rawNonce)).toString(),
+    );
+
+    await user.reauthenticateWithCredential(
+      OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        rawNonce: rawNonce,
       ),
     );
   }

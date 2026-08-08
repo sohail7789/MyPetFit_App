@@ -38,6 +38,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
+  /// Google and Apple create the account on first use, so signing up
+  /// through them is the same call as signing in.
+  Future<void> _signUpWithGoogle() =>
+      _social(() => context.read<AuthProvider>().signInWithGoogle());
+
+  Future<void> _signUpWithApple() =>
+      _social(() => context.read<AuthProvider>().signInWithApple());
+
+  Future<void> _social(Future<void> Function() run) async {
+    try {
+      await run();
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    }
+  }
+
   Future<void> _signUp() async {
     try {
       await context.read<AuthProvider>().signUp(
@@ -201,9 +223,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const SizedBox(height: 18),
                       const OrDivider(),
                       const SizedBox(height: 14),
-                      const Align(
+                      Align(
                         alignment: Alignment.centerLeft,
-                        child: SocialRow(height: 52, maxWidth: 210),
+                        // Both were previously rendered with no handlers at
+                        // all — two controls that looked like the fastest way
+                        // in and did nothing when pressed.
+                        child: SocialRow(
+                          height: 52,
+                          maxWidth: 210,
+                          onGoogle: _signUpWithGoogle,
+                          onApple: _signUpWithApple,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       // The puppy sits bottom-right, so this copy is kept

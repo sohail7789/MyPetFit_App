@@ -105,6 +105,31 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Signs in with Apple.
+  ///
+  /// Apple hands over a name only on the first authorisation, so the fields
+  /// below fall back to whatever Firebase already holds for a returning user
+  /// rather than blanking what is there. A relay address is a real address
+  /// and is treated as one.
+  Future<void> signInWithApple() async {
+    final credential = await AuthService.instance.signInWithApple();
+
+    final user = credential.user!;
+
+    _isSignedIn = true;
+    _email = user.email ?? '';
+
+    final parts = (user.displayName ?? '').trim().split(' ')
+      ..removeWhere((p) => p.isEmpty);
+
+    _firstName = parts.isNotEmpty ? parts.first : '';
+    _lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    _username = user.email?.split('@').first ?? '';
+
+    await _persist();
+    notifyListeners();
+  }
+
   Future<void> signUp({
     required String username,
     required String email,
