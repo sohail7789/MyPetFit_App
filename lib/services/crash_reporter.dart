@@ -53,6 +53,13 @@ class CrashReporter {
   /// and being reported again.
   static bool _reporting = false;
 
+  /// Where reports go once [install] has run.
+  ///
+  /// Null until then, and [report] is a no-op in that window: Crashlytics is
+  /// a Firebase product, so when Firebase did not come up there is nothing
+  /// to report to and the app carries on without it.
+  static CrashSink? _sink;
+
   /// Wires the hooks to [sink].
   ///
   /// Call **after** Firebase is up: Crashlytics is a Firebase product and
@@ -62,6 +69,8 @@ class CrashReporter {
   /// it is not, because an app that cannot start is worse than one that
   /// cannot report.
   static void install({CrashSink sink = const CrashlyticsSink()}) {
+    _sink = sink;
+
     FlutterError.onError = (details) {
       // The developer's own diagnostics come first and are untouched: the
       // console output and the red box are how a Flutter error is meant to
@@ -79,12 +88,30 @@ class CrashReporter {
     };
   }
 
+  /// Records an error the app caught, handled, and turned into a failure
+  /// the user can see.
+  ///
+  /// For the failures worth understanding later — a destructive operation
+  /// that did not complete, an export that broke, a session that would not
+  /// end. Not for expected conditions: a cancelled picker, a wrong password
+  /// or an offline write are the app working, and filing them would bury the
+  /// reports that matter.
+  ///
+  /// Non-fatal: the app recovered and said so. A no-op when [install] has not
+  /// run.
+  static void report(Object error, StackTrace? stack) {
+    final sink = _sink;
+    if (sink == null) return;
+    _report(() => sink.recordError(error, stack, fatal: false));
+  }
+
   /// Restores Flutter's own handlers. For tests, so one case cannot leak its
   /// hooks into the next.
   @visibleForTesting
   static void uninstall() {
     FlutterError.onError = FlutterError.presentError;
     PlatformDispatcher.instance.onError = null;
+    _sink = null;
     _reporting = false;
   }
 

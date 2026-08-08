@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/product.dart';
 import '../services/firestore_service.dart';
@@ -31,17 +31,19 @@ class ProductProvider extends ChangeNotifier {
 
       _products =
           await _service.getProducts();
-
-      debugPrint(
-          'Products Loaded : ${_products.length}');
-
-      for (final product in _products) {
-        debugPrint(product.name);
-      }
     } catch (e) {
+      // Kept as a flag, not a message: the shop shows its own wording and
+      // reads this only to tell "could not load" from "nothing published".
       _error = e.toString();
 
-      debugPrint(_error);
+      // A catalog that will not load is an ordinary offline condition with a
+      // retry already on screen, so it is not reported to Crashlytics. It is
+      // logged for a developer and nowhere else — the previous version
+      // printed the whole catalog, name by name, into release logs on every
+      // load.
+      if (kDebugMode) {
+        debugPrint('Catalog load failed: $e');
+      }
     }
 
     _loading = false;

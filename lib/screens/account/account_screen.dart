@@ -12,6 +12,7 @@ import '../../providers/locale_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
+import '../../services/crash_reporter.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/design_image.dart';
 import '../../widgets/settings_tile.dart';
@@ -44,14 +45,19 @@ class AccountScreen extends StatelessWidget {
 
     try {
       await auth.signOut();
-    } catch (error) {
+    } catch (error, stack) {
       // The session did not end. Staying put and saying so is the honest
       // outcome — sending someone to the sign-in screen while their Firebase
       // session is still live is exactly the state this fix exists to
       // prevent.
+      //
+      // The exception itself goes to diagnostics, not to the user: a failed
+      // sign-out is a platform or Firebase error whose text can name project
+      // internals and tells nobody what to do next.
+      CrashReporter.report(error, stack);
       messenger.showSnackBar(
-        SnackBar(
-          content: Text("Couldn't sign out: $error"),
+        const SnackBar(
+          content: Text("Couldn't sign out. Please try again."),
           behavior: SnackBarBehavior.floating,
         ),
       );

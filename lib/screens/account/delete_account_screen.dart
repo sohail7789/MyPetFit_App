@@ -12,6 +12,7 @@ import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
 import '../../services/account_deletion.dart';
 import '../../services/auth_service.dart' show ReauthenticationRequired;
+import '../../services/crash_reporter.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/app_field.dart';
@@ -97,13 +98,18 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
         }
         await deletion.deleteAccount();
       }
-    } catch (error) {
+    } catch (error, stack) {
       // Nothing local has been touched, so the account is still usable.
       if (mounted) setState(() => _deleting = false);
+      // A destructive operation that did not complete is exactly the failure
+      // worth understanding later. The exception goes to diagnostics; the
+      // user gets the one fact that matters and no Firebase internals.
+      CrashReporter.report(error, stack);
       messenger.showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
-            "Your account was not deleted: $error",
+            'Your account was not deleted. Please check your connection and '
+            'try again.',
           ),
           behavior: SnackBarBehavior.floating,
         ),
@@ -142,9 +148,11 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
         return true;
       } catch (error) {
         if (!mounted) return false;
+        // Cancelling is the common case and not worth reporting; the message
+        // stays generic either way rather than surfacing an OAuth error.
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not confirm your Google account: $error'),
+          const SnackBar(
+            content: Text('Could not confirm your Google account.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -163,9 +171,14 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       return true;
     } catch (error) {
       if (!mounted) return false;
+      // These messages are written by AuthService for this exact purpose
+      // ("That password is not correct."), so they are shown — minus the
+      // `Exception: ` prefix, the same way the sign-in screens present them.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('$error'),
+          content: Text(
+            error.toString().replaceFirst('Exception: ', ''),
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );

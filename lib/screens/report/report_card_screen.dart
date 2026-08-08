@@ -10,6 +10,7 @@ import '../../models/score_band.dart';
 import '../../models/score_result.dart';
 import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
+import '../../services/crash_reporter.dart';
 import '../../services/report_pdf.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
@@ -110,11 +111,15 @@ class _ReportCardScreenState extends State<ReportCardScreen>
         pet: pet,
         owner: pets.ownerInfo,
       );
-    } catch (error) {
+    } catch (error, stack) {
       if (!mounted) return;
+      // A printing failure is a platform exception whose text names plugin
+      // internals and temp paths. Diagnostics get it; the user gets a
+      // sentence they can act on.
+      CrashReporter.report(error, stack);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Couldn't print the report: $error"),
+        const SnackBar(
+          content: Text("Couldn't print the report. Please try again."),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -214,11 +219,15 @@ class _ReportCardScreenState extends State<ReportCardScreen>
         owner: pets.ownerInfo,
         origin: origin,
       );
-    } catch (error) {
+    } catch (error, stack) {
       if (!mounted) return;
+      // Same reasoning as printing: the exception can carry the temporary
+      // file path the PDF was written to, which is neither useful nor
+      // anybody's business.
+      CrashReporter.report(error, stack);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Couldn't prepare the report: $error"),
+        const SnackBar(
+          content: Text("Couldn't prepare the report. Please try again."),
           behavior: SnackBarBehavior.floating,
         ),
       );
