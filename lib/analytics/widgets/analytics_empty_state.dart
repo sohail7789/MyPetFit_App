@@ -116,6 +116,10 @@ class AnalyticsEmptyState extends StatelessWidget {
                 label: label,
                 container: true,
                 excludeSemantics: true,
+                // On the node itself: excluding the children's semantics also
+                // excludes the detector's tap action, and an invitation a
+                // screen reader cannot accept is not an invitation.
+                onTap: action,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: action,

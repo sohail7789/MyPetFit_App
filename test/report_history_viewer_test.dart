@@ -265,6 +265,199 @@ void main() {
     });
   });
 
+  /// Sprint 3, feature 8 — the comparison belongs to the report too.
+  ///
+  /// The record was frozen when the screen resolved it; its "since your last
+  /// assessment" figure was not. That line went on reading
+  /// `quiz.assessmentHistory` — a list bound to the *active* pet, re-filtered
+  /// on every rebuild and shifted by trimming. So a report could keep the
+  /// right pet and the right score while quoting a delta measured against a
+  /// different animal.
+  ///
+  /// Every fixture below uses deliberately distinct numbers, so cross-pet
+  /// contamination cannot pass by coincidence.
+  group('the comparison does not move', () {
+    testWidgets('switching pets leaves the delta alone', (tester) async {
+      sizeUp(tester);
+      // Bruno: 70 over 60  -> up 10.
+      // Mia:   40 over 20  -> up 20, and 70 - 20 would read as up 50.
+      final pets = await withPets([pet('p1', 'Bruno'), pet('p2', 'Mia')]);
+      final quiz = await quizWith({
+        'p1': [
+          report(percent: 70, daysAgo: 10),
+          report(percent: 60, daysAgo: 40),
+        ],
+        'p2': [
+          report(percent: 40, daysAgo: 5, petId: 'p2'),
+          report(percent: 20, daysAgo: 35, petId: 'p2'),
+        ],
+      });
+
+      await tester.pumpWidget(host(quiz: quiz, pets: pets, historyIndex: 0));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Up 10 since your last assessment'), findsOneWidget);
+
+      pets.setActivePet(1);
+      quiz.bindPet(pets.activePet!.id);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Up 10 since your last assessment'),
+        findsOneWidget,
+        reason: 'the delta followed the active pet instead of the report',
+      );
+      expect(find.text('Up 50 since your last assessment'), findsNothing);
+      expect(find.text('Up 20 since your last assessment'), findsNothing);
+
+      // The rest of the record is still Bruno's, as it always was.
+      expect(find.text('70'), findsOneWidget);
+      expect(find.text('Bruno'), findsOneWidget);
+      expect(find.text('Mia'), findsNothing);
+    });
+
+    testWidgets('a pet with a shorter history cannot blank the delta',
+        (tester) async {
+      sizeUp(tester);
+      // Mia has a single assessment, so an index-based lookup would run off
+      // the end of her list and drop Bruno's comparison entirely.
+      final pets = await withPets([pet('p1', 'Bruno'), pet('p2', 'Mia')]);
+      final quiz = await quizWith({
+        'p1': [
+          report(percent: 70, daysAgo: 10),
+          report(percent: 60, daysAgo: 40),
+        ],
+        'p2': [report(percent: 44, daysAgo: 5, petId: 'p2')],
+      });
+
+      await tester.pumpWidget(host(quiz: quiz, pets: pets, historyIndex: 0));
+      await tester.pumpAndSettle();
+      expect(find.text('Up 10 since your last assessment'), findsOneWidget);
+
+      pets.setActivePet(1);
+      quiz.bindPet(pets.activePet!.id);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Up 10 since your last assessment'), findsOneWidget);
+    });
+
+    testWidgets('history arriving underneath does not move the delta',
+        (tester) async {
+      sizeUp(tester);
+      // Opened at index 1. A restore that renumbers the list would have the
+      // old code comparing against a different neighbour.
+      final quiz = await quizWith({
+        'p1': [
+          report(percent: 80, daysAgo: 5),
+          report(percent: 70, daysAgo: 10),
+          report(percent: 60, daysAgo: 40),
+        ],
+      });
+
+      await tester.pumpWidget(host(
+        quiz: quiz,
+        pets: await withPets([pet('p1', 'Bruno')]),
+        historyIndex: 1,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('70'), findsOneWidget);
+      expect(find.text('Up 10 since your last assessment'), findsOneWidget);
+
+      await quiz.loadAssessmentsFromFirestore();
+      await tester.pumpAndSettle();
+
+      expect(find.text('70'), findsOneWidget);
+      expect(find.text('Up 10 since your last assessment'), findsOneWidget);
+    });
+
+    testWidgets('the oldest kept report claims no comparison', (tester) async {
+      sizeUp(tester);
+      // Nothing precedes it in the recorded history, so there is nothing to
+      // compare against — and inventing one would be worse than silence.
+      final quiz = await quizWith({
+        'p1': [
+          report(percent: 70, daysAgo: 10),
+          report(percent: 60, daysAgo: 40),
+        ],
+      });
+
+      await tester.pumpWidget(host(
+        quiz: quiz,
+        pets: await withPets([pet('p1', 'Bruno')]),
+        historyIndex: 1,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('60'), findsOneWidget);
+      expect(find.textContaining('since your last assessment'), findsNothing);
+    });
+
+    testWidgets('a record from before per-pet scoring still compares',
+        (tester) async {
+      sizeUp(tester);
+      // Null ids compare equal to each other, which is right: those installs
+      // only ever had one pet. Built directly because the shared helper
+      // always stamps an id.
+      ScoreResult legacy(int percent, int daysAgo) => ScoreResult(
+            rawScore: percent,
+            maxPossibleScore: 100,
+            percentageScore: percent,
+            category: HealthCategory.good,
+            categoryScores: const {'Skin & Coat Health': 41},
+            completedAt: DateTime(2026, 8, 7).subtract(Duration(days: daysAgo)),
+          );
+
+      final quiz = QuizProvider(
+        service: FakeCloud(assessments: {
+          'legacy': [legacy(66, 10), legacy(50, 40)],
+        }),
+      );
+      await quiz.init();
+      await quiz.loadAssessmentsFromFirestore();
+      quiz.bindPet(null);
+
+      expect(
+        quiz.assessmentHistory,
+        hasLength(2),
+        reason: 'the fixture never reached the screen',
+      );
+
+      await tester.pumpWidget(host(
+        quiz: quiz,
+        pets: await withPets([pet('p1', 'Bruno')]),
+        historyIndex: 0,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('66'), findsOneWidget);
+      expect(find.text('Up 16 since your last assessment'), findsOneWidget);
+    });
+
+    testWidgets('the delta is arithmetic on stored scores, nothing derived',
+        (tester) async {
+      sizeUp(tester);
+      // Raw scores deliberately disagree with the stored percentages. A
+      // recalculation anywhere in this path would show a different figure.
+      final quiz = await quizWith({
+        'p1': [
+          report(percent: 70, daysAgo: 10, rawScore: 12),
+          report(percent: 60, daysAgo: 40, rawScore: 99),
+        ],
+      });
+
+      await tester.pumpWidget(host(
+        quiz: quiz,
+        pets: await withPets([pet('p1', 'Bruno')]),
+        historyIndex: 0,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('70'), findsOneWidget);
+      expect(find.text('Up 10 since your last assessment'), findsOneWidget);
+    });
+  });
+
   group('pet information', () {
     testWidgets('names the pet the report was recorded against',
         (tester) async {

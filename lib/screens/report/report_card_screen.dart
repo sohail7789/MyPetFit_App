@@ -27,7 +27,17 @@ class ReportCardScreen extends StatefulWidget {
   /// result — the one just calculated, or the last one completed.
   final int? historyIndex;
 
-  const ReportCardScreen({super.key, this.historyIndex});
+  /// Whether this device can print, asked once on entry.
+  ///
+  /// Injectable purely so a test can build the print control at all: the real
+  /// check reaches the printing plugin, which never answers under
+  /// `flutter test`, so the button was simply absent from every widget test
+  /// and its accessibility went uncovered. Production passes nothing and gets
+  /// [ReportPdf.canPrint] exactly as before.
+  @visibleForTesting
+  final Future<bool> Function()? canPrint;
+
+  const ReportCardScreen({super.key, this.historyIndex, this.canPrint});
 
   bool get isHistorical => historyIndex != null;
 
@@ -63,6 +73,17 @@ class _ReportCardScreenState extends State<ReportCardScreen>
   /// a record: once opened, it is the one that stays on screen.
   ScoreResult? _shown;
 
+  /// The score recorded before [_shown], captured at the same moment.
+  ///
+  /// Frozen with the report rather than looked up per build. The record was
+  /// already frozen; its comparison was not, and it was read from
+  /// [QuizProvider.assessmentHistory] — a list bound to the *active* pet.
+  /// Switching pets with a report open therefore left the right animal, the
+  /// right score and a delta measured against a different animal's history:
+  /// Bruno's 70 against Mia's 20 read as "Up 50" on a page still headed
+  /// Bruno. A trim moved it the same way, by shifting the neighbouring index.
+  int? _previous;
+
   @override
   void initState() {
     super.initState();
@@ -71,7 +92,7 @@ class _ReportCardScreenState extends State<ReportCardScreen>
   }
 
   Future<void> _resolvePrinting() async {
-    final can = await ReportPdf.canPrint();
+    final can = await (widget.canPrint ?? ReportPdf.canPrint)();
     if (mounted) setState(() => _canPrint = can);
   }
 
@@ -113,9 +134,42 @@ class _ReportCardScreenState extends State<ReportCardScreen>
     final index = widget.historyIndex;
     final history = quiz.assessmentHistory;
 
-    return _shown = index == null
+    final resolved = index == null
         ? quiz.result
         : (index >= 0 && index < history.length ? history[index] : null);
+
+    // Nothing resolved yet — the history may still be loading, and freezing
+    // a null here would leave an empty state on screen forever.
+    if (resolved == null) return null;
+
+    _previous = _previousScoreFor(resolved, history);
+    return _shown = resolved;
+  }
+
+  /// The score recorded before [shown], for the pet [shown] belongs to.
+  ///
+  /// Matched by pet and instant rather than by list position. A neighbouring
+  /// index is only meaningful in the list it was read from, and that list is
+  /// rebuilt, refiltered and trimmed underneath this screen; an instant and
+  /// an owner are properties of the record itself.
+  ///
+  /// Records written before results were scoped per pet carry a null id, and
+  /// compare equal to each other — which is right, because those installs
+  /// only ever had one pet.
+  static int? _previousScoreFor(ScoreResult shown, List<ScoreResult> history) {
+    ScoreResult? previous;
+
+    for (final candidate in history) {
+      if (candidate.petId != shown.petId) continue;
+      if (!candidate.completedAt.isBefore(shown.completedAt)) continue;
+
+      if (previous == null ||
+          candidate.completedAt.isAfter(previous.completedAt)) {
+        previous = candidate;
+      }
+    }
+
+    return previous?.percentageScore;
   }
 
   /// The pet [result] was recorded against.
@@ -182,7 +236,8 @@ class _ReportCardScreenState extends State<ReportCardScreen>
   @override
   Widget build(BuildContext context) {
     final quiz = context.watch<QuizProvider>();
-    final history = quiz.assessmentHistory;
+    // The history is read only to resolve the record, once. Nothing in this
+    // build reads it again — see [_previous].
     final result = _resolve(quiz);
 
     if (result == null) {
@@ -246,7 +301,8 @@ class _ReportCardScreenState extends State<ReportCardScreen>
                   _BandHero(
                     result: result,
                     countUp: _countUp,
-                    previous: _previousScore(history),
+                    // Captured with the record, never re-read: see [_previous].
+                    previous: _previous,
                   ),
                   const SizedBox(height: _gapLg),
                   _AssessedPet(
@@ -366,15 +422,6 @@ class _ReportCardScreenState extends State<ReportCardScreen>
     );
   }
 
-  /// The score recorded before the one being shown, when there is one to
-  /// compare against. History runs newest-first, so the entry after the one
-  /// on screen is the older score — which for a past report card means
-  /// comparing against what preceded *it*, not against today.
-  int? _previousScore(List<ScoreResult> history) {
-    final older = (widget.historyIndex ?? 0) + 1;
-    if (older >= history.length) return null;
-    return history[older].percentageScore;
-  }
 }
 
 /// One spacing scale for the whole report, so the rhythm is consistent
@@ -1120,6 +1167,10 @@ class _PrintButton extends StatelessWidget {
       label: busy ? 'Preparing the report to print' : 'Print report',
       container: true,
       excludeSemantics: true,
+      // Declared on the node: excluding the children's semantics also
+      // excludes the detector's tap action, which left this announced as a
+      // button that no screen reader could press.
+      onTap: onPressed,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onPressed,

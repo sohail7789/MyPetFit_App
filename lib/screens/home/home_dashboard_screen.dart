@@ -1975,6 +1975,10 @@ class _QuickAction extends StatelessWidget {
       // worse thing to hear read out than "Start assessment".
       container: true,
       excludeSemantics: true,
+      // The action belongs on the node. Excluding the child's semantics to
+      // replace the shortened visible label also excluded the detector's tap
+      // action, leaving four buttons a screen reader could read and not use.
+      onTap: onTap,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,

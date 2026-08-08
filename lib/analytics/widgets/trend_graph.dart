@@ -254,6 +254,10 @@ class _Marker extends StatelessWidget {
         hint: 'Opens this report',
         container: true,
         excludeSemantics: true,
+        // The hint promises the marker opens a report, so the node has to be
+        // able to. Excluding the children's semantics also excludes the
+        // detector's tap action — without this the promise is unkeepable.
+        onTap: onTap,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,

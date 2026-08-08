@@ -91,6 +91,45 @@ void main() {
       );
     });
 
+    test('the pure layers never read the wall clock', () {
+      // The invariant the whole module's determinism rests on: the same
+      // history and the same `now` always produce the same answer, which is
+      // what lets a snapshot be cached, a test pin a date, and a countdown
+      // move as time passes instead of freezing at the instant a snapshot
+      // was built.
+      //
+      // `DateTime` itself is fine — dates are the data. Reading *the current*
+      // one inside a calculator is what breaks it, and every existing test
+      // would still pass afterwards, because they all pass `now:` explicitly.
+      // That is precisely why this needs a mechanical guard rather than a
+      // convention.
+      final offenders = <String>[];
+
+      for (final directory in pureDirectories) {
+        for (final file in dartFilesIn(directory)) {
+          final lines = file.readAsLinesSync();
+          for (var i = 0; i < lines.length; i++) {
+            final line = lines[i];
+            // Prose about the rule is not a breach of it.
+            final code = line.split('//').first;
+            if (code.contains('DateTime.now()') ||
+                code.contains('DateTime.timestamp()')) {
+              offenders.add('${file.path}:${i + 1}: ${line.trim()}');
+            }
+          }
+        }
+      }
+
+      expect(
+        offenders,
+        isEmpty,
+        reason: 'analytics/models, domain, services and presentation must take '
+            'the instant to judge against as a parameter — never read it. '
+            'Pass `now` in from the widget or the caller.\n'
+            '${offenders.join('\n')}',
+      );
+    });
+
     test('the pure layers never reach for a provider', () {
       // Providers are the adapter's business. A calculator that reads one
       // cannot be handed a smart collar's history, which is the whole point

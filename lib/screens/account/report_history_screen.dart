@@ -273,6 +273,10 @@ class _HistoryRow extends StatelessWidget {
       ].join(', '),
       container: true,
       excludeSemantics: true,
+      // Declared on the node itself. Excluding the children's semantics also
+      // excludes the detector's tap action, which leaves a row a screen
+      // reader announces as a button and cannot open.
+      onTap: onTap,
       child: GestureDetector(
         onTap: onTap,
         child: Container(
@@ -782,15 +786,20 @@ class _Recommendation extends StatelessWidget {
 
     final product = matches.first;
 
+    void open() => context.push('${AppRoutes.productDetail}/${product.id}');
+
     return Semantics(
       button: true,
       label: 'Recommended for ${area.categoryName}: ${product.name}, '
           '${formatPrice(product.price)}',
       excludeSemantics: true,
+      // The excluded children take the detector's tap action with them, so
+      // the node has to carry its own or the tile cannot be opened by a
+      // screen reader.
+      onTap: open,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () =>
-            context.push('${AppRoutes.productDetail}/${product.id}'),
+        onTap: open,
         child: Container(
           padding: const EdgeInsets.fromLTRB(11, 10, 12, 10),
           decoration: BoxDecoration(
