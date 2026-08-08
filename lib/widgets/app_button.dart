@@ -141,34 +141,45 @@ class _AppButtonState extends State<AppButton> {
       ],
     );
 
-    return GestureDetector(
-      onTapDown: _enabled ? (_) => setState(() => _pressed = true) : null,
-      onTapUp: _enabled ? (_) => setState(() => _pressed = false) : null,
-      onTapCancel: _enabled ? () => setState(() => _pressed = false) : null,
-      onTap: widget.onPressed,
-      child: AnimatedScale(
-        scale: _pressed ? 0.98 : 1,
-        duration: const Duration(milliseconds: 90),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          // Minimum, not fixed — a two-line label at a large font scale has
-          // to be able to make the button taller rather than be cut off.
-          constraints: BoxConstraints(minHeight: widget.height),
-          width: widget.expand ? double.infinity : null,
-          padding: EdgeInsets.symmetric(
-            horizontal: widget.expand ? 16 : 22,
-            vertical: 10,
+    // Declared as a button, and as enabled or not.
+    //
+    // A bare GestureDetector contributes a tap action but no role: every
+    // primary action in the app — "Start the assessment", "Try again",
+    // "Delete my account" — was announced as an anonymous tappable thing,
+    // with no way for a screen reader to say whether it was even available.
+    // The label comes from the child, so it is not restated here.
+    return Semantics(
+      button: true,
+      enabled: _enabled,
+      child: GestureDetector(
+        onTapDown: _enabled ? (_) => setState(() => _pressed = true) : null,
+        onTapUp: _enabled ? (_) => setState(() => _pressed = false) : null,
+        onTapCancel: _enabled ? () => setState(() => _pressed = false) : null,
+        onTap: widget.onPressed,
+        child: AnimatedScale(
+          scale: _pressed ? 0.98 : 1,
+          duration: const Duration(milliseconds: 90),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            // Minimum, not fixed — a two-line label at a large font scale has
+            // to be able to make the button taller rather than be cut off.
+            constraints: BoxConstraints(minHeight: widget.height),
+            width: widget.expand ? double.infinity : null,
+            padding: EdgeInsets.symmetric(
+              horizontal: widget.expand ? 16 : 22,
+              vertical: 10,
+            ),
+            decoration: BoxDecoration(
+              color: _background,
+              borderRadius: BorderRadius.circular(radius),
+              border: widget.variant == AppButtonVariant.outline
+                  ? Border.all(color: context.c.border)
+                  : null,
+              boxShadow: _shadow,
+            ),
+            alignment: Alignment.center,
+            child: content,
           ),
-          decoration: BoxDecoration(
-            color: _background,
-            borderRadius: BorderRadius.circular(radius),
-            border: widget.variant == AppButtonVariant.outline
-                ? Border.all(color: context.c.border)
-                : null,
-            boxShadow: _shadow,
-          ),
-          alignment: Alignment.center,
-          child: content,
         ),
       ),
     );

@@ -1,9 +1,6 @@
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
-import 'firebase_options.dart';
 import 'providers/address_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
@@ -15,29 +12,18 @@ import 'providers/quiz_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/app_startup_provider.dart';
-
-/// Brings up Firebase using the generated per-platform options, so Android,
-/// iOS and web all initialise from the same source of truth.
-///
-/// Failure is caught rather than fatal: a misconfigured or missing Firebase
-/// project should not stop the app from launching, since nothing in the UI
-/// depends on it yet.
-Future<void> _initFirebase() async {
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (error, stack) {
-    if (kDebugMode) {
-      debugPrint('Firebase failed to initialise: $error');
-      debugPrintStack(stackTrace: stack);
-    }
-  }
-}
+import 'providers/firebase_startup_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await _initFirebase();
+
+  // Firebase comes up before the first frame, and its outcome is carried in
+  // the tree rather than swallowed. This used to be a try/catch whose only
+  // response was a debugPrint behind kDebugMode: in release the failure was
+  // invisible and the app launched anyway, into a state where every account
+  // operation throws deep inside a provider. See [FirebaseStartupProvider].
+  final firebaseStartup = FirebaseStartupProvider();
+  await firebaseStartup.connect();
 
   // IMPORTANT: Do NOT await SharedPreferences before runApp().
   //
@@ -70,6 +56,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider.value(value: productProvider),
         ChangeNotifierProvider.value(value: appStartupProvider),
+        ChangeNotifierProvider.value(value: firebaseStartup),
       ],
       child: const MyPetFitApp(),
     ),

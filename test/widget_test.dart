@@ -6,6 +6,7 @@ import 'package:mypetfit_app/providers/auth_provider.dart';
 import 'package:mypetfit_app/providers/app_startup_provider.dart';
 import 'package:mypetfit_app/providers/cart_provider.dart';
 import 'package:mypetfit_app/providers/dashboard_provider.dart';
+import 'package:mypetfit_app/providers/firebase_startup_provider.dart';
 import 'package:mypetfit_app/providers/onboarding_provider.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';
 import 'package:mypetfit_app/providers/quiz_provider.dart';
@@ -21,6 +22,12 @@ Widget _bootApp() => MultiProvider(
         ChangeNotifierProvider(create: (_) => OnboardingProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AppStartupProvider()),
+        // The app is gated on Firebase being reachable. A stubbed
+        // initialisation stands for a project that came up; the failure path
+        // has its own cover in firebase_startup_test.dart.
+        ChangeNotifierProvider(
+          create: (_) => FirebaseStartupProvider(initialise: () async {}),
+        ),
       ],
       child: const MyPetFitApp(),
     );
