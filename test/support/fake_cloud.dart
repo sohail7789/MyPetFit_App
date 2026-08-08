@@ -32,7 +32,11 @@ class FakeCloud implements FirestoreService {
   Map<String, List<ScoreResult>> assessments;
 
   /// When set, every read throws it — the offline case.
-  final Object? offline;
+  ///
+  /// Mutable so a test can model a connection coming back: the provider
+  /// holds one service instance for its lifetime, so recovery cannot be
+  /// expressed by swapping the fake.
+  Object? offline;
 
   /// Reads served, so a test can assert the cloud was consulted at all.
   int consentReads = 0;

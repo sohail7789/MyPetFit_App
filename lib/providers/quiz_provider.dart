@@ -469,22 +469,77 @@ class QuizProvider extends ChangeNotifier with CloudSync {
     notifyListeners();
   }
 
+  /// Restores assessments from the cloud, merged with what is already here.
+  ///
+  /// **Was a replacement, and that lost records.** The cloud copy is
+  /// authoritative for everything it holds, but it does not hold everything:
+  /// [calculateResult] stores a report locally and *queues* the write, and
+  /// that queue is in memory only. An assessment completed offline therefore
+  /// exists nowhere but this list and the device's own store until the write
+  /// lands. Replacing the list with the cloud's contents deleted exactly
+  /// those records — and [_persist] then wrote the loss to disk, so the
+  /// report survived neither the restart nor the restore.
+  ///
+  /// The same applied to a pet whose document had not synced yet:
+  /// [FirestoreService.getAllAssessments] keys on the pet documents the cloud
+  /// knows about, so an unsynced pet contributed nothing and its reports were
+  /// dropped with it.
+  ///
+  /// Now the cloud is read first, reconciled into a temporary map, and only
+  /// then committed. A read that throws leaves this list untouched, and a
+  /// cloud that returns nothing removes nothing.
+  ///
+  /// Retention is deliberately not applied here. Trimming has always happened
+  /// at scoring time and nowhere else; adding it to a restore would hide
+  /// records this method has just successfully fetched, which is the opposite
+  /// of what it is for.
   Future<void> loadAssessmentsFromFirestore() async {
+    // Read before touching anything. A throw here leaves the restore a no-op
+    // rather than a partial wipe.
     final cloudHistory = await _firestore.getAllAssessments();
 
-    _allHistory.clear();
+    // Local first, so a record the cloud also holds is replaced by the
+    // durable copy, and one it does not hold simply survives.
+    final reconciled = <String, ScoreResult>{
+      for (final local in _allHistory) _identityOf(local): local,
+      for (final reports in cloudHistory.values)
+        for (final report in reports) _identityOf(report): report,
+    };
 
-    for (final reports in cloudHistory.values) {
-      _allHistory.addAll(reports);
-    }
+    final merged = reconciled.values.toList()
+      ..sort((a, b) {
+        final byTime = b.completedAt.compareTo(a.completedAt);
+        // Two pets can be assessed in the same millisecond on a restore of
+        // seeded data; the identity keeps the order from shuffling between
+        // reads of the same records.
+        return byTime != 0
+            ? byTime
+            : _identityOf(a).compareTo(_identityOf(b));
+      });
 
-    _allHistory.sort(
-          (a, b) => b.completedAt.compareTo(a.completedAt),
-    );
+    _allHistory
+      ..clear()
+      ..addAll(merged);
 
     await _persist();
     notifyListeners();
   }
+
+  /// What makes two records the same assessment.
+  ///
+  /// The pet and the instant, which is precisely what the cloud already uses:
+  /// [FirestoreService.saveAssessment] files a report under its own
+  /// `completedAt` millisecond within that pet's subcollection, so a record
+  /// written locally and the same record read back cannot be told apart by
+  /// anything else — and nobody completes two assessments for one pet in the
+  /// same millisecond.
+  ///
+  /// Normalised to UTC because a local record carries a local `DateTime` and
+  /// its round trip through JSON comes back in the same zone the string was
+  /// written in; comparing the raw values would make one assessment look like
+  /// two.
+  static String _identityOf(ScoreResult result) =>
+      '${result.petId ?? ''}@${result.completedAt.toUtc().toIso8601String()}';
 
 
   Map<String, dynamic> _snapshot() => {
