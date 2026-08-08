@@ -12,6 +12,7 @@ import 'providers/quiz_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/app_startup_provider.dart';
+import 'services/crash_reporter.dart';
 import 'providers/firebase_startup_provider.dart';
 
 Future<void> main() async {
@@ -24,6 +25,15 @@ Future<void> main() async {
   // operation throws deep inside a provider. See [FirebaseStartupProvider].
   final firebaseStartup = FirebaseStartupProvider();
   await firebaseStartup.connect();
+
+  // Crash reporting is a Firebase product, so it goes up after Firebase and
+  // only if Firebase came up. An app that cannot report is worse than one
+  // that cannot start, so this is never allowed to be a launch blocker: when
+  // the connection failed, the app runs without reporting and shows the
+  // recovery screen instead.
+  if (firebaseStartup.isReady) {
+    CrashReporter.install();
+  }
 
   // IMPORTANT: Do NOT await SharedPreferences before runApp().
   //

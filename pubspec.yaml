@@ -31,6 +31,7 @@ dependencies:
   printing: ^5.14.3
   sign_in_with_apple: ^8.1.0
   crypto: ^3.0.7
+  firebase_crashlytics: ^5.2.7
 
 dev_dependencies:
   flutter_test:
