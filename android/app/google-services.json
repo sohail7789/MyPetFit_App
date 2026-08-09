@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "969502932777-thhf9gsmc7lj7sgr9m5ohhphavoamf5a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mypetfit.in",
+            "certificate_hash": "8f93842175b11d5d96b3f70c83f7e5096d96781c"
+          }
+        },
+        {
           "client_id": "969502932777-8matotbothnmjphmf215k8efchmjuspl.apps.googleusercontent.com",
           "client_type": 3
         }

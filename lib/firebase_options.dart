@@ -66,10 +66,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAbiGcPQY_NfWjvhdTJrYMwjdK47_stQZc',
-    appId: '1:969502932777:ios:5f9345233d5cccb9474138',
+    appId: '1:969502932777:ios:35d857a3df6a95b0474138',
     messagingSenderId: '969502932777',
     projectId: 'mypetfit-c530e',
     storageBucket: 'mypetfit-c530e.firebasestorage.app',
-    iosBundleId: 'com.mypetfit.mypetfitApp',
+    iosBundleId: 'com.mypetfit.app',
   );
 }

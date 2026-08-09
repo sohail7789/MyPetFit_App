@@ -2,7 +2,13 @@
 # CocoaPods silently assumed 13.0 — which failed every iOS build once
 # Firestore was added. Keep this in step with IPHONEOS_DEPLOYMENT_TARGET in
 # Runner.xcodeproj.
-platform :ios, '15.0'
+#
+# A constant rather than a literal because post_install below needs the same
+# number, and two copies of a version that must agree is how they stop
+# agreeing.
+IOS_DEPLOYMENT_TARGET = '15.0'
+
+platform :ios, IOS_DEPLOYMENT_TARGET
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -42,5 +48,22 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
+    # Xcode 26 supports a deployment target range of 12.0–26.5.99 and warns
+    # about anything below it. Several pods still declare 9.0, 10.0 or 11.0
+    # of their own — AppAuth, abseil and PromisesObjC at 9.0, GTMSessionFetcher
+    # and BoringSSL-GRPC at 10.0, gRPC, leveldb and RecaptchaInterop at 11.0 —
+    # and so do the *_Privacy resource-bundle targets CocoaPods generates for
+    # them. That was 23 warnings per build.
+    #
+    # flutter_additional_ios_build_settings above does not settle it: it only
+    # raises a target as far as Flutter's own minimum, which is below ours,
+    # and it does not reach the generated resource-bundle targets at all.
+    #
+    # Raising a pod to 15.0 is safe because the app itself is already 15.0 —
+    # nothing here could ever run on an older OS than the binary embedding it.
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = IOS_DEPLOYMENT_TARGET
+    end
   end
 end

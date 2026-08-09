@@ -1,0 +1,124 @@
+rules_version = '2';
+
+// MyPetFit — production Firestore security rules
+//
+// PROPOSED. Not deployed. See docs/SECURITY_RULES.md for the review notes,
+// the test matrix, and the deploy procedure.
+//
+// Authorization model
+// -------------------
+// Three principals, and only three:
+//
+//   anonymous  — no session. May read the product catalogue and nothing else.
+//   owner      — a signed-in user, acting on documents under their own uid.
+//   admin      — a signed-in user carrying the `admin: true` custom claim.
+//
+// The catalogue is public on purpose. `main.dart` kicks off
+// `ProductProvider.loadProducts()` from a post-frame callback at cold start,
+// with no auth check and no session guaranteed, so requiring a session here
+// would empty the shop for every launch that happens before sign-in — and
+// the failure is swallowed into a flag, so it would fail silently.
+//
+// Admin is a custom claim, never a Firestore field. `saveOwnerProfile()`
+// writes `users/{uid}` with `set(merge: true)`, so any flag stored on that
+// document would sit inside a document its own subject can write. A claim is
+// minted by the Admin SDK and signed into the token; no client API can set
+// one.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- helpers ----------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // `.get('admin', false)` rather than `.token.admin`.
+    //
+    // Custom claims are absent from an ordinary user's token, and reading a
+    // missing property raises an EvaluationException instead of yielding
+    // false. The request is still denied — a rule that errors fails closed —
+    // but the deny arrives via an error path rather than a boolean, which
+    // means every non-admin write logs a rules exception, and any future
+    // rule that negates or combines this one inherits error semantics
+    // instead of the logic it looks like it has. `.get` supplies the default
+    // and keeps the expression honest.
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.get('admin', false) == true;
+    }
+
+    // ---- PUBLIC: product catalogue ----------------------------------
+    // Read is unconditional: this is retail data — a supplement's name,
+    // price and photo. `read` covers both `get` (product detail deep link)
+    // and `list` (the `where('active', isEqualTo: true)` catalogue query).
+    //
+    // Writes are admin-only. Nothing in the Flutter app writes here, so
+    // this takes nothing away from the client today. It does close the
+    // path where any signed-in pet owner could rewrite the price or the
+    // image URL shown to every other customer.
+    //
+    // Note for whoever is editing products by hand today: the Firebase
+    // Console's data editor uses privileged access and is NOT subject to
+    // these rules. Locking writes down here does not lock you out of the
+    // console.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---- PRIVATE: the user record and everything beneath it ---------
+    // One `uid` captured at the top and reused all the way down, so pets
+    // and assessments cannot drift out of alignment with their parent.
+    //
+    // Covers, from firestore_service.dart:
+    //   users/{uid}                          get / set(merge) / delete
+    //   users/{uid}/pets/{petId}             get / list / set(merge) / delete
+    //   users/{uid}/pets/{petId}/assessments get / list(orderBy) / set / delete
+    //
+    // Admins are deliberately NOT granted access here. Managing a product
+    // catalogue is not a reason to read a pet's health record.
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /pets/{petId} {
+        allow read, write: if isOwner(uid);
+
+        match /assessments/{assessmentId} {
+          allow read, write: if isOwner(uid);
+        }
+      }
+
+      // Deliberately no `match /{document=**}` catch-all here. A recursive
+      // owner-grant would silently extend access to any subcollection added
+      // under a user in future. Denying by default instead means a new
+      // subcollection fails loudly in development — which is caught in
+      // minutes — rather than shipping quietly over-permissioned, which is
+      // caught by nobody. Adding a collection here is one deliberate rule.
+    }
+
+    // ---- Admin roster (label only, never the authority) -------------
+    // Exists so the future admin site can show "who has access" without
+    // calling the Admin SDK from the browser. Authorization reads the
+    // token claim, never this collection.
+    //
+    // No client can write it. The Admin SDK bypasses rules entirely, so
+    // the provisioning script still can.
+    match /admins/{uid} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ---- Explicit default deny --------------------------------------
+    // Documentation of intent, not enforcement. Firestore rules are
+    // additive — a later `if false` cannot revoke an earlier `allow` —
+    // and unmatched paths are denied already. This is here so that a
+    // reader who has not memorised that semantics is not left guessing.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

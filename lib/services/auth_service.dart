@@ -382,14 +382,17 @@ class AuthService {
     }
   }
 
-  /// Check whether an email is registered.
-  Future<bool> isEmailRegistered(String email) async {
-    final snapshot = await _firestore
-        .collection('users')
-        .where('email', isEqualTo: email.trim())
-        .limit(1)
-        .get();
-
-    return snapshot.docs.isNotEmpty;
-  }
+  // isEmailRegistered() was removed here.
+  //
+  // It queried `users` by email to pre-check the Forgot Password form. As a
+  // query against the collection root it could not be scoped to a caller —
+  // and the caller is signed out on that screen — so permitting it meant
+  // letting an unauthenticated client list the `users` collection. That is
+  // an account-enumeration oracle over every registered address, and it is
+  // the one operation blocking the production Firestore rules from being
+  // tightened to owner-only.
+  //
+  // Nothing replaced it. [sendPasswordResetEmail] already asks Firebase Auth,
+  // which is the authority on whether an address can be sent a link, and
+  // needs no Firestore read to do it.
 }

@@ -22,14 +22,32 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<!-- Google Sign-In returns from the browser through this scheme. It is the
+	     REVERSED_CLIENT_ID from ios/GoogleService-Info.plist verbatim; the two
+	     must stay in step, so re-check this whenever that file is regenerated.
+	     Without it the OAuth callback has nowhere to land and every Google
+	     sign-in hangs — a runtime failure the build cannot catch. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.mypetfit.app.google-signin</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.969502932777-sboti6nete808kftu16iecus5ejd3i9c</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Take a photo of your pet or yourself for their profile.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose a photo of your pet or yourself for their profile.</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

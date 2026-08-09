@@ -10,7 +10,6 @@ import '../../widgets/paw_mark.dart';
 import 'widgets/auth_art_layout.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/auth_service.dart';
 
 /// Screen 07 — Forgot password.
 class ForgotPasswordScreen extends StatefulWidget {
@@ -46,18 +45,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         return;
       }
 
-      final exists =
-      await AuthService.instance.isEmailRegistered(email);
-
-      if (!exists) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('This email is not registered.'),
-          ),
-        );
-        return;
-      }
-
+      // Deliberately no "is this address registered?" pre-check.
+      //
+      // There used to be one, and it queried the `users` collection by
+      // email. Two things were wrong with it. It was an anonymous
+      // enumeration oracle — the caller is signed out on this screen, so
+      // anyone could confirm whether an address had a MyPetFit account. And
+      // it required the `users` collection to be listable by an
+      // unauthenticated client, which is exactly the access the production
+      // Firestore rules are being tightened to remove.
+      //
+      // It was also redundant: Firebase Auth already decides whether an
+      // address can be sent a reset link, and reports it through
+      // sendPasswordResetEmail. Ask the authority directly.
       await authProvider.sendPasswordResetEmail(email);
 
       if (!mounted) return;

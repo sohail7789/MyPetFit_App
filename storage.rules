@@ -1,0 +1,128 @@
+rules_version = '2';
+
+// MyPetFit — production Cloud Storage security rules
+//
+// PROPOSED. Not deployed. Production currently denies everything; that
+// deny-all stays in force until these are reviewed and deployed in Phase B.
+//
+// Bucket: gs://mypetfit-c530e.firebasestorage.app  (asia-south1)
+//
+// Two zones with opposite access profiles, and they never share a prefix:
+//
+//   products/**   public retail assets   world-read, admin-write
+//   users/{uid}/**  private pet health   owner-only, admins excluded
+//
+// A note on method granularity that matters here: in Storage rules `write`
+// means create + update + DELETE. Validating a write with
+// `request.resource.contentType` under a bare `allow write` therefore breaks
+// deletion, because `request.resource` is null on a delete and the condition
+// errors out. Every validated path below splits `create, update` from
+// `delete` for that reason. This is the single easiest rule in this file to
+// get wrong.
+//
+// Second operational note: `request.resource.contentType` is null unless the
+// uploader sets Content-Type explicitly. A null fails `.matches()` and the
+// upload is denied — the safe direction, but it means the migration script
+// and the admin site MUST set Content-Type on every upload.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ---- helpers ----------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // See the matching note in firestore.rules: reading a missing custom
+    // claim raises an EvaluationException rather than returning false, so
+    // the deny would come from an error path and every non-admin upload
+    // would log one. `.get` supplies the default instead.
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.get('admin', false) == true;
+    }
+
+    // WebP is the migration target; JPEG and PNG are accepted so a
+    // hand-uploaded original is not rejected mid-incident. HEIC/HEIF are
+    // deliberately absent — iOS returns HEIC from the camera roll, so the
+    // future photo-upload path must transcode rather than pass it through.
+    function isImage() {
+      return request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+
+    function isPdf() {
+      return request.resource.contentType == 'application/pdf';
+    }
+
+    function underMB(mb) {
+      return request.resource.size < mb * 1024 * 1024;
+    }
+
+    // ---- PUBLIC: product catalogue assets ---------------------------
+    // World-readable, matching the Firestore catalogue rule and the
+    // pre-auth load in main.dart. These objects are fetched by
+    // Image.network from a plain https URL with no session attached.
+    //
+    // 5 MB is an abuse ceiling, not a target: a correctly encoded
+    // 1200x1200 WebP lands around 80-200 KB.
+
+    // products/{productId}/primary.webp  — the image the app renders.
+    // A full-segment wildcard, because Storage rules cannot wildcard part
+    // of a segment (`primary.{ext}` is not valid syntax). One segment
+    // after the product id, so it cannot reach into gallery/.
+    match /products/{productId}/{fileName} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isImage() && underMB(5);
+      allow delete: if isAdmin();
+    }
+
+    // products/{productId}/gallery/{imageId} — reserved for the
+    // multi-image detail view the schema does not carry yet. Defined now
+    // because retrofitting a prefix later means moving objects.
+    match /products/{productId}/gallery/{imageId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isImage() && underMB(5);
+      allow delete: if isAdmin();
+    }
+
+    // ---- PRIVATE: owner-only files ----------------------------------
+    // Nothing writes here yet — pet and owner photos are still device-local
+    // via PhotoStore, and report PDFs are generated into the temp directory
+    // and handed to the OS share sheet. These paths are defined ahead of
+    // that work so the isolation boundary is reviewed once, now, rather
+    // than under time pressure later.
+    //
+    // Admins get nothing here, by design.
+
+    match /users/{uid}/profile/{fileName} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && isImage() && underMB(5);
+      allow delete: if isOwner(uid);
+    }
+
+    match /users/{uid}/pets/{petId}/{fileName} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && isImage() && underMB(5);
+      allow delete: if isOwner(uid);
+    }
+
+    // Health reports. 10 MB because a PDF carries embedded fonts and
+    // chart artwork; the generated report is far smaller in practice.
+    match /users/{uid}/reports/{fileName} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && isPdf() && underMB(10);
+      allow delete: if isOwner(uid);
+    }
+
+    // ---- Explicit default deny --------------------------------------
+    // As in firestore.rules: documentation of intent, not enforcement.
+    // Storage rules are additive too, and an unmatched path is already
+    // denied.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

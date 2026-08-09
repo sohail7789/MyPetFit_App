@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mypetfit_app/config/theme.dart';
@@ -28,6 +30,66 @@ void main() {
       expect(find.text('Email address'), findsOneWidget);
       expect(find.text('Send Reset Link'), findsOneWidget);
       expect(find.text('Back to Login'), findsOneWidget);
+    });
+
+    // A source-level guard rather than a widget test, for the same reason
+    // `test/analytics/architecture_test.dart` uses one: the thing worth
+    // pinning down is that a particular call does not exist anywhere, and no
+    // amount of pumping a widget can prove absence.
+    //
+    // Forgot Password used to pre-check the address with a Firestore query
+    // against the `users` collection root. Signed out, that query cannot be
+    // scoped to a caller, so allowing it means allowing any anonymous client
+    // to enumerate every registered email — and it is the single operation
+    // that blocks the production rules from being tightened to owner-only.
+    //
+    // Re-adding it would pass every other test in this suite and fail only
+    // in production, on the day the rules are deployed.
+    test('the reset flow performs no Firestore lookup', () {
+      final offenders = <String>[];
+
+      final dartFiles = Directory('lib')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.dart'));
+
+      for (final file in dartFiles) {
+        final lines = file.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          // Comments explaining why the call is gone are not the call.
+          final trimmed = lines[i].trim();
+          if (trimmed.startsWith('//') || trimmed.startsWith('///')) continue;
+          if (trimmed.contains('isEmailRegistered')) {
+            offenders.add('${file.path}:${i + 1}: $trimmed');
+          }
+        }
+      }
+
+      expect(
+        offenders,
+        isEmpty,
+        reason: 'isEmailRegistered() was removed because it let a signed-out '
+            'caller enumerate the users collection. Firebase Auth already '
+            'decides whether an address can be sent a reset link — ask it '
+            'through sendPasswordResetEmail rather than reading '
+            'Firestore.\n${offenders.join('\n')}',
+      );
+    });
+
+    test('the Forgot Password screen does not reach Firestore at all', () {
+      final source =
+          File('lib/screens/auth/forgot_password_screen.dart').readAsStringSync();
+
+      expect(
+        source.contains('cloud_firestore'),
+        isFalse,
+        reason: 'Forgot Password must not query Firestore.',
+      );
+      expect(
+        source.contains('collection('),
+        isFalse,
+        reason: 'Forgot Password must not query Firestore.',
+      );
     });
   });
 
