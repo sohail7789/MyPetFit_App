@@ -70,6 +70,21 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
   /// one file rather than a new one on every pick.
   final String _draftSlot = 'draft-${DateTime.now().microsecondsSinceEpoch}';
 
+  /// The id a pet created by this form gets — minted once, not per submit.
+  ///
+  /// Same reasoning as [_draftSlot], and it was the same defect. Onboarding
+  /// pushes the quiz on top of this screen, so backing out of the first
+  /// question returns to *this* State with [_editing] still null: it was set
+  /// in initState, before any pet existed. Submitting again therefore built a
+  /// pet with a fresh timestamp id, and while [PetInfoProvider.setPetInfo]
+  /// replaces the active pet locally — so the app still showed one — the
+  /// cloud write is keyed by id, so Firestore gained a second document. The
+  /// first was left with no assessments, because the assessment then saved
+  /// under the second.
+  ///
+  /// Minted lazily so a form that only edits never generates one.
+  late final String _newPetId = 'pet_${DateTime.now().microsecondsSinceEpoch}';
+
   @override
   void initState() {
     super.initState();
@@ -150,8 +165,7 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
   PetInfo _collect() {
     final base = _editing;
     return PetInfo(
-      id: base?.id ??
-          'pet_${DateTime.now().microsecondsSinceEpoch}',
+      id: base?.id ?? _newPetId,
       name: _name.text.trim(),
       breed: _breed.text.trim(),
       ageYears: int.tryParse(_years.text.trim()) ?? 0,

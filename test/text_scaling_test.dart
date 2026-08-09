@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -249,10 +251,24 @@ void main() {
         ),
       );
 
+      // The email is no longer one of the values this form keeps — it comes
+      // from the signed-in account now — so the account has to be present for
+      // the step to render at all.
+      SharedPreferences.setMockInitialValues({
+        'auth_state': jsonEncode({
+          'isSignedIn': true,
+          'username': 'owner@example.com',
+          'email': 'owner@example.com',
+        }),
+      });
+      final auth = AuthProvider();
+      await auth.init();
+
       await tester.pumpWidget(
         MultiProvider(
           providers: [
             ChangeNotifierProvider.value(value: pets),
+            ChangeNotifierProvider.value(value: auth),
             ChangeNotifierProvider(create: (_) => QuizProvider()),
           ],
           child: const MaterialApp(home: OwnerInfoScreen()),

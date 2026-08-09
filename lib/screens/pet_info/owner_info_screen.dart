@@ -6,6 +6,7 @@ import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../models/pet_info.dart';
 import '../../services/sync_reconciler.dart' show kUnknownUpdatedAt;
+import '../../providers/auth_provider.dart';
 import '../../providers/pet_info_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/photo_slot.dart';
@@ -41,7 +42,6 @@ class OwnerInfoScreen extends StatefulWidget {
 class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
   final _name = TextEditingController();
   final _phone = TextEditingController();
-  final _email = TextEditingController();
   final _vet = TextEditingController();
   final _vetPhone = TextEditingController();
 
@@ -60,7 +60,6 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
     if (owner != null) {
       _name.text = owner.name;
       _phone.text = owner.contactNumber;
-      _email.text = owner.email;
       _vet.text = owner.vetName ?? '';
       _vetPhone.text = owner.vetContact ?? '';
       _photoPath = owner.photoPath;
@@ -69,11 +68,27 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
 
   @override
   void dispose() {
-    for (final c in [_name, _phone, _email, _vet, _vetPhone]) {
+    for (final c in [_name, _phone, _vet, _vetPhone]) {
       c.dispose();
     }
     super.dispose();
   }
+
+  /// The address this account signed in with.
+  ///
+  /// Not a field on this form. It comes from Firebase Authentication —
+  /// [AuthProvider] carries `credential.user.email` from every sign-in path
+  /// — and the account is the authority on it, so there is nothing here for
+  /// a user to type or correct. Typing it invited two answers to one
+  /// question and produced exactly that: an account address and a separately
+  /// typed contact address that could disagree.
+  ///
+  /// Read through the provider rather than `FirebaseAuth.instance` directly
+  /// because this screen is widget-tested; see the note on
+  /// [AuthProvider.new] about not touching the Firebase singleton merely to
+  /// construct state.
+  String _authEmail(BuildContext context) =>
+      context.read<AuthProvider>().email.trim();
 
   /// Saves the step, then continues. Previously this screen only navigated —
   /// nothing typed here was ever persisted, so the report card and the
@@ -85,19 +100,21 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
       return;
     }
 
-    final email = _email.text.trim();
-    if (email.isNotEmpty && !_emailLooksValid(email)) {
-      setState(() => _error = 'That email address looks wrong.');
-      return;
-    }
-
     final pets = context.read<PetInfoProvider>();
+
+    // The account address, never anything typed here. When the provider has
+    // none — a session restored without one — the stored value is carried
+    // through rather than blanked, so an existing record is never damaged by
+    // a field this form no longer owns.
+    final authEmail = _authEmail(context);
+    final email =
+        authEmail.isNotEmpty ? authEmail : (pets.ownerInfo?.email ?? '');
 
     await pets.setOwnerInfo(
       OwnerInfo(
         name: name,
         contactNumber: _phone.text.trim(),
-        email: _email.text.trim(),
+        email: email,
         // Address is captured at checkout, not here; preserve anything
         // already saved so continuing past this step never wipes it.
         address: pets.ownerInfo?.address,
@@ -122,12 +139,6 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
 
     context.push(AppRoutes.petInfo);
   }
-
-  /// Deliberately permissive — this is a contact field, not a login, and a
-  /// regex strict enough to be worth arguing about would reject real
-  /// addresses. It only catches obvious typos.
-  static bool _emailLooksValid(String value) =>
-      RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value);
 
   @override
   Widget build(BuildContext context) {
@@ -221,13 +232,21 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: 12),
-                    LabeledField(
-                      label: 'Email',
-                      hint: 'you@email.com',
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      textCapitalization: TextCapitalization.none,
-                      textInputAction: TextInputAction.next,
+                    Builder(
+                      builder: (context) {
+                        final email = _authEmail(context);
+                        return LabeledField(
+                          label: 'Email',
+                          labelNote: 'from your account',
+                          hint: 'you@email.com',
+                          // A value rather than a controller is what makes it
+                          // read-only — see LabeledField, which renders text
+                          // instead of a TextField when this is set. The
+                          // account owns this address; the form does not.
+                          readOnlyValue:
+                              email.isNotEmpty ? email : 'Not provided',
+                        );
+                      },
                     ),
                     const SizedBox(height: 12),
                     LabeledField(

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -27,6 +29,21 @@ void main() {
     email: 'owner@example.com',
     updatedAt: DateTime.utc(2026, 1, 1),
   );
+
+  /// An [AuthProvider] carrying [email], restored the way a real launch
+  /// restores one rather than by reaching into private state.
+  Future<AuthProvider> signedInAs(String email) async {
+    SharedPreferences.setMockInitialValues({
+      'auth_state': jsonEncode({
+        'isSignedIn': true,
+        'username': email,
+        'email': email,
+      }),
+    });
+    final auth = AuthProvider();
+    await auth.init();
+    return auth;
+  }
 
   Widget host(
     Widget child, {
@@ -172,21 +189,60 @@ void main() {
       expect(pets.ownerInfo!.email, 'owner@example.com');
     });
 
-    testWidgets('rejects an obviously broken email', (tester) async {
+    // There used to be a test here that typed a broken address and expected
+    // "That email address looks wrong." It is gone with the field it guarded:
+    // the address is not typed any more, so there is nothing to validate and
+    // no way to get it wrong. What replaces it is the stronger property —
+    // the account owns the address, and this form cannot touch it.
+    testWidgets('shows the signed-in address and offers no way to edit it',
+        (tester) async {
       useTallSurface(tester);
       final pets = PetInfoProvider()..setOwnerInfo(owner);
+      final auth = await signedInAs('account@example.com');
 
       await tester.pumpWidget(
-        host(const OwnerInfoScreen(mode: OwnerFormMode.edit), pets: pets),
+        host(
+          const OwnerInfoScreen(mode: OwnerFormMode.edit),
+          pets: pets,
+          auth: auth,
+        ),
       );
       await tester.pump();
 
-      await tester.enterText(find.byType(TextField).at(2), 'not-an-email');
-      await tester.tap(find.widgetWithText(AppButton, 'Save changes'));
+      // The account address is on screen...
+      expect(find.text('account@example.com'), findsOneWidget);
+
+      // ...and not in any editable control. Every TextField on the form is
+      // asserted, so a future change that puts the address back into one
+      // fails here rather than shipping.
+      final editable = tester
+          .widgetList<TextField>(find.byType(TextField))
+          .map((f) => f.controller?.text)
+          .toList();
+      expect(editable, isNot(contains('account@example.com')));
+    });
+
+    testWidgets('saving writes the account address, not a typed one',
+        (tester) async {
+      useTallSurface(tester);
+      final pets = PetInfoProvider()..setOwnerInfo(owner);
+      final auth = await signedInAs('account@example.com');
+
+      await tester.pumpWidget(
+        host(
+          const OwnerInfoScreen(mode: OwnerFormMode.edit),
+          pets: pets,
+          auth: auth,
+        ),
+      );
       await tester.pump();
 
-      expect(find.text('That email address looks wrong.'), findsOneWidget);
-      expect(pets.ownerInfo!.email, 'owner@example.com');
+      await tester.tap(find.widgetWithText(AppButton, 'Save changes'));
+      await tester.pumpAndSettle();
+
+      // The stored record now agrees with the account rather than carrying a
+      // second, separately entered address.
+      expect(pets.ownerInfo!.email, 'account@example.com');
     });
 
     testWidgets('edits the vet, which the design puts on the owner',
@@ -202,8 +258,10 @@ void main() {
       expect(find.textContaining('VETERINARIAN NAME'), findsOneWidget);
       expect(find.textContaining('VET CONTACT'), findsOneWidget);
 
-      await tester.enterText(find.byType(TextField).at(3), 'Dr Rao');
-      await tester.enterText(find.byType(TextField).at(4), '+91 90000 00000');
+      // 2 and 3, not 3 and 4: the email is no longer a TextField on this
+      // form, so everything after it shifted up one.
+      await tester.enterText(find.byType(TextField).at(2), 'Dr Rao');
+      await tester.enterText(find.byType(TextField).at(3), '+91 90000 00000');
       await tester.tap(find.widgetWithText(AppButton, 'Save changes'));
       await tester.pump();
       await tester.pump();
