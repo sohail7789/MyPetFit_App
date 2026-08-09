@@ -35,6 +35,7 @@ import '../screens/shop/shop_screen.dart';
 import '../screens/shop/support_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/shell/app_shell.dart';
+import '../screens/shell/coming_soon_screen.dart';
 import '../screens/welcome/welcome_screen.dart';
 import '../providers/app_startup_provider.dart';
 import '../providers/pet_info_provider.dart';
@@ -119,6 +120,32 @@ class AppRoutes {
   static const privacy = '/privacy'; // 35
   static const deleteAccount = '/account/delete'; // 36
   static const accountDeleted = '/account/deleted'; // 37
+
+  /// Whether the shop's buying surface is open.
+  ///
+  /// v1.1.0 ships it closed. The catalogue, product, cart and checkout
+  /// screens are all built and the products themselves are real Firestore
+  /// documents — but there is nothing behind checkout. No order is written
+  /// anywhere, no payment is taken, and the reference number on the success
+  /// screen is generated on the device from the clock. Shipping that would
+  /// tell a customer their order was placed when nothing recorded it and
+  /// nothing was charged.
+  ///
+  /// The gate lives here, on the routes, rather than on the Shop tab,
+  /// because product detail is also reachable from the home dashboard's
+  /// recommendations and from report history. A tab-level gate would leave
+  /// the same checkout two taps away by another path.
+  ///
+  /// Nothing is deleted: flip this to true when orders have somewhere to go
+  /// and the whole flow returns.
+  static const bool shopEnabled = false;
+
+  /// What stands in for a buying screen while [shopEnabled] is false.
+  static Widget _shopClosed() => const ComingSoonScreen(
+        title: 'Shop',
+        detail: 'Our store is opening soon. Everything else — your pets, '
+            'assessments and reports — works as usual.',
+      );
 
   /// Routes reachable without a signed-in user.
   static const _publicRoutes = <String>{
@@ -329,27 +356,30 @@ class AppRoutes {
         // ---- Shop stack (pushed over the shell) -------------------------
         GoRoute(
           path: '$productDetail/:id',
-          builder: (context, state) => ProductDetailScreen(
-            productId: state.pathParameters['id']!,
-          ),
+          builder: (context, state) => shopEnabled
+              ? ProductDetailScreen(productId: state.pathParameters['id']!)
+              : _shopClosed(),
         ),
         GoRoute(
           path: cart,
-          builder: (context, state) => const CartScreen(),
+          builder: (context, state) =>
+              shopEnabled ? const CartScreen() : _shopClosed(),
         ),
         GoRoute(
           path: checkout,
-          builder: (context, state) => const CheckoutScreen(),
+          builder: (context, state) =>
+              shopEnabled ? const CheckoutScreen() : _shopClosed(),
         ),
         GoRoute(
           path: orderSuccess,
-          builder: (context, state) => const OrderSuccessScreen(),
+          builder: (context, state) =>
+              shopEnabled ? const OrderSuccessScreen() : _shopClosed(),
         ),
         GoRoute(
           path: orderTracking,
-          builder: (context, state) => OrderTrackingScreen(
-            order: state.extra as OrderReference?,
-          ),
+          builder: (context, state) => shopEnabled
+              ? OrderTrackingScreen(order: state.extra as OrderReference?)
+              : _shopClosed(),
         ),
         GoRoute(
           path: support,
@@ -467,7 +497,8 @@ class AppRoutes {
               routes: [
                 GoRoute(
                   path: shop,
-                  builder: (context, state) => const ShopScreen(),
+                  builder: (context, state) =>
+                      shopEnabled ? const ShopScreen() : _shopClosed(),
                 ),
               ],
             ),

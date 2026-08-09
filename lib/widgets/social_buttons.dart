@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
@@ -114,19 +116,38 @@ class SocialRow extends StatelessWidget {
     this.onApple,
   });
 
+  /// Whether Sign in with Apple can actually complete on this platform.
+  ///
+  /// Apple's own flow is native to iOS and macOS. Anywhere else the
+  /// `sign_in_with_apple` package needs `webAuthenticationOptions` — an Apple
+  /// Service ID and a return URL — which this app does not have and does not
+  /// need for v1.1.0. Offering the button without them would render a control
+  /// that throws the moment it is tapped, which is worse than not offering it.
+  ///
+  /// Read from [defaultTargetPlatform] rather than `dart:io`'s `Platform` so
+  /// this stays compilable for web and overridable in widget tests.
+  static bool get _appleAvailable =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS);
+
   @override
   Widget build(BuildContext context) {
-    final row = Row(
-      children: [
-        Expanded(
-          child: SocialButton.google(height: height, onPressed: onGoogle),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: SocialButton.apple(height: height, onPressed: onApple),
-        ),
-      ],
-    );
+    final google = SocialButton.google(height: height, onPressed: onGoogle);
+
+    // Google alone takes the full width rather than sitting in half of it
+    // next to a gap where Apple used to be.
+    final row = _appleAvailable
+        ? Row(
+            children: [
+              Expanded(child: google),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SocialButton.apple(height: height, onPressed: onApple),
+              ),
+            ],
+          )
+        : Row(children: [Expanded(child: google)]);
 
     if (maxWidth == null) return row;
     return ConstrainedBox(
