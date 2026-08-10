@@ -31,22 +31,30 @@ class OwnerProfile {
   /// The canonical Firestore key for the account address.
   ///
   /// `users/{uid}.email` is written at sign-up and on every social sign-in by
-  /// [AuthService] straight from the Firebase user, so it already existed and
-  /// was already right. This document then wrote a second, separately typed
-  /// address under `ownerEmail`, and the two could disagree about the same
-  /// person — the owner profile screen even had a row to show both when they
-  /// did. One account, one address; this is that one.
+  /// [AuthService] straight from the Firebase user. **Read here, never
+  /// written.** This document used to write it too, from whatever the client
+  /// happened to be holding, which made the account's own identity settable
+  /// by a profile form. The value was right in practice — it came from the
+  /// signed-in user — but the account is the authority on who it belongs to,
+  /// and a record that can be overwritten by the thing it describes is not an
+  /// authority. One writer, and it is not this one.
   static const emailField = 'email';
 
   /// Where the address used to be written. Read for records created before
   /// [emailField] became canonical, never written again.
+  ///
+  /// Load-bearing, not politeness: email/password *sign-in* only refreshes
+  /// `lastLogin`, so a document written before the move can hold `ownerEmail`
+  /// and no `email` indefinitely. Without this fallback those owners would
+  /// show a blank address on their profile and in their report PDF.
   static const legacyEmailField = 'ownerEmail';
 
+  /// What this document owns. Note the absence of any email key — see
+  /// [emailField].
   Map<String, dynamic> toMap() {
     return {
       'ownerName': ownerName,
       'ownerPhone': ownerPhone,
-      emailField: ownerEmail,
       'ownerPhoto': ownerPhoto,
       'vetName': vetName,
       'vetPhone': vetPhone,
@@ -58,10 +66,9 @@ class OwnerProfile {
     return OwnerProfile(
       ownerName: map['ownerName'] ?? '',
       ownerPhone: map['ownerPhone'] ?? '',
-      // Canonical first, then the legacy key. A document written before the
-      // move keeps displaying the address it already has instead of going
-      // blank, and nothing needs migrating for that to be true — the next
-      // save rewrites it under the canonical key on its own.
+      // Canonical first, then the legacy key. Nothing is migrated: the
+      // canonical field arrives from the account itself, and the fallback
+      // covers the documents that predate it.
       ownerEmail: map[emailField] ?? map[legacyEmailField] ?? '',
       ownerPhoto: map['ownerPhoto'],
       vetName: map['vetName'],
