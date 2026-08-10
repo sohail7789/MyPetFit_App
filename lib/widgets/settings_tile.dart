@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import 'info_row.dart';
 import 'app_button.dart';
 
 /// Back button + title header used by every account sub-screen.
@@ -222,37 +223,76 @@ class SettingsSegmentedTile<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final labelStyle = AppTheme.font(
+      size: 14.5,
+      weight: FontWeight.w700,
+      color: context.c.ink,
+    );
+
+    final leading = Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: context.c.surfaceRaised,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, size: 17, color: context.c.actionText),
+    );
+
+    final control = _Segmented<T>(
+      options: options,
+      value: value,
+      onChanged: onChanged,
+    );
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: context.c.surfaceRaised,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 17, color: context.c.actionText),
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Text(
-              label,
-              style: AppTheme.font(
-                size: 14.5,
-                weight: FontWeight.w700,
-                color: context.c.ink,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          _Segmented<T>(
-            options: options,
-            value: value,
-            onChanged: onChanged,
-          ),
-        ],
+      // The control wants a fixed amount of room — three pills of copy — and
+      // the label got whatever was left. On a 390pt phone that left about
+      // 82pt for a word needing 88, so "Appearance" shed its last character
+      // onto a second line: `Appearanc / e`. Shrinking either side would fix
+      // the symptom by making something unreadable, so instead the row is
+      // measured, and when the two genuinely cannot share a line the control
+      // takes one of its own underneath. Nothing is scaled, clipped or
+      // truncated, and the segmented control keeps its full width and every
+      // one of its tap targets.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final scaler = MediaQuery.textScalerOf(context);
+          final labelWidth = InfoRow.widthOf(label, labelStyle, scaler);
+          final controlWidth = _Segmented.widthOf<T>(context, options);
+
+          final fits =
+              36 + 13 + labelWidth + 12 + controlWidth <= constraints.maxWidth;
+
+          if (!fits) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    leading,
+                    const SizedBox(width: 13),
+                    Expanded(child: Text(label, style: labelStyle)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Align(alignment: Alignment.centerLeft, child: control),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              leading,
+              const SizedBox(width: 13),
+              Expanded(child: Text(label, style: labelStyle)),
+              const SizedBox(width: 12),
+              control,
+            ],
+          );
+        },
       ),
     );
   }
@@ -270,16 +310,45 @@ class _Segmented<T> extends StatelessWidget {
     required this.onChanged,
   });
 
+  /// Horizontal padding inside one pill, and around the track.
+  static const double _pillPadding = 11;
+  static const double _trackPadding = 3;
+  static const double _optionSize = 12.5;
+
+  /// How much room the track needs for [options] at the current text scale.
+  ///
+  /// The control is the fixed side of the row — it is three words of copy and
+  /// cannot give any width back — so the row has to know its width to decide
+  /// whether the label can sit beside it.
+  static double widthOf<T>(
+    BuildContext context,
+    List<(T, String)> options,
+  ) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final style = AppTheme.font(size: _optionSize, weight: FontWeight.w700);
+
+    var total = _trackPadding * 2;
+    for (final (_, text) in options) {
+      total += InfoRow.widthOf(text, style, scaler) + _pillPadding * 2;
+    }
+    return total;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(_trackPadding),
       decoration: BoxDecoration(
         color: context.c.tint,
         borderRadius: BorderRadius.circular(11),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      // Wrap, not Row: at a larger text scale three pills of copy need more
+      // width than the card has, and a Row simply overflows. Wrapping lets
+      // the options fall onto a second line at their full size rather than
+      // being clipped or shrunk.
+      child: Wrap(
+        spacing: 0,
+        runSpacing: 4,
         children: [
           for (final (option, text) in options)
             GestureDetector(
@@ -287,8 +356,10 @@ class _Segmented<T> extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 160),
                 curve: Curves.easeOut,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: _pillPadding,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: option == value ? context.c.action : null,
                   borderRadius: BorderRadius.circular(8),
@@ -296,7 +367,7 @@ class _Segmented<T> extends StatelessWidget {
                 child: Text(
                   text,
                   style: AppTheme.font(
-                    size: 12.5,
+                    size: _optionSize,
                     weight: FontWeight.w700,
                     color: option == value
                         ? context.c.onAccent

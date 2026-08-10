@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
-import 'providers/address_provider.dart';
+import 'config/composition.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/dashboard_provider.dart';
@@ -47,7 +47,12 @@ Future<void> main() async {
   final quizProvider = QuizProvider();
   final cartProvider = CartProvider();
   final localeProvider = LocaleProvider();
-  final addressProvider = AddressProvider();
+  // Built by [AppComposition] rather than inline, so the choice of repository
+  // is a named, testable decision. The account-backed repository keeps the
+  // device copy as an offline cache; AppStartupProvider re-reads it once a
+  // session exists, because the read below happens before sign-in and can
+  // only reach that cache.
+  final addressProvider = AppComposition.addressProvider();
   final themeProvider = ThemeProvider();
   final productProvider = ProductProvider();
   final appStartupProvider = AppStartupProvider();
@@ -76,8 +81,7 @@ Future<void> main() async {
   // is active. Wired here rather than inside either provider so the
   // dependency is visible in one place: pets own the selection, the quiz
   // follows it.
-  void bindActivePet() =>
-      quizProvider.bindPet(petInfoProvider.activePet?.id);
+  void bindActivePet() => quizProvider.bindPet(petInfoProvider.activePet?.id);
   petInfoProvider.addListener(bindActivePet);
 
   // The cart persists product ids, not products, so a restored cart is only

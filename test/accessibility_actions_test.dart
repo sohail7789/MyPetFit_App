@@ -58,12 +58,14 @@ void main() {
     expect(
       data.flagsCollection.isButton,
       isTrue,
-      reason: 'not announced as a button${because == null ? '' : ' — $because'}',
+      reason:
+          'not announced as a button${because == null ? '' : ' — $because'}',
     );
     expect(
       data.hasAction(SemanticsAction.tap),
       isTrue,
-      reason: 'announced as a button but offers no tap action, so a screen '
+      reason:
+          'announced as a button but offers no tap action, so a screen '
           'reader can read it and never press it'
           '${because == null ? '' : ' — $because'}',
     );
@@ -77,31 +79,32 @@ void main() {
     String? petId = 'p1',
     HealthCategory band = HealthCategory.good,
     Map<String, double> categories = const {'Skin & Coat': 55},
-  }) =>
-      ScoreResult(
-        rawScore: percent,
-        maxPossibleScore: 100,
-        percentageScore: percent,
-        category: band,
-        categoryScores: categories,
-        completedAt: DateTime.now().subtract(Duration(days: daysAgo)),
-        petId: petId,
-      );
+  }) => ScoreResult(
+    rawScore: percent,
+    maxPossibleScore: 100,
+    percentageScore: percent,
+    category: band,
+    categoryScores: categories,
+    completedAt: DateTime.now().subtract(Duration(days: daysAgo)),
+    petId: petId,
+  );
 
   PetInfo pet(String id, String name) => PetInfo(
-        id: id,
-        name: name,
-        breed: 'Beagle',
-        ageYears: 3,
-        ageMonths: 2,
-        gender: PetGender.male,
-        weightKg: 12,
-        heightCm: 38,
-        updatedAt: DateTime.utc(2026, 1, 2),
-      );
+    id: id,
+    name: name,
+    breed: 'Beagle',
+    ageYears: 3,
+    ageMonths: 2,
+    gender: PetGender.male,
+    weightKg: 12,
+    heightCm: 38,
+    updatedAt: DateTime.utc(2026, 1, 2),
+  );
 
-  Future<QuizProvider> quizWith(Map<String, List<ScoreResult>> byPet,
-      {String bindTo = 'p1'}) async {
+  Future<QuizProvider> quizWith(
+    Map<String, List<ScoreResult>> byPet, {
+    String bindTo = 'p1',
+  }) async {
     final quiz = QuizProvider(service: FakeCloud(assessments: byPet));
     await quiz.init();
     await quiz.loadAssessmentsFromFirestore();
@@ -132,19 +135,26 @@ void main() {
       routes: [
         GoRoute(path: initial, builder: (_, _) => screen),
         GoRoute(
-          path: '${AppRoutes.report}/history/:index',
-          builder: (_, state) => Scaffold(
-            body: Center(
-              child: Text('REPORT ${state.pathParameters['index']}'),
-            ),
-          ),
+          // Reports are addressed by identity now. These cases are about
+          // *which* report a control opens, so the identity is resolved back
+          // to its position here and the stub keeps reporting a number —
+          // the assertions stay readable and still prove the right record
+          // was addressed, not merely that some route was pushed.
+          path: '${AppRoutes.report}/history/:identity',
+          builder: (_, state) {
+            final identity = Uri.decodeComponent(
+              state.pathParameters['identity'] ?? '',
+            );
+            final at = quiz.assessmentHistory.indexWhere(
+              (r) => QuizProvider.identityOf(r) == identity,
+            );
+            return Scaffold(body: Center(child: Text('REPORT $at')));
+          },
         ),
         GoRoute(
           path: '${AppRoutes.productDetail}/:id',
           builder: (_, state) => Scaffold(
-            body: Center(
-              child: Text('PRODUCT ${state.pathParameters['id']}'),
-            ),
+            body: Center(child: Text('PRODUCT ${state.pathParameters['id']}')),
           ),
         ),
         for (final path in [
@@ -195,11 +205,13 @@ void main() {
         'p1': [report(74, daysAgo: 0), report(60, daysAgo: 30)],
       });
 
-      await tester.pumpWidget(host(
-        const ReportHistoryScreen(),
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-      ));
+      await tester.pumpWidget(
+        host(
+          const ReportHistoryScreen(),
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+        ),
+      );
       await tester.pumpAndSettle();
 
       activate(
@@ -223,11 +235,13 @@ void main() {
         'p1': [report(74, daysAgo: 0), report(60, daysAgo: 30)],
       });
 
-      await tester.pumpWidget(host(
-        const ReportHistoryScreen(),
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-      ));
+      await tester.pumpWidget(
+        host(
+          const ReportHistoryScreen(),
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+        ),
+      );
       await tester.pumpAndSettle();
 
       activate(
@@ -253,18 +267,20 @@ void main() {
         ],
       });
 
-      await tester.pumpWidget(host(
-        const ReportHistoryScreen(),
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        catalog: loadedTestCatalog([
-          testProduct(
-            id: 'skin-oil',
-            name: 'Skin Support Oil',
-            recommendedFor: const ['Skin & Coat'],
-          ),
-        ]),
-      ));
+      await tester.pumpWidget(
+        host(
+          const ReportHistoryScreen(),
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          catalog: loadedTestCatalog([
+            testProduct(
+              id: 'skin-oil',
+              name: 'Skin Support Oil',
+              recommendedFor: const ['Skin & Coat'],
+            ),
+          ]),
+        ),
+      );
       await tester.pumpAndSettle();
 
       activate(
@@ -284,12 +300,14 @@ void main() {
 
       var started = 0;
 
-      await tester.pumpWidget(MaterialApp(
-        theme: AppTheme.light,
-        home: Scaffold(
-          body: AnalyticsEmptyState.noHistory(onStart: () => started++),
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: AnalyticsEmptyState.noHistory(onStart: () => started++),
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       activate(tester, find.bySemanticsLabel('Take the assessment'));
@@ -304,14 +322,18 @@ void main() {
       sizeUp(tester);
       final handle = tester.ensureSemantics();
 
-      final quiz = await quizWith({'p1': [report(74, daysAgo: 0)]});
+      final quiz = await quizWith({
+        'p1': [report(74, daysAgo: 0)],
+      });
 
-      await tester.pumpWidget(host(
-        const HomeDashboardScreen(),
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        initial: AppRoutes.home,
-      ));
+      await tester.pumpWidget(
+        host(
+          const HomeDashboardScreen(),
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          initial: AppRoutes.home,
+        ),
+      );
       await tester.pumpAndSettle();
 
       // The visible label is shortened to fit four across, which is why the
@@ -329,18 +351,27 @@ void main() {
       sizeUp(tester);
       final handle = tester.ensureSemantics();
 
-      final quiz = await quizWith({'p1': [report(74, daysAgo: 0)]});
+      final quiz = await quizWith({
+        'p1': [report(74, daysAgo: 0)],
+      });
 
       // The real capability check reaches the printing plugin, which never
       // answers under `flutter test` — so the control was absent from every
       // widget test and its accessibility went uncovered. Production passes
       // nothing and still asks ReportPdf.
-      await tester.pumpWidget(host(
-        ReportCardScreen(historyIndex: 0, canPrint: () async => true),
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        initial: AppRoutes.report,
-      ));
+      await tester.pumpWidget(
+        host(
+          ReportCardScreen(
+            reportIdentity: QuizProvider.identityOf(
+              quiz.assessmentHistory.first,
+            ),
+            canPrint: () async => true,
+          ),
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          initial: AppRoutes.report,
+        ),
+      );
       await tester.pumpAndSettle();
 
       activate(tester, find.bySemanticsLabel('Print report'));
@@ -380,14 +411,16 @@ void main() {
             'p1': [report(74, daysAgo: 0), report(60, daysAgo: 30)],
           });
 
-          await tester.pumpWidget(MediaQuery(
-            data: MediaQueryData(textScaler: TextScaler.linear(scale)),
-            child: host(
-              const ReportHistoryScreen(),
-              quiz: quiz,
-              pets: await withPets([pet('p1', 'Bruno')]),
+          await tester.pumpWidget(
+            MediaQuery(
+              data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+              child: host(
+                const ReportHistoryScreen(),
+                quiz: quiz,
+                pets: await withPets([pet('p1', 'Bruno')]),
+              ),
             ),
-          ));
+          );
           await tester.pumpAndSettle();
 
           final row = find.bySemanticsLabel(RegExp(r'^Bruno, 60 percent'));
@@ -417,12 +450,14 @@ void main() {
         'p1': [report(74, daysAgo: 0), report(60, daysAgo: 30)],
       });
 
-      await tester.pumpWidget(host(
-        const ReportHistoryScreen(),
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        brightness: Brightness.dark,
-      ));
+      await tester.pumpWidget(
+        host(
+          const ReportHistoryScreen(),
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          brightness: Brightness.dark,
+        ),
+      );
       await tester.pumpAndSettle();
 
       activate(tester, find.bySemanticsLabel(RegExp(r'^Bruno, 60 percent')));
@@ -481,24 +516,26 @@ void main() {
         ],
       });
 
-      await tester.pumpWidget(host(
-        const ReportHistoryScreen(),
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        catalog: loadedTestCatalog([
-          testProduct(
-            id: 'skin-oil',
-            recommendedFor: const ['Skin & Coat'],
-          ),
-        ]),
-      ));
+      await tester.pumpWidget(
+        host(
+          const ReportHistoryScreen(),
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          catalog: loadedTestCatalog([
+            testProduct(id: 'skin-oil', recommendedFor: const ['Skin & Coat']),
+          ]),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(unusableButtons(tester), isEmpty);
 
       // And again with the detail open, which is where most of the controls
       // on this screen actually live.
-      for (final section in const ['Category progress', 'Assessment timeline']) {
+      for (final section in const [
+        'Category progress',
+        'Assessment timeline',
+      ]) {
         await tester.tap(find.text(section));
         await tester.pumpAndSettle();
       }
@@ -516,12 +553,19 @@ void main() {
         'p1': [report(74, daysAgo: 0), report(60, daysAgo: 30)],
       });
 
-      await tester.pumpWidget(host(
-        ReportCardScreen(historyIndex: 0, canPrint: () async => true),
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        initial: AppRoutes.report,
-      ));
+      await tester.pumpWidget(
+        host(
+          ReportCardScreen(
+            reportIdentity: QuizProvider.identityOf(
+              quiz.assessmentHistory.first,
+            ),
+            canPrint: () async => true,
+          ),
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          initial: AppRoutes.report,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(unusableButtons(tester), isEmpty);
@@ -533,14 +577,18 @@ void main() {
       sizeUp(tester);
       final handle = tester.ensureSemantics();
 
-      final quiz = await quizWith({'p1': [report(74, daysAgo: 0)]});
+      final quiz = await quizWith({
+        'p1': [report(74, daysAgo: 0)],
+      });
 
-      await tester.pumpWidget(host(
-        const HomeDashboardScreen(),
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        initial: AppRoutes.home,
-      ));
+      await tester.pumpWidget(
+        host(
+          const HomeDashboardScreen(),
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          initial: AppRoutes.home,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(unusableButtons(tester), isEmpty);
@@ -553,20 +601,22 @@ void main() {
       // it never checked. This is the fixture that proves it bites.
       final handle = tester.ensureSemantics();
 
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: Semantics(
-            button: true,
-            label: 'DEAD BUTTON',
-            container: true,
-            excludeSemantics: true,
-            child: GestureDetector(
-              onTap: () {},
-              child: const SizedBox(width: 100, height: 60),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Semantics(
+              button: true,
+              label: 'DEAD BUTTON',
+              container: true,
+              excludeSemantics: true,
+              child: GestureDetector(
+                onTap: () {},
+                child: const SizedBox(width: 100, height: 60),
+              ),
             ),
           ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(unusableButtons(tester), contains('"DEAD BUTTON"'));

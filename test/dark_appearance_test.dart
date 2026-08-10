@@ -77,10 +77,30 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Appearance'), findsOneWidget);
+      expect(find.text('Theme'), findsOneWidget);
       for (final option in ['Light', 'System', 'Dark']) {
         expect(find.text(option), findsOneWidget, reason: option);
       }
+    });
+
+    testWidgets('the account rows name their destination, not their value',
+        (tester) async {
+      await tester.pumpWidget(
+        _host(const AccountScreen(), brightness: Brightness.light),
+      );
+      await tester.pump();
+
+      // The row reads "Language", never "Language — English". The selection
+      // belongs on the screen the row opens: repeating it here made this the
+      // one row whose width moved with its data, and a longer language name
+      // pushed the label into the chevron.
+      expect(find.text('Language'), findsOneWidget);
+      expect(
+        find.textContaining('Language —'),
+        findsNothing,
+        reason: 'the account row must not append the current language',
+      );
+      expect(find.text('Appearance'), findsNothing);
     });
 
     testWidgets('picking one records it, and System stays reachable',

@@ -656,6 +656,30 @@ class AppText {
   TextStyle get bodySmall =>
       AppTheme.font(size: 13.5, color: c.bodyStrong, height: 1.5);
 
+  /// 15/1.3 — the label side of an information row.
+  ///
+  /// Rows across the app were each spelling out 13.5 independently: the owner
+  /// profile, the pet profile and the analytics card all had their own copy
+  /// of the same row with the same literal in it. Three copies meant three
+  /// places to drift, and 13.5 sat a full step under iOS's own secondary
+  /// text size — which is why the detail screens read as a shrunken canvas
+  /// rather than a native app. One token, at the platform's subheadline size.
+  TextStyle get rowLabel =>
+      AppTheme.font(size: 15, color: c.muted, height: 1.3);
+
+  /// 15/700/1.3 — the value side of an information row. Same size as
+  /// [rowLabel]; the weight carries the hierarchy, not the size.
+  TextStyle get rowValue => AppTheme.font(
+      size: 15, weight: FontWeight.w700, color: c.ink, height: 1.3);
+
+  /// [rowValue] for a value the record does not have ("Not set").
+  TextStyle get rowValueEmpty =>
+      AppTheme.font(size: 15, weight: FontWeight.w700, color: c.muted, height: 1.3);
+
+  /// 12.5/1.3 — the secondary line under a value.
+  TextStyle get rowNote =>
+      AppTheme.font(size: 12.5, color: c.muted, height: 1.3);
+
   /// 12/700/1.0 uppercase — section labels.
   TextStyle get overline => AppTheme.font(
       size: 12, weight: FontWeight.w700, color: c.muted, letterSpacing: 1);

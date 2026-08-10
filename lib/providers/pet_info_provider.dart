@@ -4,7 +4,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pet_info.dart';
+import 'dart:io';
+
 import '../services/photo_store.dart';
+import '../services/photo_uploader.dart';
 import '../models/consent_state.dart';
 import '../models/owner_profile.dart';
 import '../services/firestore_service.dart';
@@ -20,8 +23,38 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
   /// testing, and it should be reachable without standing up Firestore.
   final FirestoreService _firestore;
 
-  PetInfoProvider({FirestoreService? service})
-      : _firestore = service ?? FirestoreService();
+  /// Puts photos in Storage. Injectable for the same reason [_firestore] is.
+  final PhotoUploader _uploader;
+
+  PetInfoProvider({FirestoreService? service, PhotoUploader? uploader})
+      : _firestore = service ?? FirestoreService(),
+        _uploader = uploader ?? PhotoUploader();
+
+  /// Turns a freshly picked device path into a durable Storage URL.
+  ///
+  /// Returns [path] unchanged when it is already a URL — re-uploading an
+  /// image that is already in Storage on every subsequent save would burn
+  /// bandwidth to produce the same bytes — and when the file has gone, which
+  /// is the legacy case: an old record still holding a path whose file a
+  /// reinstall removed has nothing left to upload.
+  ///
+  /// Throws when the upload fails, and that is deliberate. The caller runs
+  /// inside [queueSync], so a throw leaves the write queued for retry and
+  /// Firestore keeps the value it had. The alternative — swallowing it and
+  /// writing the device path — is what put unusable paths in the database in
+  /// the first place.
+  Future<String?> _durablePhoto(
+    String? path,
+    Future<String> Function(File file) upload,
+  ) async {
+    if (path == null || path.isEmpty) return path;
+    if (PhotoUploader.isRemote(path)) return path;
+
+    final file = File(path);
+    if (!file.existsSync()) return path;
+
+    return upload(file);
+  }
 
   OwnerInfo? _ownerInfo;
   final List<PetInfo> _pets = [];
@@ -113,26 +146,47 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
     // The provider stamps the edit time, never the caller. A screen has no
     // business deciding when a record changed, and a single authority is
     // what makes the timestamps comparable across devices.
+    // Captured before the record is replaced, so a photo being *removed*
+    // (a stored URL becoming null) can take its Storage object with it.
+    // Replacement needs no such handling: the object path is deterministic,
+    // so a new upload overwrites the old bytes in place rather than leaving
+    // a second object behind.
+    final previousPhoto = _ownerInfo?.photoPath;
+
     final ownerInfo = incoming.copyWith(updatedAt: DateTime.now().toUtc());
     _ownerInfo = ownerInfo;
+
+    if (PhotoUploader.isRemote(previousPhoto) &&
+        (ownerInfo.photoPath == null || ownerInfo.photoPath!.isEmpty)) {
+      unawaited(_uploader.deleteOwnerPhoto());
+    }
 
     await _persist();
     notifyListeners();
 
-    queueSync(
-      'owner',
-      () => _firestore.saveOwnerProfile(
+    queueSync('owner', () async {
+      // Storage first, Firestore second. The document must never be given a
+      // device path again: that path stops resolving the moment the app's
+      // container is reassigned — a reinstall, a TestFlight update — which is
+      // exactly why saved photos vanished while the record still "had" one.
+      final photo = await _durablePhoto(
+        ownerInfo.photoPath,
+        _uploader.uploadOwnerPhoto,
+      );
+      _adoptOwnerPhoto(photo);
+
+      await _firestore.saveOwnerProfile(
         OwnerProfile(
           ownerName: ownerInfo.name,
           ownerPhone: ownerInfo.contactNumber,
           ownerEmail: ownerInfo.email,
-          ownerPhoto: ownerInfo.photoPath,
+          ownerPhoto: photo,
           vetName: ownerInfo.vetName,
           vetPhone: ownerInfo.vetContact,
           updatedAt: ownerInfo.updatedAt,
         ),
-      ),
-    );
+      );
+    });
   }
 
   /// Local consent in the shape the cloud stores it, or null when this device
@@ -321,7 +375,7 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
     await _persist();
     notifyListeners();
 
-    queueSync('pet-${pet.id}', () => _firestore.savePet(pet));
+    queueSync('pet-${pet.id}', () => _savePetWithPhoto(pet));
   }
 
   void updatePet(int index, PetInfo incoming) {
@@ -333,7 +387,7 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
     // This never reached Firestore at all, so an edited pet reverted to its
     // original the next time the cloud was read. Same queue as add/set, so
     // repeated edits collapse to one write.
-    queueSync('pet-${pet.id}', () => _firestore.savePet(pet));
+    queueSync('pet-${pet.id}', () => _savePetWithPhoto(pet));
   }
 
   /// Removes a pet locally and, in the background, from the cloud.
@@ -346,11 +400,20 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
     if (index < 0 || index >= _pets.length) return;
     final removed = _pets[index];
 
-    // Take the photo file with the record, or the sandbox accumulates
-    // images for pets that no longer exist. Deleted by path rather than by
-    // slot: a photo picked before the pet was saved is filed under a draft
-    // name, which the pet's own slot would not match.
-    unawaited(PhotoStore().deleteAt(removed.photoPath));
+    // Take the photo with the record, or storage accumulates images for pets
+    // that no longer exist.
+    //
+    // Which store depends on what the record holds. A Storage URL means the
+    // durable object has to go — `PhotoStore.deleteAt` would treat that URL as
+    // a filename, find no such file and silently do nothing, which is exactly
+    // how removed pets came to leave their photos on the bucket. A legacy
+    // device path means the local file, and nothing remote: attempting a
+    // Storage delete for it would target an object that never existed.
+    if (PhotoUploader.isRemote(removed.photoPath)) {
+      unawaited(_uploader.deletePetPhoto(removed.id));
+    } else {
+      unawaited(PhotoStore().deleteAt(removed.photoPath));
+    }
 
     _pets.removeAt(index);
     if (_activePetIndex >= _pets.length && _pets.isNotEmpty) {
@@ -431,6 +494,45 @@ class PetInfoProvider extends ChangeNotifier with CloudSync {
     _consentUpdatedAt = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_key);
+    notifyListeners();
+  }
+
+  /// Uploads [pet]'s photo if it is still a device path, then saves the pet.
+  ///
+  /// The pet's own id keys the Storage object, which is why this runs here
+  /// rather than in the picker: a photo chosen for a pet that did not exist
+  /// yet is filed under a draft slot, and only by this point is the real id
+  /// known.
+  Future<void> _savePetWithPhoto(PetInfo pet) async {
+    final photo = await _durablePhoto(
+      pet.photoPath,
+      (file) => _uploader.uploadPetPhoto(pet.id, file),
+    );
+
+    final stored = photo == pet.photoPath ? pet : pet.copyWith(photoPath: photo);
+    if (!identical(stored, pet)) _adoptPetPhoto(pet.id, photo);
+
+    await _firestore.savePet(stored);
+  }
+
+  /// Replaces the owner's stored photo reference with [photo] locally.
+  ///
+  /// So the device's own copy of the record holds the URL too. Without it the
+  /// local snapshot keeps the device path, and the next cold start restores
+  /// that path over the URL the cloud correctly holds.
+  void _adoptOwnerPhoto(String? photo) {
+    final owner = _ownerInfo;
+    if (owner == null || owner.photoPath == photo) return;
+    _ownerInfo = owner.copyWith(photoPath: photo);
+    _persist();
+    notifyListeners();
+  }
+
+  void _adoptPetPhoto(String petId, String? photo) {
+    final at = _pets.indexWhere((p) => p.id == petId);
+    if (at < 0 || _pets[at].photoPath == photo) return;
+    _pets[at] = _pets[at].copyWith(photoPath: photo);
+    _persist();
     notifyListeners();
   }
 

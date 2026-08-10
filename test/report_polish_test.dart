@@ -37,28 +37,27 @@ void main() {
     DateTime? at,
     int? rawScore,
     String petId = 'p1',
-  }) =>
-      ScoreResult(
-        rawScore: rawScore ?? percent,
-        maxPossibleScore: 100,
-        percentageScore: percent,
-        category: band,
-        categoryScores: categories,
-        completedAt: at ?? DateTime(2026, 2, 14, 14, 35),
-        petId: petId,
-      );
+  }) => ScoreResult(
+    rawScore: rawScore ?? percent,
+    maxPossibleScore: 100,
+    percentageScore: percent,
+    category: band,
+    categoryScores: categories,
+    completedAt: at ?? DateTime(2026, 2, 14, 14, 35),
+    petId: petId,
+  );
 
   PetInfo pet(String id, String name, {String breed = 'Beagle'}) => PetInfo(
-        id: id,
-        name: name,
-        breed: breed,
-        ageYears: 3,
-        ageMonths: 2,
-        gender: PetGender.male,
-        weightKg: 12,
-        heightCm: 38,
-        updatedAt: DateTime.utc(2026, 1, 2),
-      );
+    id: id,
+    name: name,
+    breed: breed,
+    ageYears: 3,
+    ageMonths: 2,
+    gender: PetGender.male,
+    weightKg: 12,
+    heightCm: 38,
+    updatedAt: DateTime.utc(2026, 1, 2),
+  );
 
   Future<QuizProvider> quizWith(
     Map<String, List<ScoreResult>> byPet, {
@@ -92,7 +91,17 @@ void main() {
       routes: [
         GoRoute(
           path: '/view',
-          builder: (_, _) => ReportCardScreen(historyIndex: historyIndex),
+          // See the viewer test: positions are resolved to identities here
+          // so the cases can keep reading as "the nth report".
+          builder: (_, _) => ReportCardScreen(
+            reportIdentity: historyIndex == null
+                ? null
+                : (historyIndex < quiz.assessmentHistory.length
+                      ? QuizProvider.identityOf(
+                          quiz.assessmentHistory[historyIndex],
+                        )
+                      : 'no-such-report'),
+          ),
         ),
         for (final path in [
           AppRoutes.quiz,
@@ -117,8 +126,9 @@ void main() {
         theme: AppTheme.light,
         routerConfig: router,
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(textScaler: TextScaler.linear(textScale)),
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
           child: child!,
         ),
       ),
@@ -148,11 +158,15 @@ void main() {
   group('score presentation', () {
     testWidgets('the score leads and the band is a badge', (tester) async {
       sizeAt(tester, const Size(1200, 4000));
-      await tester.pumpWidget(host(
-        quiz: await quizWith({'p1': [report(percent: 73)]}),
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: await quizWith({
+            'p1': [report(percent: 73)],
+          }),
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('73'), findsOneWidget);
@@ -163,14 +177,19 @@ void main() {
       expect(find.bySemanticsLabel('73 percent'), findsOneWidget);
     });
 
-    testWidgets('the date is no longer competing with the title',
-        (tester) async {
+    testWidgets('the date is no longer competing with the title', (
+      tester,
+    ) async {
       sizeAt(tester, const Size(1200, 4000));
-      await tester.pumpWidget(host(
-        quiz: await quizWith({'p1': [report()]}),
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: await quizWith({
+            'p1': [report()],
+          }),
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('FITNESS REPORT CARD'), findsOneWidget);
@@ -195,11 +214,15 @@ void main() {
   group('category cards', () {
     testWidgets('each category becomes its own card', (tester) async {
       sizeAt(tester, const Size(1200, 4000));
-      await tester.pumpWidget(host(
-        quiz: await quizWith({'p1': [report()]}),
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: await quizWith({
+            'p1': [report()],
+          }),
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('2 categories'), findsOneWidget);
@@ -242,14 +265,19 @@ void main() {
   });
 
   group('assessment metadata', () {
-    testWidgets('names the pet, its breed and when it was assessed',
-        (tester) async {
+    testWidgets('names the pet, its breed and when it was assessed', (
+      tester,
+    ) async {
       sizeAt(tester, const Size(1200, 4000));
-      await tester.pumpWidget(host(
-        quiz: await quizWith({'p1': [report()]}),
-        pets: await withPets([pet('p1', 'Bruno', breed: 'Corgi')]),
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: await quizWith({
+            'p1': [report()],
+          }),
+          pets: await withPets([pet('p1', 'Bruno', breed: 'Corgi')]),
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Bruno'), findsOneWidget);
@@ -266,34 +294,40 @@ void main() {
   });
 
   group('historical integrity survives the polish', () {
-    testWidgets('the stored percentage still wins over a derived one',
-        (tester) async {
+    testWidgets('the stored percentage still wins over a derived one', (
+      tester,
+    ) async {
       sizeAt(tester, const Size(1200, 4000));
       // raw/max say 20%; the record says 73.
-      await tester.pumpWidget(host(
-        quiz: await quizWith({
-          'p1': [report(percent: 73, rawScore: 20)],
-        }),
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: await quizWith({
+            'p1': [report(percent: 73, rawScore: 20)],
+          }),
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('73'), findsOneWidget);
       expect(find.text('20'), findsNothing);
     });
 
-    testWidgets('the stored band still wins over a derived one',
-        (tester) async {
+    testWidgets('the stored band still wins over a derived one', (
+      tester,
+    ) async {
       sizeAt(tester, const Size(1200, 4000));
       // 12% would band as Critical if re-derived.
-      await tester.pumpWidget(host(
-        quiz: await quizWith({
-          'p1': [report(percent: 12, band: HealthCategory.excellent)],
-        }),
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: await quizWith({
+            'p1': [report(percent: 12, band: HealthCategory.excellent)],
+          }),
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.bySemanticsLabel('Health band: Excellent'), findsWidgets);
@@ -305,11 +339,15 @@ void main() {
       final pets = await withPets([pet('p1', 'Bruno'), pet('p2', 'Mia')]);
       pets.setActivePet(1);
 
-      await tester.pumpWidget(host(
-        quiz: await quizWith({'p1': [report()]}),
-        pets: pets,
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: await quizWith({
+            'p1': [report()],
+          }),
+          pets: pets,
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Bruno'), findsOneWidget);
@@ -332,24 +370,26 @@ void main() {
         testWidgets('${entry.key} at text scale $scale', (tester) async {
           sizeAt(tester, entry.value);
 
-          await tester.pumpWidget(host(
-            quiz: await quizWith({
-              'p1': [
-                report(
-                  categories: const {
-                    'Skin & Coat Health': 41,
-                    'Behavior & Mental Wellness': 63,
-                    'Medical & Lifestyle Tracking': 88,
-                  },
-                ),
-              ],
-            }),
-            pets: await withPets([
-              pet('p1', 'Bartholomew', breed: 'Rhodesian Ridgeback'),
-            ]),
-            historyIndex: 0,
-            textScale: scale,
-          ));
+          await tester.pumpWidget(
+            host(
+              quiz: await quizWith({
+                'p1': [
+                  report(
+                    categories: const {
+                      'Skin & Coat Health': 41,
+                      'Behavior & Mental Wellness': 63,
+                      'Medical & Lifestyle Tracking': 88,
+                    },
+                  ),
+                ],
+              }),
+              pets: await withPets([
+                pet('p1', 'Bartholomew', breed: 'Rhodesian Ridgeback'),
+              ]),
+              historyIndex: 0,
+              textScale: scale,
+            ),
+          );
           await tester.pumpAndSettle();
           // The headline is on screen before anything scrolls.
           expect(find.text('73'), findsOneWidget);
@@ -363,23 +403,26 @@ void main() {
       }
     }
 
-    testWidgets('a long category name wraps rather than overflowing',
-        (tester) async {
+    testWidgets('a long category name wraps rather than overflowing', (
+      tester,
+    ) async {
       sizeAt(tester, const Size(320, 640));
-      await tester.pumpWidget(host(
-        quiz: await quizWith({
-          'p1': [
-            report(
-              categories: const {
-                'An Extremely Long Category Name That Will Not Fit': 55,
-              },
-            ),
-          ],
-        }),
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 0,
-        textScale: 1.3,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: await quizWith({
+            'p1': [
+              report(
+                categories: const {
+                  'An Extremely Long Category Name That Will Not Fit': 55,
+                },
+              ),
+            ],
+          }),
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 0,
+          textScale: 1.3,
+        ),
+      );
       await tester.pumpAndSettle();
       await reveal(tester, find.text('55%'));
 

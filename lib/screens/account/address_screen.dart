@@ -52,8 +52,9 @@ class _AddressScreenState extends State<AddressScreen> {
     super.initState();
 
     final provider = context.read<AddressProvider>();
-    final existing =
-        widget.addressId == null ? null : provider.byId(widget.addressId!);
+    final existing = widget.addressId == null
+        ? null
+        : provider.byId(widget.addressId!);
 
     if (existing != null) {
       _editingId = existing.id;
@@ -353,6 +354,15 @@ class _AddressScreenState extends State<AddressScreen> {
             keyboardType: keyboard,
             textInputAction: action,
             inputFormatters: formatters,
+            // Hands focus to the next field in the form's own traversal
+            // order rather than unfocusing. An unfocus closes the keyboard
+            // and the next field immediately reopens it, which on iOS is a
+            // visible dismiss-and-reopen between every pair of fields.
+            // TextField owns a node that outlives its rebuilds, so nothing
+            // here needs to hold one.
+            onSubmitted: action == TextInputAction.done
+                ? null
+                : (_) => FocusScope.of(context).nextFocus(),
             onChanged: (_) => _clearError(key),
           ),
           if (error != null)
@@ -475,8 +485,7 @@ class _DefaultSwitch extends StatelessWidget {
                   color: value ? context.c.action : context.c.dotInactive,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                alignment:
-                    value ? Alignment.centerRight : Alignment.centerLeft,
+                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
                 padding: const EdgeInsets.symmetric(horizontal: 3),
                 child: Container(
                   width: 18,

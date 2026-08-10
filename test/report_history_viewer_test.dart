@@ -33,28 +33,27 @@ void main() {
     Map<String, double> categories = const {'Skin & Coat Health': 41},
     HealthCategory band = HealthCategory.good,
     int? rawScore,
-  }) =>
-      ScoreResult(
-        rawScore: rawScore ?? percent,
-        maxPossibleScore: 100,
-        percentageScore: percent,
-        category: band,
-        categoryScores: categories,
-        completedAt: DateTime(2026, 8, 7).subtract(Duration(days: daysAgo)),
-        petId: petId,
-      );
+  }) => ScoreResult(
+    rawScore: rawScore ?? percent,
+    maxPossibleScore: 100,
+    percentageScore: percent,
+    category: band,
+    categoryScores: categories,
+    completedAt: DateTime(2026, 8, 7).subtract(Duration(days: daysAgo)),
+    petId: petId,
+  );
 
   PetInfo pet(String id, String name, {String breed = 'Beagle'}) => PetInfo(
-        id: id,
-        name: name,
-        breed: breed,
-        ageYears: 3,
-        ageMonths: 2,
-        gender: PetGender.male,
-        weightKg: 12,
-        heightCm: 38,
-        updatedAt: DateTime.utc(2026, 1, 2),
-      );
+    id: id,
+    name: name,
+    breed: breed,
+    ageYears: 3,
+    ageMonths: 2,
+    gender: PetGender.male,
+    weightKg: 12,
+    heightCm: 38,
+    updatedAt: DateTime.utc(2026, 1, 2),
+  );
 
   Future<QuizProvider> quizWith(
     Map<String, List<ScoreResult>> byPet, {
@@ -87,7 +86,20 @@ void main() {
       routes: [
         GoRoute(
           path: '/view',
-          builder: (_, _) => ReportCardScreen(historyIndex: historyIndex),
+          // The screen addresses reports by identity now. The tests still
+          // say "the nth report", which is the readable way to write them,
+          // so the position is resolved to an identity here. An index past
+          // the end yields an identity nothing matches — which is exactly
+          // the not-found case those cases mean to cover.
+          builder: (_, _) => ReportCardScreen(
+            reportIdentity: historyIndex == null
+                ? null
+                : (historyIndex < quiz.assessmentHistory.length
+                      ? QuizProvider.identityOf(
+                          quiz.assessmentHistory[historyIndex],
+                        )
+                      : 'no-such-report'),
+          ),
         ),
         for (final path in [AppRoutes.quiz, AppRoutes.home, AppRoutes.shop])
           GoRoute(
@@ -119,8 +131,9 @@ void main() {
   }
 
   group('nothing is recalculated', () {
-    testWidgets('the stored percentage is shown, not one derived from raw',
-        (tester) async {
+    testWidgets('the stored percentage is shown, not one derived from raw', (
+      tester,
+    ) async {
       sizeUp(tester);
       // rawScore and maxPossibleScore say 20%. The stored percentageScore
       // says 73. Anything that re-derives the figure would show 20.
@@ -128,36 +141,37 @@ void main() {
         'p1': [report(percent: 73, rawScore: 20, daysAgo: 200)],
       });
 
-      await tester.pumpWidget(host(
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('73'), findsOneWidget);
       expect(find.text('20'), findsNothing);
     });
 
-    testWidgets('the stored band is shown, not one derived from the score',
-        (tester) async {
+    testWidgets('the stored band is shown, not one derived from the score', (
+      tester,
+    ) async {
       sizeUp(tester);
       // 12% would band as Critical if re-derived; the record says Excellent.
       final quiz = await quizWith({
         'p1': [
-          report(
-            percent: 12,
-            daysAgo: 200,
-            band: HealthCategory.excellent,
-          ),
+          report(percent: 12, daysAgo: 200, band: HealthCategory.excellent),
         ],
       });
 
-      await tester.pumpWidget(host(
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Excellent'), findsOneWidget);
@@ -179,11 +193,13 @@ void main() {
         ],
       });
 
-      await tester.pumpWidget(host(
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Skin & Coat Health'), findsOneWidget);
@@ -193,18 +209,21 @@ void main() {
       expect(find.text('2 categories'), findsOneWidget);
     });
 
-    testWidgets('the completion date is the report\'s, not today\'s',
-        (tester) async {
+    testWidgets('the completion date is the report\'s, not today\'s', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await quizWith({
         'p1': [report(percent: 73, daysAgo: 200)],
       });
 
-      await tester.pumpWidget(host(
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       // The metadata card carries the date and the time it was completed.
@@ -238,8 +257,9 @@ void main() {
       expect(find.text('Mia'), findsNothing);
     });
 
-    testWidgets('a newer assessment does not shift the open report',
-        (tester) async {
+    testWidgets('a newer assessment does not shift the open report', (
+      tester,
+    ) async {
       sizeUp(tester);
       // Index 1 is the older of two. Filing a third pushes it to index 2;
       // an unsnapshotted screen would start showing a different report.
@@ -250,11 +270,13 @@ void main() {
         ],
       });
 
-      await tester.pumpWidget(host(
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 1,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 1,
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('55'), findsOneWidget);
 
@@ -316,8 +338,9 @@ void main() {
       expect(find.text('Mia'), findsNothing);
     });
 
-    testWidgets('a pet with a shorter history cannot blank the delta',
-        (tester) async {
+    testWidgets('a pet with a shorter history cannot blank the delta', (
+      tester,
+    ) async {
       sizeUp(tester);
       // Mia has a single assessment, so an index-based lookup would run off
       // the end of her list and drop Bruno's comparison entirely.
@@ -341,8 +364,9 @@ void main() {
       expect(find.text('Up 10 since your last assessment'), findsOneWidget);
     });
 
-    testWidgets('history arriving underneath does not move the delta',
-        (tester) async {
+    testWidgets('history arriving underneath does not move the delta', (
+      tester,
+    ) async {
       sizeUp(tester);
       // Opened at index 1. A restore that renumbers the list would have the
       // old code comparing against a different neighbour.
@@ -354,11 +378,13 @@ void main() {
         ],
       });
 
-      await tester.pumpWidget(host(
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 1,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 1,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('70'), findsOneWidget);
@@ -382,36 +408,41 @@ void main() {
         ],
       });
 
-      await tester.pumpWidget(host(
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 1,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 1,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('60'), findsOneWidget);
       expect(find.textContaining('since your last assessment'), findsNothing);
     });
 
-    testWidgets('a record from before per-pet scoring still compares',
-        (tester) async {
+    testWidgets('a record from before per-pet scoring still compares', (
+      tester,
+    ) async {
       sizeUp(tester);
       // Null ids compare equal to each other, which is right: those installs
       // only ever had one pet. Built directly because the shared helper
       // always stamps an id.
       ScoreResult legacy(int percent, int daysAgo) => ScoreResult(
-            rawScore: percent,
-            maxPossibleScore: 100,
-            percentageScore: percent,
-            category: HealthCategory.good,
-            categoryScores: const {'Skin & Coat Health': 41},
-            completedAt: DateTime(2026, 8, 7).subtract(Duration(days: daysAgo)),
-          );
+        rawScore: percent,
+        maxPossibleScore: 100,
+        percentageScore: percent,
+        category: HealthCategory.good,
+        categoryScores: const {'Skin & Coat Health': 41},
+        completedAt: DateTime(2026, 8, 7).subtract(Duration(days: daysAgo)),
+      );
 
       final quiz = QuizProvider(
-        service: FakeCloud(assessments: {
-          'legacy': [legacy(66, 10), legacy(50, 40)],
-        }),
+        service: FakeCloud(
+          assessments: {
+            'legacy': [legacy(66, 10), legacy(50, 40)],
+          },
+        ),
       );
       await quiz.init();
       await quiz.loadAssessmentsFromFirestore();
@@ -423,19 +454,22 @@ void main() {
         reason: 'the fixture never reached the screen',
       );
 
-      await tester.pumpWidget(host(
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('66'), findsOneWidget);
       expect(find.text('Up 16 since your last assessment'), findsOneWidget);
     });
 
-    testWidgets('the delta is arithmetic on stored scores, nothing derived',
-        (tester) async {
+    testWidgets('the delta is arithmetic on stored scores, nothing derived', (
+      tester,
+    ) async {
       sizeUp(tester);
       // Raw scores deliberately disagree with the stored percentages. A
       // recalculation anywhere in this path would show a different figure.
@@ -446,11 +480,13 @@ void main() {
         ],
       });
 
-      await tester.pumpWidget(host(
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('70'), findsOneWidget);
@@ -459,8 +495,9 @@ void main() {
   });
 
   group('pet information', () {
-    testWidgets('names the pet the report was recorded against',
-        (tester) async {
+    testWidgets('names the pet the report was recorded against', (
+      tester,
+    ) async {
       sizeUp(tester);
       // Mia is active; the report belongs to Bruno.
       final pets = await withPets([pet('p1', 'Bruno'), pet('p2', 'Mia')]);
@@ -477,8 +514,9 @@ void main() {
       expect(find.text('Beagle · 3 years · 12 kg'), findsOneWidget);
     });
 
-    testWidgets('a record from before per-pet scoring falls back gracefully',
-        (tester) async {
+    testWidgets('a record from before per-pet scoring falls back gracefully', (
+      tester,
+    ) async {
       sizeUp(tester);
       final legacy = ScoreResult(
         rawScore: 70,
@@ -504,17 +542,17 @@ void main() {
   });
 
   group('the live report is unaffected', () {
-    testWidgets('renders the current result and offers a retake',
-        (tester) async {
+    testWidgets('renders the current result and offers a retake', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await quizWith({
         'p1': [report(percent: 88, daysAgo: 0)],
       });
 
-      await tester.pumpWidget(host(
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-      ));
+      await tester.pumpWidget(
+        host(quiz: quiz, pets: await withPets([pet('p1', 'Bruno')])),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('88'), findsOneWidget);
@@ -524,18 +562,21 @@ void main() {
       expect(find.text('Remind me to retake in 3 months'), findsOneWidget);
     });
 
-    testWidgets('an archived report offers neither retake nor reminder',
-        (tester) async {
+    testWidgets('an archived report offers neither retake nor reminder', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await quizWith({
         'p1': [report(percent: 88, daysAgo: 200)],
       });
 
-      await tester.pumpWidget(host(
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 0,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 0,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('All reports'), findsOneWidget);
@@ -545,18 +586,21 @@ void main() {
   });
 
   group('an unreachable index', () {
-    testWidgets('degrades to the empty state rather than crashing',
-        (tester) async {
+    testWidgets('degrades to the empty state rather than crashing', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await quizWith({
         'p1': [report(percent: 73, daysAgo: 200)],
       });
 
-      await tester.pumpWidget(host(
-        quiz: quiz,
-        pets: await withPets([pet('p1', 'Bruno')]),
-        historyIndex: 9,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz: quiz,
+          pets: await withPets([pet('p1', 'Bruno')]),
+          historyIndex: 9,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('No report yet'), findsOneWidget);

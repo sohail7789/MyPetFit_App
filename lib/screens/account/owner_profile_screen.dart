@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
+import '../../widgets/info_row.dart';
 import '../../providers/address_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/locale_provider.dart';
@@ -109,31 +110,31 @@ class OwnerProfileScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
                     child: Column(
                       children: [
-                        _Row(label: 'Full name', value: owner?.name ?? ''),
-                        _Row(
+                        InfoRow(label: 'Full name', value: owner?.name ?? ''),
+                        InfoRow(
                           label: 'Contact number',
                           value: owner?.contactNumber ?? '',
                         ),
-                        _Row(label: 'Email', value: owner?.email ?? ''),
+                        InfoRow(label: 'Email', value: owner?.email ?? ''),
                         // Only worth showing when it differs from the contact
                         // email — otherwise it just reads as a duplicate row.
                         if (auth.email.trim().isNotEmpty &&
                             auth.email.trim().toLowerCase() !=
                                 (owner?.email ?? '').trim().toLowerCase())
-                          _Row(
+                          InfoRow(
                             label: 'Sign-in email',
                             value: auth.email,
                             note: 'Managed by your account',
                           ),
-                        _Row(
+                        InfoRow(
                           label: 'Veterinarian',
                           value: owner?.vetName ?? '',
                         ),
-                        _Row(
+                        InfoRow(
                           label: 'Vet contact',
                           value: owner?.vetContact ?? '',
                         ),
-                        _Row(
+                        InfoRow(
                           label: 'Language',
                           value: context.watch<LocaleProvider>().current.name,
                           last: true,
@@ -212,73 +213,6 @@ class _HeaderAction extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Label on the left, value right-aligned. Mirrors the pet profile rows.
-class _Row extends StatelessWidget {
-  final String label;
-  final String value;
-  final String? note;
-  final bool last;
-
-  const _Row({
-    required this.label,
-    required this.value,
-    this.note,
-    this.last = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final empty = value.trim().isEmpty;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: last
-          ? null
-          : BoxDecoration(
-              border: Border(bottom: BorderSide(color: context.c.borderSoft)),
-            ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: AppTheme.font(size: 13.5, color: context.c.muted),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  empty ? 'Not set' : value.trim(),
-                  textAlign: TextAlign.right,
-                  style: AppTheme.font(
-                    size: 13.5,
-                    weight: FontWeight.w700,
-                    color: empty ? context.c.muted : context.c.ink,
-                  ),
-                ),
-                if (note != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    note!,
-                    textAlign: TextAlign.right,
-                    style: AppTheme.font(size: 11.5, color: context.c.muted),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

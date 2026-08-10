@@ -37,21 +37,6 @@ class _ShopScreenState extends State<ShopScreen> {
     return [_all, ...categories];
   }
 
-  /// Grid tile height. The artwork band is a fixed 104; everything under it
-  /// is text plus the stepper, so that part is scaled by the platform font
-  /// setting rather than assumed.
-  static double _tileExtent(BuildContext context) {
-    // Fixed: artwork band, card padding, the stepper strip, and the two gaps
-    // (name→why, price→stepper), none of which scale with the font setting.
-    const fixed = 104.0 + 23 + QuantityControl.height + 8 + 6;
-    // Scales: two lines of name at 13.5/1.25, two of why-copy at 11.5/1.4,
-    // and the price line at 15/1.25.
-    const scaling = 33.75 + 32.2 + 18.75;
-    // Plus a little headroom — the cost of over-allocating is a few px of
-    // white space, the cost of under-allocating is cropped copy.
-    return fixed + MediaQuery.textScalerOf(context).scale(scaling) + 6;
-  }
-
   List<Product> _visible(List<Product> catalog, QuizProvider quiz) {
     // Featured first once there's a score to justify calling them picks;
     // without one the catalog stands on its own order.
@@ -116,12 +101,12 @@ class _ShopScreenState extends State<ShopScreen> {
                         crossAxisCount: 2,
                         mainAxisSpacing: 14,
                         crossAxisSpacing: 14,
-                        // Image (104) + 2-line name + 2-line why-line +
-                        // price + stepper. The text part of that grows with
-                        // the platform font scale, so the tile has to grow
-                        // with it — a fixed extent clipped the stepper off
-                        // the bottom of the card on devices set above 1.0.
-                        mainAxisExtent: _tileExtent(context),
+                        // Asked of the tile rather than recomputed here.
+                        // The grid has to know a tile's height before one
+                        // exists, and a second copy of that arithmetic drifted
+                        // from the layout it was describing — see
+                        // [ProductTile.extentFor].
+                        mainAxisExtent: ProductTile.extentFor(context),
                       ),
                       itemCount: products.length,
                       itemBuilder: (context, i) {

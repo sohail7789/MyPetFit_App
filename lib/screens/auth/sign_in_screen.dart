@@ -46,22 +46,17 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<void> _signIn() async {
     try {
       await context.read<AuthProvider>().signIn(
-            _email.text.trim(),
-            _password.text,
-          );
+        _email.text.trim(),
+        _password.text,
+      );
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
-          ),
-        ),
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
     }
   }
-
 
   /// As with [_signIn] — authenticate, then let the router take over.
   Future<void> _signInWithGoogle() async {
@@ -71,11 +66,7 @@ class _SignInScreenState extends State<SignInScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
-          ),
-        ),
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
     }
   }
@@ -87,19 +78,20 @@ class _SignInScreenState extends State<SignInScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
-          ),
-        ),
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Same reason as Create Account: the hero panel and watermarks are laid
+    // out against the full screen, so letting the Scaffold shrink under the
+    // keyboard moved artwork that should stay put. The scroll view below
+    // takes the inset instead, so the fields still clear the keyboard.
     return Scaffold(
       backgroundColor: context.c.surface,
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           HeroPanel(
@@ -129,12 +121,19 @@ class _SignInScreenState extends State<SignInScreen> {
           Positioned(
             top: 60,
             right: 96,
-            child: AppIcon(AppIcons.heart(context.c.actionText, 0.16), size: 26),
+            child: AppIcon(
+              AppIcons.heart(context.c.actionText, 0.16),
+              size: 26,
+            ),
           ),
           SafeArea(
             child: Stack(
               children: [
                 SingleChildScrollView(
+                  // The inset the Scaffold no longer applies.
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.viewInsetsOf(context).bottom,
+                  ),
                   child: Column(
                     children: [
                       SizedBox(
@@ -168,7 +167,10 @@ class _SignInScreenState extends State<SignInScreen> {
                             const SizedBox(height: 24),
                             AppField(
                               hint: 'Email address',
-                              icon: AppIcon(AppIcons.mail(context.c.muted), size: 20),
+                              icon: AppIcon(
+                                AppIcons.mail(context.c.muted),
+                                size: 20,
+                              ),
                               controller: _email,
                               keyboardType: TextInputType.emailAddress,
                               textCapitalization: TextCapitalization.none,
@@ -177,7 +179,10 @@ class _SignInScreenState extends State<SignInScreen> {
                             const SizedBox(height: 12),
                             AppField(
                               hint: 'Password',
-                              icon: AppIcon(AppIcons.lock(context.c.muted), size: 19),
+                              icon: AppIcon(
+                                AppIcons.lock(context.c.muted),
+                                size: 19,
+                              ),
                               controller: _password,
                               obscure: _obscure,
                               textInputAction: TextInputAction.done,
@@ -193,8 +198,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                             ),
                             Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(2, 16, 2, 22),
+                              padding: const EdgeInsets.fromLTRB(2, 16, 2, 22),
                               // Wrap, not Row: at larger font scales the two
                               // labels no longer fit on one line, and a Row
                               // overflows them into each other ("Remember

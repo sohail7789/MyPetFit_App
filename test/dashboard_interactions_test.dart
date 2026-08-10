@@ -211,6 +211,40 @@ void main() {
       expect(reminder?.isDue, isFalse);
     });
 
+    test('the boundary is the calendar date, not a twenty-four hour window',
+        () {
+      // 11:30 PM yesterday, read at 10:00 AM today: ten and a half hours
+      // ago, and still yesterday. Counting elapsed hours would call this
+      // "today" for most of the morning, which is the one case where a
+      // relative date is worth getting exactly right — someone checking
+      // whether they have already assessed their pet *today*.
+      final morning = DateTime(2026, 8, 10, 10);
+      final lastNight = DateTime(2026, 8, 9, 23, 30);
+
+      ScoreResult reportAt(DateTime when) => ScoreResult(
+            rawScore: 70,
+            maxPossibleScore: 100,
+            percentageScore: 70,
+            category: HealthCategory.good,
+            completedAt: when,
+            petId: 'p1',
+          );
+
+      expect(
+        assessmentReminder(reportAt(lastNight), now: morning)?.label,
+        'Last assessment yesterday',
+      );
+
+      // And one minute later, on the same calendar day, it is today.
+      expect(
+        assessmentReminder(
+          reportAt(DateTime(2026, 8, 10, 0, 1)),
+          now: morning,
+        )?.label,
+        'Assessment completed today',
+      );
+    });
+
     test('recent reports how long ago', () {
       expect(
         assessmentReminder(at(12), now: now)?.label,

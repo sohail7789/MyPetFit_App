@@ -12,6 +12,17 @@ class AddressProvider extends ChangeNotifier {
   AddressProvider({AddressRepository? repository})
       : _repository = repository ?? LocalAddressRepository();
 
+  /// Where this provider actually reads and writes.
+  ///
+  /// Exposed so the composition root can be asserted on. The default is
+  /// device-local, which is the *old* behaviour and the reason the address
+  /// vanished on logout — so "which repository did production wire up" is a
+  /// release-blocking fact, not an implementation detail. Without a way to
+  /// see it, every address test passed while `main.dart` built a local-only
+  /// provider, because the tests constructed their own.
+  @visibleForTesting
+  AddressRepository get repository => _repository;
+
   AddressBook _book = const AddressBook();
   bool _isLoaded = false;
 

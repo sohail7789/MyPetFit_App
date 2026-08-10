@@ -26,10 +26,7 @@ QuizProvider _scored({int rank = 0, QuizProvider? into}) {
     for (final question in category.scoredQuestions) {
       final ranked = [...question.answers]
         ..sort((a, b) => b.score.compareTo(a.score));
-      quiz.selectAnswer(
-        question.id,
-        ranked[rank.clamp(0, ranked.length - 1)],
-      );
+      quiz.selectAnswer(question.id, ranked[rank.clamp(0, ranked.length - 1)]);
     }
   }
   quiz.calculateResult();
@@ -76,7 +73,10 @@ void main() {
 
       expect(quiz.assessmentHistory, hasLength(2));
       // Newest first.
-      expect(quiz.assessmentHistory.first.percentageScore, quiz.result!.percentageScore);
+      expect(
+        quiz.assessmentHistory.first.percentageScore,
+        quiz.result!.percentageScore,
+      );
       expect(quiz.assessmentHistory[1].percentageScore, first);
       expect(quiz.result!.percentageScore, lessThan(first));
     });
@@ -100,10 +100,11 @@ void main() {
             builder: (context, state) => const ReportHistoryScreen(),
           ),
           GoRoute(
-            path: '/report/history/:index',
+            path: '/report/history/:identity',
             builder: (context, state) => ReportCardScreen(
-              historyIndex:
-                  int.tryParse(state.pathParameters['index'] ?? '') ?? -1,
+              reportIdentity: Uri.decodeComponent(
+                state.pathParameters['identity'] ?? '',
+              ),
             ),
           ),
         ],
@@ -118,10 +119,7 @@ void main() {
           // way the dashboard always has.
           ChangeNotifierProvider(create: (_) => catalog ?? emptyCatalog()),
         ],
-        child: MaterialApp.router(
-          theme: AppTheme.light,
-          routerConfig: router,
-        ),
+        child: MaterialApp.router(theme: AppTheme.light, routerConfig: router),
       );
     }
 
@@ -167,7 +165,9 @@ void main() {
             ChangeNotifierProvider(create: (_) => PetInfoProvider()),
           ],
           child: const MaterialApp(
-            home: ReportCardScreen(historyIndex: 7),
+            // An identity no stored report carries — the out-of-range case,
+            // expressed the way the screen now addresses records.
+            home: ReportCardScreen(reportIdentity: 'no-such-report'),
           ),
         ),
       );
@@ -192,17 +192,15 @@ void main() {
         const calculator = OverviewCalculator();
 
         final snapshot = const AnalyticsEngine().analyse(
-          adapter.fromResults(
-            subjectId: 'p1',
-            results: quiz.assessmentHistory,
-          ),
+          adapter.fromResults(subjectId: 'p1', results: quiz.assessmentHistory),
         );
 
         return calculator(snapshot, now: DateTime.now()).focus!.categoryName;
       }
 
-      testWidgets('summarises the record above the evidence for it',
-          (tester) async {
+      testWidgets('summarises the record above the evidence for it', (
+        tester,
+      ) async {
         sizeUp(tester);
         final quiz = _scored();
 
@@ -213,10 +211,7 @@ void main() {
         expect(find.text('Health overview'), findsOneWidget);
         // The summary and the timeline read the same record, so the newest
         // score appears in both.
-        expect(
-          find.text('${quiz.result!.percentageScore}'),
-          findsNWidgets(2),
-        );
+        expect(find.text('${quiz.result!.percentageScore}'), findsNWidgets(2));
       });
 
       testWidgets('a single assessment still gets a summary', (tester) async {
@@ -232,8 +227,9 @@ void main() {
         expect(find.text('Next assessment'), findsOneWidget);
       });
 
-      testWidgets('the focus area resolves through the dashboard’s mapping',
-          (tester) async {
+      testWidgets('the focus area resolves through the dashboard’s mapping', (
+        tester,
+      ) async {
         sizeUp(tester);
         final quiz = _scored();
         final area = focusFor(quiz);
@@ -253,8 +249,9 @@ void main() {
         expect(find.text('Focus Area Support'), findsOneWidget);
       });
 
-      testWidgets('nothing tagged for the area leaves no empty slot',
-          (tester) async {
+      testWidgets('nothing tagged for the area leaves no empty slot', (
+        tester,
+      ) async {
         sizeUp(tester);
         final quiz = _scored();
 

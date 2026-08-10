@@ -36,6 +36,17 @@ class AuthService {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   /// Create a new account and initialise the user's Firestore document.
+  /// Create a new account and initialise the user's Firestore document.
+  ///
+  /// The Firebase codes are mapped here, the way [signIn] already does.
+  /// Without it the raw `[firebase_auth/…]` string reached the UI, which is
+  /// how a duplicate submit came to show users a bracketed error code over
+  /// the screen they had just successfully advanced to.
+  ///
+  /// The profile document is written with `merge`. Account creation is the
+  /// one operation that must never run twice, but the document write behind
+  /// it is safely repeatable — and merging means a retry after a failed
+  /// write cannot blank fields the first attempt had already stored.
   Future<UserCredential> signUp({
     required String email,
     required String password,
@@ -43,10 +54,37 @@ class AuthService {
     required String lastName,
     required String username,
   }) async {
-    final credential = await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
-      password: password,
-    );
+    final UserCredential credential;
+    try {
+      credential = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'email-already-in-use':
+          throw Exception(
+            'An account already exists with this email. Try signing in.',
+          );
+
+        case 'invalid-email':
+          throw Exception('Please enter a valid email address.');
+
+        case 'weak-password':
+          throw Exception(
+            'That password is too weak. Use at least 8 characters.',
+          );
+
+        case 'operation-not-allowed':
+          throw Exception('Email sign-up is not enabled for this app.');
+
+        case 'network-request-failed':
+          throw Exception('No connection. Check your network and try again.');
+
+        default:
+          throw Exception(e.message ?? 'Could not create the account.');
+      }
+    }
 
     final user = credential.user;
 
@@ -64,7 +102,7 @@ class AuthService {
         'phone': user.phoneNumber ?? '',
         'createdAt': FieldValue.serverTimestamp(),
         'lastLogin': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
     }
 
     return credential;
@@ -81,10 +119,7 @@ class AuthService {
         password: password,
       );
 
-      await _firestore
-          .collection('users')
-          .doc(credential.user!.uid)
-          .update({
+      await _firestore.collection('users').doc(credential.user!.uid).update({
         'lastLogin': FieldValue.serverTimestamp(),
       });
 
@@ -104,9 +139,7 @@ class AuthService {
           throw Exception('Please enter a valid email address.');
 
         case 'too-many-requests':
-          throw Exception(
-            'Too many failed attempts. Please try again later.',
-          );
+          throw Exception('Too many failed attempts. Please try again later.');
 
         default:
           throw Exception(e.message ?? 'Login failed.');
@@ -116,23 +149,21 @@ class AuthService {
 
   Future<UserCredential> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser =
-      await GoogleSignIn().signIn();
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
       if (googleUser == null) {
         throw Exception('Google sign in cancelled.');
       }
 
       final GoogleSignInAuthentication googleAuth =
-      await googleUser.authentication;
+          await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final userCredential =
-      await _auth.signInWithCredential(credential);
+      final userCredential = await _auth.signInWithCredential(credential);
 
       final user = userCredential.user!;
 
@@ -157,16 +188,12 @@ class AuthService {
           'lastLogin': FieldValue.serverTimestamp(),
         });
       } else {
-        await userRef.update({
-          'lastLogin': FieldValue.serverTimestamp(),
-        });
+        await userRef.update({'lastLogin': FieldValue.serverTimestamp()});
       }
 
       return userCredential;
     } on FirebaseAuthException catch (e) {
-      throw Exception(
-        e.message ?? 'Google sign in failed.',
-      );
+      throw Exception(e.message ?? 'Google sign in failed.');
     }
   }
 
@@ -179,9 +206,7 @@ class AuthService {
   /// Forgot password.
   Future<void> sendPasswordResetEmail(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(
-        email: email.trim(),
-      );
+      await _auth.sendPasswordResetEmail(email: email.trim());
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'user-not-found':
@@ -191,9 +216,7 @@ class AuthService {
           throw Exception('Please enter a valid email address.');
 
         default:
-          throw Exception(
-            e.message ?? 'Failed to send reset email.',
-          );
+          throw Exception(e.message ?? 'Failed to send reset email.');
       }
     }
   }
@@ -231,9 +254,9 @@ class AuthService {
       if (e.code == AuthorizationErrorCode.canceled) {
         throw Exception('Apple sign in was cancelled.');
       }
-      throw Exception(e.message.isNotEmpty
-          ? e.message
-          : 'Apple sign in failed.');
+      throw Exception(
+        e.message.isNotEmpty ? e.message : 'Apple sign in failed.',
+      );
     }
 
     final credential = await _auth.signInWithCredential(

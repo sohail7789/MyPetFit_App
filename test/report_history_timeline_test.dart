@@ -37,15 +37,14 @@ void main() {
     String petId = 'p1',
     HealthCategory band = HealthCategory.good,
     DateTime? from,
-  }) =>
-      ScoreResult(
-        rawScore: percent,
-        maxPossibleScore: 100,
-        percentageScore: percent,
-        category: band,
-        completedAt: (from ?? DateTime.now()).subtract(Duration(days: daysAgo)),
-        petId: petId,
-      );
+  }) => ScoreResult(
+    rawScore: percent,
+    maxPossibleScore: 100,
+    percentageScore: percent,
+    category: band,
+    completedAt: (from ?? DateTime.now()).subtract(Duration(days: daysAgo)),
+    petId: petId,
+  );
 
   /// The date label a widget test should expect for a report [daysAgo] old.
   String dateLabel(int daysAgo) =>
@@ -61,16 +60,16 @@ void main() {
   }
 
   PetInfo pet(String id, String name) => PetInfo(
-        id: id,
-        name: name,
-        breed: 'Beagle',
-        ageYears: 3,
-        ageMonths: 2,
-        gender: PetGender.male,
-        weightKg: 12,
-        heightCm: 38,
-        updatedAt: DateTime.utc(2026, 1, 2),
-      );
+    id: id,
+    name: name,
+    breed: 'Beagle',
+    ageYears: 3,
+    ageMonths: 2,
+    gender: PetGender.male,
+    weightKg: 12,
+    heightCm: 38,
+    updatedAt: DateTime.utc(2026, 1, 2),
+  );
 
   Future<QuizProvider> quizWith(
     Map<String, List<ScoreResult>> byPet, {
@@ -102,12 +101,18 @@ void main() {
           builder: (_, _) => const ReportHistoryScreen(),
         ),
         GoRoute(
-          path: '${AppRoutes.report}/history/:index',
-          builder: (_, state) => Scaffold(
-            body: Center(
-              child: Text('REPORT ${state.pathParameters['index']}'),
-            ),
-          ),
+          // Identity-addressed now; resolved back to a position so these
+          // cases keep asserting *which* report opened.
+          path: '${AppRoutes.report}/history/:identity',
+          builder: (_, state) {
+            final identity = Uri.decodeComponent(
+              state.pathParameters['identity'] ?? '',
+            );
+            final at = quiz.assessmentHistory.indexWhere(
+              (r) => QuizProvider.identityOf(r) == identity,
+            );
+            return Scaffold(body: Center(child: Text('REPORT $at')));
+          },
         ),
         GoRoute(
           path: AppRoutes.quiz,
@@ -229,8 +234,10 @@ void main() {
         report(65, daysAgo: 200, from: now),
       ], now: now);
 
-      expect(groups.map((g) => g.bucket),
-          [HistoryBucket.today, HistoryBucket.older]);
+      expect(groups.map((g) => g.bucket), [
+        HistoryBucket.today,
+        HistoryBucket.older,
+      ]);
     });
 
     test('no history groups into nothing', () {
@@ -288,8 +295,9 @@ void main() {
       expect(find.text('OLDER'), findsOneWidget);
     });
 
-    testWidgets('each entry carries the pet, the band and both dates',
-        (tester) async {
+    testWidgets('each entry carries the pet, the band and both dates', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await quizWith({
         'p1': [report(80, daysAgo: 0), report(75, daysAgo: 30)],
@@ -314,8 +322,9 @@ void main() {
       expect(find.text('Current'), findsOneWidget);
     });
 
-    testWidgets('opens the report the row belongs to, across groups',
-        (tester) async {
+    testWidgets('opens the report the row belongs to, across groups', (
+      tester,
+    ) async {
       sizeUp(tester);
       // Index 2 sits in the second group — the case a within-group index
       // would get wrong.
@@ -354,7 +363,9 @@ void main() {
 
     testWidgets('reads as one entry to a screen reader', (tester) async {
       sizeUp(tester);
-      final quiz = await quizWith({'p1': [report(80, daysAgo: 1)]});
+      final quiz = await quizWith({
+        'p1': [report(80, daysAgo: 1)],
+      });
 
       await tester.pumpWidget(host(quiz, await withPets([pet('p1', 'Bruno')])));
       await tester.pumpAndSettle();
@@ -367,8 +378,9 @@ void main() {
   });
 
   group('multiple pets', () {
-    testWidgets('the timeline follows the active pet and does not duplicate',
-        (tester) async {
+    testWidgets('the timeline follows the active pet and does not duplicate', (
+      tester,
+    ) async {
       sizeUp(tester);
       final pets = await withPets([pet('p1', 'Bruno'), pet('p2', 'Mia')]);
       final quiz = await quizWith({
@@ -414,10 +426,13 @@ void main() {
   });
 
   group('before the pet record is read', () {
-    testWidgets('a row still renders without an orphaned avatar',
-        (tester) async {
+    testWidgets('a row still renders without an orphaned avatar', (
+      tester,
+    ) async {
       sizeUp(tester);
-      final quiz = await quizWith({'p1': [report(80, daysAgo: 0)]});
+      final quiz = await quizWith({
+        'p1': [report(80, daysAgo: 0)],
+      });
       // Not init()ed: activePet is null for these frames.
       final pets = PetInfoProvider(service: FakeCloud());
 

@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import '../services/photo_uploader.dart';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -12,6 +14,52 @@ import 'paw_mark.dart';
 /// Shows the stored image when there is one and the design's paw placeholder
 /// when there isn't. Tapping opens a sheet offering the camera, the gallery,
 /// and — once a photo exists — a way to remove it.
+/// Renders whatever [photoPath] happens to be.
+///
+/// It carries one of two things. New photos are Firebase Storage download
+/// URLs — the durable reference, and the value the app writes from now on.
+/// Accounts that saved a photo before that existed still hold an absolute
+/// device path in Firestore, and those must keep rendering rather than being
+/// wiped: this is the one place that difference is handled, so no screen has
+/// to know about it.
+///
+/// A path can also outlive its file — the photo directory lives inside the app
+/// sandbox, which a reinstall or a "clear storage" wipes while the saved record
+/// survives. That is exactly the case the placeholder exists for.
+Widget buildProfileImage(String? photoPath, double size) {
+  if (photoPath == null || photoPath.isEmpty) {
+    return _Placeholder(size: size);
+  }
+
+  if (PhotoUploader.isRemote(photoPath)) {
+    return Image.network(
+      photoPath,
+      fit: BoxFit.cover,
+      key: ValueKey(photoPath),
+      errorBuilder: (context, _, _) => _Placeholder(size: size),
+    );
+  }
+
+  final file = File(photoPath);
+  if (!file.existsSync()) return _Placeholder(size: size);
+
+  return Image.file(
+    file,
+    fit: BoxFit.cover,
+    // Keyed on the path so replacing the photo shows the new bytes instead
+    // of the cached old ones.
+    key: ValueKey(photoPath),
+    errorBuilder: (context, _, _) => _Placeholder(size: size),
+  );
+}
+
+/// Whether [photoPath] currently resolves to something renderable.
+bool hasProfileImage(String? photoPath) {
+  if (photoPath == null || photoPath.isEmpty) return false;
+  if (PhotoUploader.isRemote(photoPath)) return true;
+  return File(photoPath).existsSync();
+}
+
 class PhotoSlot extends StatelessWidget {
   /// Where the current photo lives, or null for the empty state.
   final String? photoPath;
@@ -34,11 +82,7 @@ class PhotoSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final file = photoPath == null ? null : File(photoPath!);
-    // A path can outlive its file — the photo directory is inside the app
-    // sandbox, which a reinstall or a "clear storage" wipes while the saved
-    // record survives. Falling back to the placeholder beats a broken box.
-    final hasPhoto = file != null && file.existsSync();
+    final hasPhoto = hasProfileImage(photoPath);
 
     return Semantics(
       button: true,
@@ -52,19 +96,7 @@ class PhotoSlot extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Positioned.fill(
-                child: ClipOval(
-                  child: hasPhoto
-                      ? Image.file(
-                          file,
-                          fit: BoxFit.cover,
-                          // Keyed on the path so replacing the photo shows
-                          // the new bytes instead of the cached old ones.
-                          key: ValueKey(photoPath),
-                          errorBuilder: (context, _, _) =>
-                              _Placeholder(size: size),
-                        )
-                      : _Placeholder(size: size),
-                ),
+                child: ClipOval(child: buildProfileImage(photoPath, size)),
               ),
               Positioned(
                 right: -2,
@@ -196,22 +228,14 @@ class PhotoAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final file = photoPath == null ? null : File(photoPath!);
-    final hasPhoto = file != null && file.existsSync();
-
+    // Same shared builder as [PhotoSlot], so the read-only avatar on Account,
+    // My pets and the owner profile resolves URLs and legacy paths identically
+    // to the editable one. Two implementations is how one surface ends up
+    // showing a photo the other cannot.
     return SizedBox(
       width: size,
       height: size,
-      child: ClipOval(
-        child: hasPhoto
-            ? Image.file(
-                file,
-                fit: BoxFit.cover,
-                key: ValueKey(photoPath),
-                errorBuilder: (context, _, _) => _Placeholder(size: size),
-              )
-            : _Placeholder(size: size),
-      ),
+      child: ClipOval(child: buildProfileImage(photoPath, size)),
     );
   }
 }

@@ -28,13 +28,21 @@ class PhotoResult {
   bool get isSaved => path != null;
 }
 
-/// Picks profile photos and keeps them somewhere they'll survive.
+/// Picks profile photos and keeps a local copy of them.
 ///
-/// The picker hands back a file in a cache the OS is free to purge, so the
-/// image is copied into the app's documents directory and *that* path is
-/// what gets stored. Pets and owners persist locally in SharedPreferences,
-/// so their photos live locally too; moving them to Firebase Storage is the
-/// job to do when those records start syncing between devices.
+/// **This is the cache layer, not the store of record.** The picker hands back
+/// a file in a directory the OS is free to purge, so the image is copied into
+/// the app's documents directory and read from there while it is still
+/// current. Where it *lives* is Firebase Storage: [PhotoUploader] uploads the
+/// file this class saved, and the resulting download URL is what Firestore
+/// holds and what the app renders from.
+///
+/// That split matters, and this class used to be the whole of it. The absolute
+/// path returned by [pick] was written into Firestore as though it were a
+/// durable reference; on iOS the container segment of that path is reassigned
+/// on reinstall and on every TestFlight update, so the stored path stopped
+/// resolving and the photo appeared to have been deleted. Nothing here should
+/// ever be persisted as a cloud reference again.
 class PhotoStore {
   PhotoStore({ImagePicker? picker}) : _picker = picker ?? ImagePicker();
 

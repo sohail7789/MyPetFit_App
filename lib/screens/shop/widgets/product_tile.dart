@@ -110,6 +110,64 @@ class ProductTile extends StatelessWidget {
     required this.onQuantityChanged,
   });
 
+  // ─── Geometry ───────────────────────────────────────────────────────────
+  //
+  // The tile lays itself out from these, and [extentFor] adds them up. They
+  // are constants rather than literals sprinkled through `build` because the
+  // grid has to be told how tall a tile is *before* one exists, and the two
+  // sums have to agree. They did not: the grid counted the artwork, the
+  // padding, the stepper and two of the three gaps, missing the 8 between
+  // the why-line and the price. Two pixels short at every text scale — and
+  // because the why-line is the only Flexible thing in the card, it is what
+  // absorbed the shortfall, losing the descenders off its second line.
+
+  /// Artwork band.
+  static const double _artHeight = 104;
+
+  /// The card's hairline. A `Border` is painted *inside* the box and insets
+  /// its child by that much on every edge, so two of these are part of the
+  /// height the card needs — easy to forget precisely because it is a
+  /// hairline, and worth exactly the two pixels that were cropping the copy.
+  static const double _border = 1;
+
+  static const double _padTop = 11;
+  static const double _padBottom = 12;
+
+  static const double _gapNameToWhy = 6;
+  static const double _gapWhyToPrice = 8;
+  static const double _gapPriceToControl = 8;
+
+  static const double _nameSize = 13.5;
+  static const double _nameLeading = 1.25;
+  static const double _whySize = 11.5;
+  static const double _whyLeading = 1.4;
+  static const double _priceSize = 15;
+  static const double _priceLeading = 1.25;
+
+  /// Everything whose height the platform font setting does not change.
+  static const double _fixedExtent = _artHeight +
+      2 * _border +
+      _padTop +
+      _padBottom +
+      _gapNameToWhy +
+      _gapWhyToPrice +
+      _gapPriceToControl +
+      QuantityControl.height;
+
+  /// Two lines of name, two of why-copy, one of price — the tallest a tile's
+  /// copy is allowed to get, since all three are capped with `maxLines`.
+  static const double _textExtent =
+      2 * _nameSize * _nameLeading + 2 * _whySize * _whyLeading + _priceSize * _priceLeading;
+
+  /// How tall a tile needs to be at the current text scale.
+  ///
+  /// The grid delegate needs one height for every tile in the row, so this
+  /// returns the tallest a tile can be rather than measuring any particular
+  /// product. Over-allocating costs a few pixels of white space under a
+  /// short card; under-allocating crops the copy, which is what it did.
+  static double extentFor(BuildContext context) =>
+      _fixedExtent + MediaQuery.textScalerOf(context).scale(_textExtent);
+
   @override
   Widget build(BuildContext context) {
     final palette = ProductPalette.of(context, product.category);
@@ -127,7 +185,7 @@ class ProductTile extends StatelessWidget {
           GestureDetector(
             onTap: onOpen,
             child: SizedBox(
-              height: 104,
+              height: _artHeight,
               child: Stack(
                 children: [
                   Positioned.fill(
@@ -145,7 +203,12 @@ class ProductTile extends StatelessWidget {
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 11, 12, 12),
+              padding: const EdgeInsets.fromLTRB(
+                12,
+                _padTop,
+                12,
+                _padBottom,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -170,26 +233,26 @@ class ProductTile extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: AppTheme.font(
-                              size: 13.5,
+                              size: _nameSize,
                               weight: FontWeight.w700,
                               color: context.c.ink,
-                              height: 1.25,
+                              height: _nameLeading,
                             ),
                           ),
                           // The design's "why this pick" line. Firestore's
                           // `purpose` carries that copy; hidden when a product
                           // hasn't been given one.
                           if (product.purpose.trim().isNotEmpty) ...[
-                            const SizedBox(height: 6),
+                            const SizedBox(height: _gapNameToWhy),
                             Flexible(
                               child: Text(
                                 product.purpose,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: AppTheme.font(
-                                  size: 11.5,
+                                  size: _whySize,
                                   color: context.c.body,
-                                  height: 1.4,
+                                  height: _whyLeading,
                                 ),
                               ),
                             ),
@@ -198,7 +261,7 @@ class ProductTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: _gapWhyToPrice),
                   // Price above the control rather than beside it. Sharing a
                   // row meant the price got whatever width the button left
                   // over, and "₹799" broke across two lines as "₹79 / 9" the
@@ -209,13 +272,13 @@ class ProductTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTheme.font(
-                      size: 15,
+                      size: _priceSize,
                       weight: FontWeight.w800,
                       color: context.c.ink,
-                      height: 1.25,
+                      height: _priceLeading,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: _gapPriceToControl),
                   QuantityControl(
                     quantity: quantity,
                     onChanged: onQuantityChanged,

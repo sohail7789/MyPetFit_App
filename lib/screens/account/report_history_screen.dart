@@ -31,23 +31,46 @@ import '../../providers/product_provider.dart';
 import '../../providers/quiz_provider.dart';
 import '../shop/widgets/product_tile.dart' show ProductArt, formatPrice;
 import '../../widgets/app_button.dart';
+import '../../widgets/settings_tile.dart' show ScreenHeader;
 import '../../widgets/design_image.dart';
 import '../../widgets/photo_slot.dart';
 
-/// Screen 32 — Report history (the Report tab).
+/// Screen 32 — Report history (the Report tab, and one pet's own history).
 class ReportHistoryScreen extends StatelessWidget {
-  const ReportHistoryScreen({super.key});
+  /// Which saved pet's reports to show. Null — the tab — follows the active
+  /// pet instead.
+  ///
+  /// A pet profile can show an animal that is not the active one, and this
+  /// screen used to read [QuizProvider.assessmentHistory] unconditionally:
+  /// that list is filtered to the *active* pet, so opening a second pet's
+  /// history showed the first pet's reports, or nothing at all when the
+  /// active pet had never been assessed. That empty list is the blank page.
+  final int? petIndex;
+
+  const ReportHistoryScreen({super.key, this.petIndex});
 
   @override
   Widget build(BuildContext context) {
     final quiz = context.watch<QuizProvider>();
-    final history = quiz.assessmentHistory;
-    // select, not watch: the timeline needs the pet's name and photo, and
-    // `activePet` is the same instance until the selection or the record
-    // changes, so this rebuilds when it should and not otherwise.
-    final pet = context.select<PetInfoProvider, PetInfo?>(
-      (pets) => pets.activePet,
-    );
+
+    // Watched rather than selected when a specific pet is named: the record
+    // is addressed by position, so the list itself has to be current.
+    final pets = context.watch<PetInfoProvider>();
+    final pet = petIndex == null
+        ? pets.activePet
+        : (petIndex! >= 0 && petIndex! < pets.pets.length
+              ? pets.pets[petIndex!]
+              : null);
+
+    // historyFor is not bound to the active pet; assessmentHistory is. The
+    // tab keeps the bound getter so it continues to follow the selection.
+    final history = petIndex == null
+        ? quiz.assessmentHistory
+        : quiz.historyFor(pet?.id ?? '');
+
+    final heading = petIndex == null || pet == null
+        ? 'Report history'
+        : "${pet.name}'s reports";
 
     return Scaffold(
       backgroundColor: context.c.surface,
@@ -56,23 +79,39 @@ class ReportHistoryScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-              child: Text('Report history', style: context.t.h2),
-            ),
+            // Reached from a pet profile, this is a pushed route and needs a
+            // way back to it. As the Report tab it is a shell branch with
+            // nothing behind it, so a back button there would either do
+            // nothing or throw — hence the header only appears when a pet
+            // opened it. `backOr` pops the real stack when there is one and
+            // falls back to that pet's profile when there isn't, so the
+            // destination is the profile the user came from rather than
+            // Account, whose branch happens to own the stack.
+            if (petIndex != null)
+              ScreenHeader(
+                title: heading,
+                onBack: () =>
+                    context.backOr(AppRoutes.petProfile(petIndex!)),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                child: Text(heading, style: context.t.h2),
+              ),
             Expanded(
               child: switch ((history.isEmpty, quiz.isLoaded)) {
                 // Nothing to show *and* the read is still in flight. An
                 // invitation to start would be telling someone they have no
                 // reports while their reports are on their way back.
                 (true, false) => const Padding(
-                    padding: EdgeInsets.fromLTRB(22, 16, 22, 24),
-                    child: AnalyticsLoadingState(),
-                  ),
+                  padding: EdgeInsets.fromLTRB(22, 16, 22, 24),
+                  child: AnalyticsLoadingState(),
+                ),
                 // Read, and genuinely empty. Into the questionnaire, not back
                 // through consent — see the dashboard's retake action.
-                (true, true) =>
-                  _Empty(onStart: () => context.push(AppRoutes.quiz)),
+                (true, true) => _Empty(
+                  onStart: () => context.push(AppRoutes.quiz),
+                ),
                 // The analytics module hosted here rather than on a screen of
                 // its own: navigation stays in one place and the widgets stay
                 // reusable elsewhere.
@@ -81,10 +120,10 @@ class ReportHistoryScreen extends StatelessWidget {
                 // scratch: no expanded section, no cached snapshot and no
                 // selected chart point survives from the previous pet.
                 (false, _) => _HistoryBody(
-                    key: ValueKey(pet?.id ?? ''),
-                    history: history,
-                    pet: pet,
-                  ),
+                  key: ValueKey(pet?.id ?? ''),
+                  history: history,
+                  pet: pet,
+                ),
               },
             ),
           ],
@@ -113,8 +152,13 @@ enum HistoryBucket {
 
 /// One assessment, with its position in the flat newest-first history.
 ///
-/// The index travels with the result because it is what
-/// [AppRoutes.pastReport] addresses — grouping must not renumber it.
+/// The position is presentational only — it orders and groups the rows.
+/// Navigation does **not** use it: [AppRoutes.pastReport] addresses a report by
+/// [QuizProvider.identityOf], a property of the record itself. It used to take
+/// this index, and an index is only meaningful in the list it was read from —
+/// a list filtered to the active pet, re-sorted on every cloud restore and
+/// trimmed as it grows — so a link built from one could open a different
+/// animal's report, or none at all.
 typedef HistoryEntry = ({int index, ScoreResult result});
 
 typedef HistoryGroup = ({HistoryBucket bucket, List<HistoryEntry> entries});
@@ -186,8 +230,18 @@ String relativeReportDate(DateTime when, {DateTime? now}) {
 @visibleForTesting
 String exactReportDate(DateTime when) {
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   final local = when.toLocal();
   return '${local.day} ${months[local.month - 1]} ${local.year}';
@@ -249,11 +303,7 @@ class _HistoryRow extends StatelessWidget {
 
   final VoidCallback? onTap;
 
-  const _HistoryRow({
-    required this.entry,
-    required this.pet,
-    this.onTap,
-  });
+  const _HistoryRow({required this.entry, required this.pet, this.onTap});
 
   bool get _isCurrent => entry.index == 0;
 
@@ -510,8 +560,7 @@ class _HistoryBodyState extends State<_HistoryBody> {
           const SizedBox(height: 22),
           TrendGraph(
             snapshot: snapshot,
-            onOpenReport: (pointId) =>
-                _openReport(context, history, pointId),
+            onOpenReport: (pointId) => _openReport(context, history, pointId),
           ),
           if (snapshot.insights.isNotEmpty) ...[
             const SizedBox(height: 20),
@@ -580,10 +629,7 @@ class _InsightsSection extends StatelessWidget {
                   ? '1 finding'
                   : '${insights.length} findings',
             ),
-      builder: (context) => InsightList(
-        insights: insights,
-        showHeader: false,
-      ),
+      builder: (context) => InsightList(insights: insights, showHeader: false),
     );
   }
 
@@ -637,10 +683,8 @@ class _CategorySection extends StatelessWidget {
             ? '1 area tracked'
             : '${trends.length} areas tracked',
       ),
-      builder: (context) => CategoryEvolutionList(
-        trends: trends,
-        showHeader: false,
-      ),
+      builder: (context) =>
+          CategoryEvolutionList(trends: trends, showHeader: false),
     );
   }
 }
@@ -670,10 +714,8 @@ class _MilestoneSection extends StatelessWidget {
       subtitle: 'Moments worth remembering, in the order they happened.',
       initiallyExpanded: milestones.length == 1,
       collapsedSummary: _SummaryLine(label: '${milestones.length} earned'),
-      builder: (context) => MilestoneList(
-        milestones: milestones,
-        showHeader: false,
-      ),
+      builder: (context) =>
+          MilestoneList(milestones: milestones, showHeader: false),
     );
   }
 }
@@ -725,14 +767,16 @@ class _TimelineSection extends StatelessWidget {
   }
 
   Widget _row(BuildContext context, HistoryEntry entry) => _HistoryRow(
-        entry: entry,
-        pet: pet,
-        // The entry carries its position in the flat newest-first list, which
-        // is what the route indexes. Using the position within a group would
-        // open the wrong report for every group after the first — and the
-        // summary row above is index zero for the same reason.
-        onTap: () => context.push(AppRoutes.pastReport(entry.index)),
-      );
+    entry: entry,
+    pet: pet,
+    // The entry carries its position in the flat newest-first list, which
+    // is what the route indexes. Using the position within a group would
+    // open the wrong report for every group after the first — and the
+    // summary row above is index zero for the same reason.
+    onTap: () => context.push(
+      AppRoutes.pastReport(QuizProvider.identityOf(entry.result)),
+    ),
+  );
 }
 
 /// One quiet line standing in for a closed section.
@@ -790,7 +834,8 @@ class _Recommendation extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: 'Recommended for ${area.categoryName}: ${product.name}, '
+      label:
+          'Recommended for ${area.categoryName}: ${product.name}, '
           '${formatPrice(product.price)}',
       excludeSemantics: true,
       // The excluded children take the detector's tap action with them, so
@@ -879,7 +924,7 @@ void _openReport(
       history[i].completedAt,
     );
     if (id == pointId) {
-      context.push(AppRoutes.pastReport(i));
+      context.push(AppRoutes.pastReport(QuizProvider.identityOf(history[i])));
       return;
     }
   }

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../models/address.dart';
 import '../models/consent_state.dart';
 import '../models/owner_profile.dart';
 import '../models/pet_info.dart';
@@ -47,37 +48,25 @@ class FirestoreService {
         .get();
 
     return snapshot.docs
-        .map(
-          (doc) =>
-          Product.fromMap(
-            doc.id,
-            doc.data(),
-          ),
-    )
+        .map((doc) => Product.fromMap(doc.id, doc.data()))
         .toList();
   }
 
   /// Save owner profile of currently logged in user.
-  Future<void> saveOwnerProfile(OwnerProfile profile,) async {
+  Future<void> saveOwnerProfile(OwnerProfile profile) async {
     final uid = _uid;
 
     await _firestore
         .collection('users')
         .doc(uid)
-        .set(
-      profile.toMap(),
-      SetOptions(merge: true),
-    );
+        .set(profile.toMap(), SetOptions(merge: true));
   }
 
   /// Load owner profile of currently logged in user.
   Future<OwnerProfile?> getOwnerProfile() async {
     final uid = _uid;
 
-    final doc = await _firestore
-        .collection('users')
-        .doc(uid)
-        .get();
+    final doc = await _firestore.collection('users').doc(uid).get();
 
     if (!doc.exists) return null;
 
@@ -101,12 +90,59 @@ class FirestoreService {
   Future<void> saveConsent(ConsentState consent) async {
     final uid = _uid;
 
-    await _firestore
-        .collection('users')
-        .doc(uid)
-        .set(
-      {'consent': consent.toMap()},
-      SetOptions(merge: true),
+    await _firestore.collection('users').doc(uid).set({
+      'consent': consent.toMap(),
+    }, SetOptions(merge: true));
+  }
+
+  /// Saves the delivery address book for the currently signed-in user.
+  ///
+  /// Merged into `users/{uid}` under its own `addressBook` key, alongside
+  /// consent, for the same reason: it is written at a different point in the
+  /// journey from the owner profile, and a `set` would blank whatever else
+  /// the document already holds.
+  ///
+  /// The whole book is written each time rather than one address per
+  /// document. It is a short list the user maintains by hand, it is always
+  /// read in full, and the default pointer has to move atomically with the
+  /// entry it names — three separate writes could leave a default pointing
+  /// at an address that no longer exists.
+  Future<void> saveAddressBook(AddressBook book) async {
+    final uid = _uid;
+
+    await _firestore.collection('users').doc(uid).set({
+      'addressBook': {
+        'addresses': book.addresses.map((a) => a.toJson()).toList(),
+        'defaultId': book.defaultId,
+      },
+    }, SetOptions(merge: true));
+  }
+
+  /// Loads the delivery address book, or null when this account has never
+  /// saved one.
+  ///
+  /// Null rather than an empty book so the caller can tell "no addresses on
+  /// this account" from "the read did not happen" — the difference between
+  /// showing an empty state and leaving what is already on screen alone.
+  Future<AddressBook?> getAddressBook() async {
+    final uid = _uid;
+
+    final doc = await _firestore.collection('users').doc(uid).get();
+
+    if (!doc.exists) return null;
+
+    final raw = doc.data()?['addressBook'];
+
+    if (raw is! Map) return null;
+
+    final data = Map<String, dynamic>.from(raw);
+
+    return AddressBook(
+      addresses: (data['addresses'] as List? ?? [])
+          .whereType<Map>()
+          .map((e) => Address.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      defaultId: data['defaultId'] as String?,
     );
   }
 
@@ -115,10 +151,7 @@ class FirestoreService {
   Future<ConsentState?> getConsent() async {
     final uid = _uid;
 
-    final doc = await _firestore
-        .collection('users')
-        .doc(uid)
-        .get();
+    final doc = await _firestore.collection('users').doc(uid).get();
 
     if (!doc.exists) return null;
 
@@ -138,10 +171,7 @@ class FirestoreService {
         .doc(uid)
         .collection('pets')
         .doc(pet.id)
-        .set(
-      pet.toJson(),
-      SetOptions(merge: true),
-    );
+        .set(pet.toJson(), SetOptions(merge: true));
   }
 
   /// Load all pets of the currently logged in user.
@@ -154,9 +184,7 @@ class FirestoreService {
         .collection('pets')
         .get();
 
-    return snapshot.docs
-        .map((doc) => PetInfo.fromJson(doc.data()))
-        .toList();
+    return snapshot.docs.map((doc) => PetInfo.fromJson(doc.data())).toList();
   }
 
   /// Save one completed assessment for a pet.
@@ -169,10 +197,7 @@ class FirestoreService {
   ///
   /// The document id is the completion time in millis — deterministic, so a
   /// retry overwrites its own earlier attempt instead of adding a duplicate.
-  Future<void> saveAssessment(
-    String petId,
-    ScoreResult result,
-  ) async {
+  Future<void> saveAssessment(String petId, ScoreResult result) async {
     final uid = _uid;
 
     final petRef = _firestore
@@ -190,21 +215,17 @@ class FirestoreService {
       result.toJson(),
     );
 
-    batch.set(
-      petRef,
-      {
-        'lastAssessmentAt': result.completedAt.toIso8601String(),
-        'latestScore': result.percentageScore,
-        'latestCategory': result.category.name,
-      },
-      SetOptions(merge: true),
-    );
+    batch.set(petRef, {
+      'lastAssessmentAt': result.completedAt.toIso8601String(),
+      'latestScore': result.percentageScore,
+      'latestCategory': result.category.name,
+    }, SetOptions(merge: true));
 
     await batch.commit();
   }
 
   /// Load all assessments for one pet.
-  Future<List<ScoreResult>> getAssessments(String petId,) async {
+  Future<List<ScoreResult>> getAssessments(String petId) async {
     final uid = _uid;
 
     final snapshot = await _firestore
@@ -313,5 +334,4 @@ class FirestoreService {
 
     await userRef.delete();
   }
-
 }

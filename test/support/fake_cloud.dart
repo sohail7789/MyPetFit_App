@@ -1,3 +1,4 @@
+import 'package:mypetfit_app/models/address.dart';
 import 'package:mypetfit_app/models/consent_state.dart';
 import 'package:mypetfit_app/models/owner_profile.dart';
 import 'package:mypetfit_app/models/pet_info.dart';
@@ -17,13 +18,18 @@ class FakeCloud implements FirestoreService {
     List<PetInfo>? pets,
     Map<String, List<ScoreResult>>? assessments,
     this.offline,
-  })  : pets = [...?pets],
-        assessments = {
-          for (final e in (assessments ?? {}).entries) e.key: [...e.value],
-        };
+  }) : pets = [...?pets],
+       assessments = {
+         for (final e in (assessments ?? {}).entries) e.key: [...e.value],
+       };
 
   ConsentState? consent;
   OwnerProfile? owner;
+
+  /// The account's saved delivery addresses. Null means this account has
+  /// never saved one — the same distinction the real service draws.
+  AddressBook? addressBook;
+
   List<PetInfo> pets;
 
   /// Stored reports per pet id. Seeding these and calling
@@ -61,6 +67,18 @@ class FakeCloud implements FirestoreService {
   }
 
   @override
+  Future<void> saveAddressBook(AddressBook book) async {
+    _checkOnline();
+    addressBook = book;
+  }
+
+  @override
+  Future<AddressBook?> getAddressBook() async {
+    _checkOnline();
+    return addressBook;
+  }
+
+  @override
   Future<void> saveOwnerProfile(OwnerProfile profile) async {
     _checkOnline();
     owner = profile;
@@ -75,10 +93,7 @@ class FakeCloud implements FirestoreService {
   @override
   Future<void> savePet(PetInfo pet) async {
     _checkOnline();
-    pets = [
-      ...pets.where((p) => p.id != pet.id),
-      pet,
-    ];
+    pets = [...pets.where((p) => p.id != pet.id), pet];
   }
 
   @override
@@ -127,7 +142,9 @@ class FakeCloud implements FirestoreService {
   @override
   Future<Map<String, List<ScoreResult>>> getAllAssessments() async {
     _checkOnline();
-    return {for (final e in assessments.entries) e.key: [...e.value]};
+    return {
+      for (final e in assessments.entries) e.key: [...e.value],
+    };
   }
 
   @override

@@ -66,9 +66,15 @@ class AppRoutes {
   static const report = '/report'; // 23
   static const startup = '/startup';
 
-  /// A stored report card — `$report/history/:index` into
-  /// QuizProvider.assessmentHistory. Design screen 32b.
-  static String pastReport(int index) => '$report/history/$index';
+  /// A stored report card — `$report/history/:identity`. Design screen 32b.
+  ///
+  /// Addressed by [QuizProvider.identityOf], not by list position. The index
+  /// this used to carry pointed into `assessmentHistory`, which is filtered
+  /// to the active pet and re-sorted and trimmed underneath any link built
+  /// from it — so a report opened from a non-active pet's profile resolved
+  /// to another animal's record, or to nothing at all.
+  static String pastReport(String identity) =>
+      '$report/history/${Uri.encodeComponent(identity)}';
   static const vetAlert = '/vet-alert'; // 23b
 
   // Shell tabs ----------------------------------------------------------
@@ -99,6 +105,17 @@ class AppRoutes {
 
   /// Edit form for a saved pet — `$pets/:index/edit`.
   static String petEdit(int index) => '$pets/$index/edit';
+
+  /// One pet's report history — `$pets/:index/reports`.
+  ///
+  /// A pushed route of its own rather than a link to the [reportHistory]
+  /// tab. That tab is a [StatefulShellRoute] branch, and pushing a branch
+  /// route onto the root navigator puts a second shell on the stack: the
+  /// indexed stack then resets to whichever branch was actually selected —
+  /// Account, for anyone arriving from a pet profile — and leaves the branch
+  /// navigator in a state no further navigation recovers from without
+  /// relaunching the app.
+  static String petReports(int index) => '$pets/$index/reports';
   static const orders = '/account/orders';
 
   /// Saved delivery addresses (design 33d), plus the add/edit form. The
@@ -121,18 +138,27 @@ class AppRoutes {
   static const deleteAccount = '/account/delete'; // 36
   static const accountDeleted = '/account/deleted'; // 37
 
-  /// Whether the shop's buying surface is open.
+  /// Whether the catalogue may be browsed.
   ///
-  /// v1.1.0 ships it closed. The catalogue, product, cart and checkout
-  /// screens are all built and the products themselves are real Firestore
-  /// documents — but there is nothing behind checkout. No order is written
-  /// anywhere, no payment is taken, and the reference number on the success
-  /// screen is generated on the device from the clock. Shipping that would
-  /// tell a customer their order was placed when nothing recorded it and
-  /// nothing was charged.
+  /// Browsing and buying are separate gates because they carry different
+  /// risks. Reading the catalogue is honest: the products are real Firestore
+  /// documents, the prices are the real prices, and nothing is promised to
+  /// anyone by looking at them. So this is open.
+  static const bool shopBrowsable = true;
+
+  /// Whether an order can actually be placed.
+  ///
+  /// Closed, and it must stay closed until orders have somewhere to go.
+  /// There is nothing behind checkout: no order is written anywhere, no
+  /// payment is taken, and the reference number on the success screen is
+  /// generated on the device from the clock. Opening this would tell a
+  /// customer their order was placed when nothing recorded it and nothing
+  /// was charged — which is a false statement to a real person, not a
+  /// missing feature.
   ///
   /// The gate lives here, on the routes, rather than on the Shop tab,
-  /// because product detail is also reachable from the home dashboard's
+  /// because checkout is reachable from the cart, and the cart from product
+  /// detail, which is itself reachable from the home dashboard's
   /// recommendations and from report history. A tab-level gate would leave
   /// the same checkout two taps away by another path.
   ///
@@ -140,12 +166,17 @@ class AppRoutes {
   /// and the whole flow returns.
   static const bool shopEnabled = false;
 
-  /// What stands in for a buying screen while [shopEnabled] is false.
-  static Widget _shopClosed() => const ComingSoonScreen(
-        title: 'Shop',
-        detail: 'Our store is opening soon. Everything else — your pets, '
-            'assessments and reports — works as usual.',
-      );
+  /// What stands in for the buying screens while [shopEnabled] is false.
+  ///
+  /// Deliberately worded about *ordering* rather than about the shop as a
+  /// whole: the catalogue is right there behind this screen, so telling
+  /// someone the store has not opened would contradict what they can see.
+  static Widget _checkoutClosed() => const ComingSoonScreen(
+    title: 'Checkout',
+    detail:
+        'Ordering is not open yet — browsing, your pets, assessments '
+        'and reports all work as usual.',
+  );
 
   /// Routes reachable without a signed-in user.
   static const _publicRoutes = <String>{
@@ -205,10 +236,7 @@ class AppRoutes {
   /// invites one, and routing on it would strand someone with no way into
   /// the rest of the app until they had answered 45 questions.
   @visibleForTesting
-  static String landingFor({
-    required bool hasOwner,
-    required bool hasPet,
-  }) {
+  static String landingFor({required bool hasOwner, required bool hasPet}) {
     if (!hasOwner) return ownerInfo;
     if (!hasPet) return petInfo;
     return home;
@@ -227,9 +255,11 @@ class AppRoutes {
       // to. Its contents only decide a landing destination, which is settled
       // by the time startup reports ready; subscribing would re-run the
       // redirect on every pet edit for no routing benefit.
-      refreshListenable: Listenable.merge(
-        [authProvider, onboardingProvider, appStartupProvider],
-      ),
+      refreshListenable: Listenable.merge([
+        authProvider,
+        onboardingProvider,
+        appStartupProvider,
+      ]),
       redirect: (context, state) {
         final location = state.matchedLocation;
 
@@ -315,9 +345,8 @@ class AppRoutes {
         // ---- Assessment -------------------------------------------------
         GoRoute(
           path: consent,
-          builder: (context, state) => ConsentScreen(
-            next: state.uri.queryParameters['next'],
-          ),
+          builder: (context, state) =>
+              ConsentScreen(next: state.uri.queryParameters['next']),
         ),
         GoRoute(
           path: ownerInfo,
@@ -327,10 +356,7 @@ class AppRoutes {
           path: petInfo,
           builder: (context, state) => const PetInfoScreen(),
         ),
-        GoRoute(
-          path: quiz,
-          builder: (context, state) => const QuizScreen(),
-        ),
+        GoRoute(path: quiz, builder: (context, state) => const QuizScreen()),
         GoRoute(
           path: scoring,
           builder: (context, state) => const ScoringScreen(),
@@ -340,10 +366,11 @@ class AppRoutes {
           builder: (context, state) => const ReportCardScreen(),
           routes: [
             GoRoute(
-              path: 'history/:index',
+              path: 'history/:identity',
               builder: (context, state) => ReportCardScreen(
-                historyIndex:
-                    int.tryParse(state.pathParameters['index'] ?? '') ?? -1,
+                reportIdentity: Uri.decodeComponent(
+                  state.pathParameters['identity'] ?? '',
+                ),
               ),
             ),
           ],
@@ -356,30 +383,33 @@ class AppRoutes {
         // ---- Shop stack (pushed over the shell) -------------------------
         GoRoute(
           path: '$productDetail/:id',
-          builder: (context, state) => shopEnabled
+          builder: (context, state) => shopBrowsable
               ? ProductDetailScreen(productId: state.pathParameters['id']!)
-              : _shopClosed(),
+              : _checkoutClosed(),
         ),
+        // The cart is a browsing surface: it holds a selection and totals it
+        // up, and nothing in it commits the user to anything. Checkout below
+        // is where the promise would be made, and that is what stays shut.
         GoRoute(
           path: cart,
           builder: (context, state) =>
-              shopEnabled ? const CartScreen() : _shopClosed(),
+              shopBrowsable ? const CartScreen() : _checkoutClosed(),
         ),
         GoRoute(
           path: checkout,
           builder: (context, state) =>
-              shopEnabled ? const CheckoutScreen() : _shopClosed(),
+              shopEnabled ? const CheckoutScreen() : _checkoutClosed(),
         ),
         GoRoute(
           path: orderSuccess,
           builder: (context, state) =>
-              shopEnabled ? const OrderSuccessScreen() : _shopClosed(),
+              shopEnabled ? const OrderSuccessScreen() : _checkoutClosed(),
         ),
         GoRoute(
           path: orderTracking,
           builder: (context, state) => shopEnabled
               ? OrderTrackingScreen(order: state.extra as OrderReference?)
-              : _shopClosed(),
+              : _checkoutClosed(),
         ),
         GoRoute(
           path: support,
@@ -387,14 +417,8 @@ class AppRoutes {
         ),
 
         // ---- Account stack ----------------------------------------------
-        GoRoute(
-          path: inbox,
-          builder: (context, state) => const InboxScreen(),
-        ),
-        GoRoute(
-          path: pets,
-          builder: (context, state) => const MyPetsScreen(),
-        ),
+        GoRoute(path: inbox, builder: (context, state) => const InboxScreen()),
+        GoRoute(path: pets, builder: (context, state) => const MyPetsScreen()),
         // Declared before ':index' so "new" isn't swallowed as an index.
         GoRoute(
           path: addPet,
@@ -411,6 +435,13 @@ class AppRoutes {
               path: 'edit',
               builder: (context, state) => PetInfoScreen(
                 mode: PetFormMode.edit,
+                petIndex:
+                    int.tryParse(state.pathParameters['index'] ?? '') ?? -1,
+              ),
+            ),
+            GoRoute(
+              path: 'reports',
+              builder: (context, state) => ReportHistoryScreen(
                 petIndex:
                     int.tryParse(state.pathParameters['index'] ?? '') ?? -1,
               ),
@@ -432,9 +463,8 @@ class AppRoutes {
         ),
         GoRoute(
           path: '$addresses/:id/edit',
-          builder: (context, state) => AddressScreen(
-            addressId: state.pathParameters['id'],
-          ),
+          builder: (context, state) =>
+              AddressScreen(addressId: state.pathParameters['id']),
         ),
         GoRoute(
           path: ownerProfile,
@@ -498,7 +528,7 @@ class AppRoutes {
                 GoRoute(
                   path: shop,
                   builder: (context, state) =>
-                      shopEnabled ? const ShopScreen() : _shopClosed(),
+                      shopBrowsable ? const ShopScreen() : _checkoutClosed(),
                 ),
               ],
             ),
@@ -515,7 +545,6 @@ class AppRoutes {
       ],
     );
   }
-
 }
 
 /// Navigation helpers shared by screen headers.

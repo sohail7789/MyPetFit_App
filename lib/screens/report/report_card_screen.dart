@@ -20,13 +20,19 @@ import '../../widgets/photo_slot.dart';
 /// Screen 23 — Fitness report card, and 23b/32b when opened from history.
 ///
 /// One screen serves both because a past report card is the same document
-/// with a different [ScoreResult] behind it. [historyIndex] selects which:
-/// null renders the live result, an index reads that entry out of
-/// [QuizProvider.assessmentHistory].
+/// with a different [ScoreResult] behind it. [reportIdentity] selects which:
+/// null renders the live result, an identity resolves that stored record out
+/// of the history.
 class ReportCardScreen extends StatefulWidget {
-  /// Index into [QuizProvider.assessmentHistory]. Null means the current
-  /// result — the one just calculated, or the last one completed.
-  final int? historyIndex;
+  /// [QuizProvider.identityOf] of the stored report to show. Null means the
+  /// current result — the one just calculated, or the last one completed.
+  ///
+  /// An identity rather than a list position. A position was only meaningful
+  /// in the list it was read from, and that list is filtered to the active
+  /// pet, re-sorted on every cloud restore and trimmed as it grows — so a
+  /// link built from one could resolve to a different animal's report, or to
+  /// nothing.
+  final String? reportIdentity;
 
   /// Whether this device can print, asked once on entry.
   ///
@@ -38,9 +44,9 @@ class ReportCardScreen extends StatefulWidget {
   @visibleForTesting
   final Future<bool> Function()? canPrint;
 
-  const ReportCardScreen({super.key, this.historyIndex, this.canPrint});
+  const ReportCardScreen({super.key, this.reportIdentity, this.canPrint});
 
-  bool get isHistorical => historyIndex != null;
+  bool get isHistorical => reportIdentity != null;
 
   @override
   State<ReportCardScreen> createState() => _ReportCardScreenState();
@@ -66,12 +72,12 @@ class _ReportCardScreenState extends State<ReportCardScreen>
 
   /// The report this screen is showing, captured the first time it resolves.
   ///
-  /// [historyIndex] addresses a position in [QuizProvider.assessmentHistory],
-  /// and that list is bound to the *active* pet and trimmed as it grows.
-  /// Re-reading it on every rebuild meant switching pets with a report open
-  /// swapped the document underneath the reader — same index, different
-  /// animal — and a trim shifted every index by one. A historical report is
-  /// a record: once opened, it is the one that stays on screen.
+  /// [reportIdentity] names a record rather than a position, so the wrong
+  /// document can no longer be resolved. This is still captured once: the
+  /// history is refiltered and trimmed underneath this screen, and a report
+  /// that scrolled out of retention mid-read should not blank the page
+  /// someone is looking at. A historical report is a record — once opened,
+  /// it is the one that stays on screen.
   ScoreResult? _shown;
 
   /// The score recorded before [_shown], captured at the same moment.
@@ -136,18 +142,25 @@ class _ReportCardScreenState extends State<ReportCardScreen>
   ScoreResult? _resolve(QuizProvider quiz) {
     if (_shown != null) return _shown;
 
-    final index = widget.historyIndex;
-    final history = quiz.assessmentHistory;
+    final identity = widget.reportIdentity;
 
-    final resolved = index == null
+    final resolved = identity == null
         ? quiz.result
-        : (index >= 0 && index < history.length ? history[index] : null);
+        : quiz.reportByIdentity(identity);
 
     // Nothing resolved yet — the history may still be loading, and freezing
     // a null here would leave an empty state on screen forever.
     if (resolved == null) return null;
 
-    _previous = _previousScoreFor(resolved, history);
+    // The delta is measured against the same pet's own record, so the
+    // comparison list is that pet's full history rather than whichever pet
+    // happens to be bound to the provider right now.
+    _previous = _previousScoreFor(
+      resolved,
+      resolved.petId == null
+          ? quiz.assessmentHistory
+          : quiz.historyFor(resolved.petId!),
+    );
     return _shown = resolved;
   }
 
@@ -430,7 +443,6 @@ class _ReportCardScreenState extends State<ReportCardScreen>
       ),
     );
   }
-
 }
 
 /// One spacing scale for the whole report, so the rhythm is consistent
@@ -691,16 +703,16 @@ class _Trend extends StatelessWidget {
 /// mean editing the assessment model.
 @visibleForTesting
 IconData categoryIcon(String name) => switch (name) {
-      'Skin & Coat Health' => Icons.spa_outlined,
-      'Activity & Fitness Level' => Icons.directions_run_rounded,
-      'Oral, Vision & Hearing' => Icons.visibility_outlined,
-      'Behavior & Mental Wellness' => Icons.psychology_outlined,
-      'Sleep & Nutrition' => Icons.bedtime_outlined,
-      'Digestive & Urinary Health' => Icons.water_drop_outlined,
-      'Physical & Internal Health' => Icons.favorite_outline_rounded,
-      'Medical & Lifestyle Tracking' => Icons.medical_services_outlined,
-      _ => Icons.check_circle_outline_rounded,
-    };
+  'Skin & Coat Health' => Icons.spa_outlined,
+  'Activity & Fitness Level' => Icons.directions_run_rounded,
+  'Oral, Vision & Hearing' => Icons.visibility_outlined,
+  'Behavior & Mental Wellness' => Icons.psychology_outlined,
+  'Sleep & Nutrition' => Icons.bedtime_outlined,
+  'Digestive & Urinary Health' => Icons.water_drop_outlined,
+  'Physical & Internal Health' => Icons.favorite_outline_rounded,
+  'Medical & Lifestyle Tracking' => Icons.medical_services_outlined,
+  _ => Icons.check_circle_outline_rounded,
+};
 
 class _Breakdown extends StatelessWidget {
   final Map<String, double> scores;
@@ -899,9 +911,7 @@ class _ShareButton extends StatelessWidget {
               const SizedBox(width: 9),
               Flexible(
                 child: Text(
-                  busy
-                      ? 'Preparing report…'
-                      : 'Share report with your vet',
+                  busy ? 'Preparing report…' : 'Share report with your vet',
                   maxLines: 2,
                   textAlign: TextAlign.center,
                   style: AppTheme.font(
@@ -1107,8 +1117,18 @@ class _AssessedPet extends StatelessWidget {
 @visibleForTesting
 String reportDate(DateTime when) {
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   final d = when.toLocal();
   return '${d.day.toString().padLeft(2, '0')} ${months[d.month - 1]} ${d.year}';
@@ -1202,8 +1222,9 @@ class _PrintButton extends StatelessWidget {
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(context.c.bodyStrong),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      context.c.bodyStrong,
+                    ),
                   ),
                 )
               else

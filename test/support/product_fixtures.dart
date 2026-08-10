@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:mypetfit_app/models/address.dart';
 import 'package:mypetfit_app/models/product.dart';
 import 'package:mypetfit_app/providers/product_provider.dart';
 import 'package:mypetfit_app/services/firestore_service.dart';
@@ -23,35 +24,34 @@ Product testProduct({
   int reviewCount = 0,
   String imageUrl = '',
   List<String> recommendedFor = const [],
-}) =>
-    Product(
-      id: id,
-      name: name ?? 'Product $id',
-      description: 'A description for $id.',
-      purpose: purpose,
-      price: price,
-      mrp: mrp,
-      currency: 'INR',
-      brand: 'MyPetFit',
-      category: category,
-      productType: productType,
-      sku: 'SKU-$id',
-      slug: id,
-      imageUrl: imageUrl,
-      weight: '200 g',
-      recommendedFor: recommendedFor,
-      active: true,
-      featured: featured,
-      inStock: true,
-      subscriptionAvailable: false,
-      stock: 10,
-      discountPercentage: 0,
-      reviewCount: reviewCount,
-      rating: rating,
-      keyBenefits: keyBenefits,
-      idealUsage: const ['Daily'],
-      targetPets: const ['Dog'],
-    );
+}) => Product(
+  id: id,
+  name: name ?? 'Product $id',
+  description: 'A description for $id.',
+  purpose: purpose,
+  price: price,
+  mrp: mrp,
+  currency: 'INR',
+  brand: 'MyPetFit',
+  category: category,
+  productType: productType,
+  sku: 'SKU-$id',
+  slug: id,
+  imageUrl: imageUrl,
+  weight: '200 g',
+  recommendedFor: recommendedFor,
+  active: true,
+  featured: featured,
+  inStock: true,
+  subscriptionAvailable: false,
+  stock: 10,
+  discountPercentage: 0,
+  reviewCount: reviewCount,
+  rating: rating,
+  keyBenefits: keyBenefits,
+  idealUsage: const ['Daily'],
+  targetPets: const ['Dog'],
+);
 
 /// A small catalog spanning two categories, one of them featured.
 final List<Product> testCatalog = [
@@ -89,6 +89,13 @@ class FakeCatalogService implements FirestoreService {
     if (error != null) throw error!;
     return products;
   }
+
+  @override
+  Future<void> saveAddressBook(AddressBook book) async {}
+
+  @override
+  Future<AddressBook?> getAddressBook() async => null;
+
   @override
   Future<void> deletePet(String petId) async {}
 
@@ -96,9 +103,7 @@ class FakeCatalogService implements FirestoreService {
   Future<void> deleteAllUserData() async {}
 
   @override
-  Future<void> saveOwnerProfile(
-      OwnerProfile profile,
-      ) async {}
+  Future<void> saveOwnerProfile(OwnerProfile profile) async {}
 
   @override
   Future<void> saveConsent(ConsentState consent) async {}
@@ -122,15 +127,10 @@ class FakeCatalogService implements FirestoreService {
   }
 
   @override
-  Future<void> saveAssessment(
-      String petId,
-      ScoreResult result,
-      ) async {}
+  Future<void> saveAssessment(String petId, ScoreResult result) async {}
 
   @override
-  Future<List<ScoreResult>> getAssessments(
-      String petId,
-      ) async {
+  Future<List<ScoreResult>> getAssessments(String petId) async {
     return [];
   }
 
@@ -138,7 +138,6 @@ class FakeCatalogService implements FirestoreService {
   Future<Map<String, List<ScoreResult>>> getAllAssessments() async {
     return {};
   }
-
 }
 
 /// A [ProductProvider] already holding [catalog], as if the load had landed.
@@ -151,8 +150,9 @@ Future<ProductProvider> loadedCatalog([List<Product>? catalog]) async {
 /// The synchronous form, for `MultiProvider`'s `create:` which can't await.
 /// The fetch resolves on the next microtask, so the first `pump` has it.
 ProductProvider loadedTestCatalog([List<Product>? catalog]) {
-  final provider =
-      ProductProvider(service: FakeCatalogService(catalog ?? testCatalog));
+  final provider = ProductProvider(
+    service: FakeCatalogService(catalog ?? testCatalog),
+  );
   unawaited(provider.loadProducts());
   return provider;
 }
@@ -166,15 +166,19 @@ class PendingCatalogService implements FirestoreService {
   Future<List<Product>> getProducts() => _completer.future;
 
   @override
+  Future<void> saveAddressBook(AddressBook book) async {}
+
+  @override
+  Future<AddressBook?> getAddressBook() async => null;
+
+  @override
   Future<void> deletePet(String petId) async {}
 
   @override
   Future<void> deleteAllUserData() async {}
 
   @override
-  Future<void> saveOwnerProfile(
-      OwnerProfile profile,
-      ) async {}
+  Future<void> saveOwnerProfile(OwnerProfile profile) async {}
 
   @override
   Future<void> saveConsent(ConsentState consent) async {}
@@ -198,15 +202,10 @@ class PendingCatalogService implements FirestoreService {
   }
 
   @override
-  Future<void> saveAssessment(
-    String petId,
-    ScoreResult result,
-  ) async {}
+  Future<void> saveAssessment(String petId, ScoreResult result) async {}
 
   @override
-  Future<List<ScoreResult>> getAssessments(
-    String petId,
-  ) async {
+  Future<List<ScoreResult>> getAssessments(String petId) async {
     return [];
   }
 

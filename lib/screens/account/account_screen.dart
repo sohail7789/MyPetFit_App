@@ -8,7 +8,6 @@ import '../../providers/address_provider.dart';
 import '../../providers/app_startup_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
-import '../../providers/locale_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
@@ -128,10 +127,16 @@ class AccountScreen extends StatelessWidget {
                         label: 'Reminders & notifications',
                         onTap: () => context.push(AppRoutes.reminders),
                       ),
+                      // The row names the destination, not the current value.
+                      // Appending the selection made this the only row in the
+                      // group whose width depended on its data — a longer
+                      // language name pushed the label toward the chevron —
+                      // and the selection is shown on the screen the row
+                      // opens. The preference itself is untouched; only this
+                      // label stopped repeating it.
                       SettingsTile(
                         icon: Icons.language_rounded,
-                        label: 'Language — '
-                            '${context.watch<LocaleProvider>().current.name}',
+                        label: 'Language',
                         onTap: () => context.push(AppRoutes.language),
                       ),
                       // Inline rather than its own screen, and three-way
@@ -140,7 +145,7 @@ class AccountScreen extends StatelessWidget {
                       // cannot express it without being a trapdoor.
                       SettingsSegmentedTile<ThemeMode>(
                         icon: Icons.contrast_rounded,
-                        label: 'Appearance',
+                        label: 'Theme',
                         options: const [
                           (ThemeMode.light, 'Light'),
                           (ThemeMode.system, 'System'),

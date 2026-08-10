@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
+import '../../widgets/info_row.dart';
 import '../../models/pet_info.dart';
 import '../../models/score_band.dart';
 import '../../providers/pet_info_provider.dart';
@@ -88,31 +89,31 @@ class PetProfileScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
                     child: Column(
                       children: [
-                        _DetailRow(label: 'Breed', value: pet.breed),
-                        _DetailRow(label: 'Age', value: pet.ageDisplay),
-                        _DetailRow(
+                        InfoRow(label: 'Breed', value: pet.breed),
+                        InfoRow(label: 'Age', value: pet.ageDisplay),
+                        InfoRow(
                           label: 'Sex',
                           value: pet.gender == PetGender.male
                               ? 'Male'
                               : 'Female',
                         ),
-                        _DetailRow(
+                        InfoRow(
                           label: 'Weight',
                           value: pet.weightKg > 0
                               ? '${pet.weightKg.toStringAsFixed(1)} kg'
                               : '',
                         ),
-                        _DetailRow(
+                        InfoRow(
                           label: 'Height',
                           value: pet.heightCm > 0
                               ? '${pet.heightCm.toStringAsFixed(0)} cm'
                               : '',
                         ),
-                        _DetailRow(
+                        InfoRow(
                           label: 'Microchip',
                           value: pet.microchipNumber ?? '',
                         ),
-                        _DetailRow(
+                        InfoRow(
                           label: 'Last assessed',
                           value: _lastAssessed(context, pet.id),
                           last: true,
@@ -127,7 +128,13 @@ class PetProfileScreen extends StatelessWidget {
                     label: 'Report history',
                     variant: AppButtonVariant.outline,
                     height: 52,
-                    onPressed: () => context.push(AppRoutes.reportHistory),
+                    // This pet's own history, as a pushed route. It used to
+                    // push AppRoutes.reportHistory — a shell branch — which
+                    // both showed the *active* pet's reports rather than
+                    // this one's, and left the shell's navigator in a state
+                    // that dropped the user back on Account.
+                    onPressed: () =>
+                        context.push(AppRoutes.petReports(petIndex)),
                   ),
                   if (!isActive) ...[
                     const SizedBox(height: 10),
@@ -135,8 +142,9 @@ class PetProfileScreen extends StatelessWidget {
                       label: 'Make this the active pet',
                       variant: AppButtonVariant.tinted,
                       height: 52,
-                      onPressed: () =>
-                          context.read<PetInfoProvider>().setActivePet(petIndex),
+                      onPressed: () => context
+                          .read<PetInfoProvider>()
+                          .setActivePet(petIndex),
                     ),
                   ],
                   const SizedBox(height: 10),
@@ -161,8 +169,18 @@ class PetProfileScreen extends StatelessWidget {
     final result = context.watch<QuizProvider>().resultFor(petId);
     if (result == null) return '';
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     final d = result.completedAt;
     return '${d.day} ${months[d.month - 1]} ${d.year}';
@@ -393,10 +411,10 @@ class _AssessmentCard extends StatelessWidget {
           Text(
             result == null
                 ? 'Take the 45-question assessment to get $name a fitness '
-                    'score and matched recommendations. About 6 minutes.'
+                      'score and matched recommendations. About 6 minutes.'
                 : 'Last score ${result.percentageScore}% · '
-                    '${result.category.label}. Retake it to see how $name is '
-                    'tracking.',
+                      '${result.category.label}. Retake it to see how $name is '
+                      'tracking.',
             style: AppTheme.font(
               size: 13,
               color: context.c.bodyStrong,
@@ -419,56 +437,6 @@ class _AssessmentCard extends StatelessWidget {
               context.read<QuizProvider>().reset();
               context.push(AppRoutes.quiz);
             },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool last;
-
-  const _DetailRow({
-    required this.label,
-    required this.value,
-    this.last = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: last
-          ? null
-          : BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: context.c.borderSoft),
-              ),
-            ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: AppTheme.font(size: 13.5, color: context.c.muted),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: Text(
-              value.trim().isEmpty ? 'Not set' : value.trim(),
-              textAlign: TextAlign.right,
-              style: AppTheme.font(
-                size: 13.5,
-                weight: FontWeight.w700,
-                color: value.trim().isEmpty ? context.c.muted : context.c.ink,
-              ),
-            ),
           ),
         ],
       ),

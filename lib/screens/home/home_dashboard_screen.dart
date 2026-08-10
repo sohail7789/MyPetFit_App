@@ -42,11 +42,20 @@ class HomeDashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const _Header(),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(22, 16, 22, 20),
+                padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
                 children: [
+                  // Scrolls with the page rather than sitting above it.
+                  //
+                  // The greeting and pet strip used to be a fixed sibling of
+                  // this list, on the Scaffold's opaque surface colour — so
+                  // the cards slid underneath an opaque white band and the
+                  // score card was cut in half by it. Nothing about the
+                  // header needed to be pinned: it is identity, not a
+                  // control, and reading it once at the top is enough.
+                  const _Header(),
+                  const SizedBox(height: 16),
                   _ScoreCard(quiz: quiz),
                   if (quiz.hasResumableProgress) ...[
                     const SizedBox(height: 14),
@@ -76,6 +85,10 @@ class HomeDashboardScreen extends StatelessWidget {
   }
 }
 
+/// Horizontal inset that brings the header back to the design's 24 once the
+/// list's own 22 is accounted for.
+const _headerInset = EdgeInsets.fromLTRB(2, 16, 2, 0);
+
 /// Greeting, owner name, and who the rest of the screen is about.
 ///
 /// Watches the two providers it reads rather than letting the whole
@@ -97,7 +110,7 @@ class _Header extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      padding: _headerInset,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -651,7 +664,6 @@ class _ScoreCard extends StatelessWidget {
       ),
     );
   }
-
 }
 
 /// Points gained or lost against the previous assessment, or null when there
@@ -882,8 +894,7 @@ class _ResumeCard extends StatelessWidget {
                     value: total == 0 ? 0 : answered / total,
                     minHeight: 6,
                     backgroundColor: context.c.divider,
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(context.c.action),
+                    valueColor: AlwaysStoppedAnimation<Color>(context.c.action),
                   ),
                 ),
               ],
@@ -1005,11 +1016,10 @@ class _CategoryCard extends StatelessWidget {
 @visibleForTesting
 List<MapEntry<String, double>> rankedCategories(ScoreResult? result) {
   final scores = result?.categoryScores ?? const <String, double>{};
-  return scores.entries.toList()
-    ..sort((a, b) {
-      final byScore = a.value.compareTo(b.value);
-      return byScore != 0 ? byScore : a.key.compareTo(b.key);
-    });
+  return scores.entries.toList()..sort((a, b) {
+    final byScore = a.value.compareTo(b.value);
+    return byScore != 0 ? byScore : a.key.compareTo(b.key);
+  });
 }
 
 /// The strongest or weakest area, called out above the full list.
@@ -1108,10 +1118,7 @@ class _CategoryBar extends StatelessWidget {
                   entry.key,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTheme.font(
-                    size: 13,
-                    color: context.c.bodyStrong,
-                  ),
+                  style: AppTheme.font(size: 13, color: context.c.bodyStrong),
                 ),
               ),
               const SizedBox(width: 8),
@@ -1224,32 +1231,32 @@ class _CategorySkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget bar(double widthFactor) => Padding(
-          padding: const EdgeInsets.only(bottom: 11),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: widthFactor,
-                child: Container(
-                  height: 11,
-                  decoration: BoxDecoration(
-                    color: context.c.divider,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
+      padding: const EdgeInsets.only(bottom: 11),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: widthFactor,
+            child: Container(
+              height: 11,
+              decoration: BoxDecoration(
+                color: context.c.divider,
+                borderRadius: BorderRadius.circular(4),
               ),
-              const SizedBox(height: 7),
-              Container(
-                height: 6,
-                decoration: BoxDecoration(
-                  color: context.c.divider,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ],
+            ),
           ),
-        );
+          const SizedBox(height: 7),
+          Container(
+            height: 6,
+            decoration: BoxDecoration(
+              color: context.c.divider,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+        ],
+      ),
+    );
 
     return Semantics(
       label: 'Loading category breakdown',
@@ -1335,7 +1342,9 @@ class _RecommendationShell extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            petName.isEmpty ? 'Recommended for you' : 'Recommended for $petName',
+            petName.isEmpty
+                ? 'Recommended for you'
+                : 'Recommended for $petName',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: AppTheme.font(
@@ -1458,10 +1467,8 @@ class _ProductCarousel extends StatelessWidget {
         padding: EdgeInsets.zero,
         itemCount: products.length,
         separatorBuilder: (_, _) => const SizedBox(width: 11),
-        itemBuilder: (context, i) => SizedBox(
-          width: 168,
-          child: _CarouselProduct(product: products[i]),
-        ),
+        itemBuilder: (context, i) =>
+            SizedBox(width: 168, child: _CarouselProduct(product: products[i])),
       ),
     );
   }
@@ -1616,8 +1623,7 @@ class _ViewProductButton extends StatelessWidget {
       label: 'View ${product.name}',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () =>
-            context.push('${AppRoutes.productDetail}/${product.id}'),
+        onTap: () => context.push('${AppRoutes.productDetail}/${product.id}'),
         child: Container(
           height: height,
           alignment: Alignment.center,
@@ -1750,8 +1756,9 @@ class _RecommendationSkeleton extends StatelessWidget {
                   height: 92,
                   decoration: BoxDecoration(
                     color: context.c.divider,
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.radiusCardSmall),
+                    borderRadius: BorderRadius.circular(
+                      AppTheme.radiusCardSmall,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1792,8 +1799,9 @@ AssessmentReminder? assessmentReminder(ScoreResult? latest, {DateTime? now}) {
   if (latest == null) return null;
 
   final today = DateUtils.dateOnly(now ?? DateTime.now());
-  final days =
-      today.difference(DateUtils.dateOnly(latest.completedAt.toLocal())).inDays;
+  final days = today
+      .difference(DateUtils.dateOnly(latest.completedAt.toLocal()))
+      .inDays;
 
   if (days <= 0) {
     return (
@@ -1835,8 +1843,9 @@ class _ReminderBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent =
-        reminder.isDue ? context.c.warningText : context.c.actionText;
+    final accent = reminder.isDue
+        ? context.c.warningText
+        : context.c.actionText;
 
     return Semantics(
       button: reminder.isDue,
@@ -2024,6 +2033,12 @@ class _PetStripSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       label: 'Loading your pets',
+      // A container of its own. The skeleton's children are bare decoration
+      // with no semantics to annotate, so without this the label had no node
+      // to live on and merged into whatever ancestor happened to be nearest
+      // — which meant whether a screen reader announced the loading state at
+      // all depended on the surrounding layout.
+      container: true,
       child: Container(
         padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
         decoration: BoxDecoration(

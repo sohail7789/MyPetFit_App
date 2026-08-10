@@ -12,25 +12,41 @@ import 'package:mypetfit_app/config/routes.dart';
 /// app that recorded nothing. Both stores treat that as deceptive, and the
 /// customer would be right to expect goods.
 ///
-/// [AppRoutes.shopEnabled] is the one switch, read by the six route builders
-/// that make up that surface — the shop tab, product detail, cart, checkout,
-/// order success and order tracking. It sits on the routes rather than on the
-/// tab because product detail is also reachable from the home dashboard's
-/// recommendations and from report history, so gating the tab alone would
-/// leave checkout two taps away by another path.
+/// Browsing and buying are now two switches, because they carry two
+/// different risks. Reading the catalogue promises nobody anything: the
+/// products are real Firestore documents at their real prices, so
+/// [AppRoutes.shopBrowsable] is open. Placing an order is the statement that
+/// would be false, so [AppRoutes.shopEnabled] stays shut and checkout, order
+/// success and order tracking stay behind it.
 ///
-/// This test exists to make turning it back on a deliberate act. If it fails,
-/// the question to answer first is not "why is the test red" but "where does
-/// an order go now" — and if the answer is still "nowhere", the flag is wrong,
-/// not the test.
+/// Both gates sit on the routes rather than on the tab because product detail
+/// is also reachable from the home dashboard's recommendations and from report
+/// history, so gating the tab alone would leave checkout two taps away by
+/// another path.
+///
+/// This test exists to make turning the buying surface back on a deliberate
+/// act. If it fails, the question to answer first is not "why is the test red"
+/// but "where does an order go now" — and if the answer is still "nowhere",
+/// the flag is wrong, not the test.
 void main() {
-  test('the shop stays closed until orders have somewhere to go', () {
+  test('ordering stays closed until orders have somewhere to go', () {
     expect(
       AppRoutes.shopEnabled,
       isFalse,
-      reason: 'Enabling the shop re-exposes a checkout that takes an address '
+      reason: 'Enabling this re-exposes a checkout that takes an address '
           'and a payment method and then records nothing. Ship order '
-          'persistence and a real payment flow before flipping this.',
+          'persistence and a real payment flow before flipping it.',
+    );
+  });
+
+  test('browsing the catalogue is open', () {
+    // The separation is the point: if someone ever collapses these back into
+    // one flag, this pair fails together and says why.
+    expect(
+      AppRoutes.shopBrowsable,
+      isTrue,
+      reason: 'The catalogue is real data and commits the user to nothing. '
+          'Closing it hides finished, honest UI for no safety gain.',
     );
   });
 }

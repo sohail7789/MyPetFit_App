@@ -50,7 +50,6 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
   /// Held in form state so backing out of an edit doesn't persist the pick.
   String? _photoPath;
 
-
   @override
   void initState() {
     super.initState();
@@ -66,10 +65,21 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
     }
   }
 
+  /// One node per field, created once and owned here, so Return hands focus
+  /// straight along the form. See [AppField] — an unfocus between fields is
+  /// what tears the keyboard down and builds it back up.
+  final _nameFocus = FocusNode();
+  final _phoneFocus = FocusNode();
+  final _vetFocus = FocusNode();
+  final _vetPhoneFocus = FocusNode();
+
   @override
   void dispose() {
     for (final c in [_name, _phone, _vet, _vetPhone]) {
       c.dispose();
+    }
+    for (final f in [_nameFocus, _phoneFocus, _vetFocus, _vetPhoneFocus]) {
+      f.dispose();
     }
     super.dispose();
   }
@@ -107,8 +117,9 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
     // through rather than blanked, so an existing record is never damaged by
     // a field this form no longer owns.
     final authEmail = _authEmail(context);
-    final email =
-        authEmail.isNotEmpty ? authEmail : (pets.ownerInfo?.email ?? '');
+    final email = authEmail.isNotEmpty
+        ? authEmail
+        : (pets.ownerInfo?.email ?? '');
 
     await pets.setOwnerInfo(
       OwnerInfo(
@@ -119,8 +130,9 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
         // already saved so continuing past this step never wipes it.
         address: pets.ownerInfo?.address,
         vetName: _vet.text.trim().isEmpty ? null : _vet.text.trim(),
-        vetContact:
-            _vetPhone.text.trim().isEmpty ? null : _vetPhone.text.trim(),
+        vetContact: _vetPhone.text.trim().isEmpty
+            ? null
+            : _vetPhone.text.trim(),
         photoPath: _photoPath,
         // Stamped by the provider, not here — a screen has no business
         // deciding when a record changed. This value is overwritten.
@@ -166,13 +178,16 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                   const SizedBox(height: 18),
                   Text(
                     widget.isEditing ? 'Edit profile' : 'Owner details',
-                    style: context.t.h1.copyWith(fontSize: 26, letterSpacing: -1),
+                    style: context.t.h1.copyWith(
+                      fontSize: 26,
+                      letterSpacing: -1,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     widget.isEditing
                         ? 'These details go on the report you share with '
-                            'your vet.'
+                              'your vet.'
                         : 'Step 2 of 3 · so your report can reach you.',
                     style: AppTheme.font(
                       size: 14,
@@ -195,8 +210,7 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                         photoPath: _photoPath,
                         slot: 'owner',
                         size: 88,
-                        onChanged: (path) =>
-                            setState(() => _photoPath = path),
+                        onChanged: (path) => setState(() => _photoPath = path),
                       ),
                     ),
                     const SizedBox(height: 18),
@@ -204,7 +218,9 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                       label: 'Owner name',
                       hint: 'Full name',
                       controller: _name,
+                      focusNode: _nameFocus,
                       textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => _phoneFocus.requestFocus(),
                       onChanged: (_) {
                         if (_error != null) setState(() => _error = null);
                       },
@@ -228,8 +244,12 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                       label: 'Contact number',
                       hint: '+91 00000 00000',
                       controller: _phone,
+                      focusNode: _phoneFocus,
                       keyboardType: TextInputType.phone,
                       textInputAction: TextInputAction.next,
+                      // Skips the read-only email, which has no node to
+                      // receive focus.
+                      onSubmitted: (_) => _vetFocus.requestFocus(),
                     ),
                     const SizedBox(height: 12),
                     Builder(
@@ -243,8 +263,9 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                           // read-only — see LabeledField, which renders text
                           // instead of a TextField when this is set. The
                           // account owns this address; the form does not.
-                          readOnlyValue:
-                              email.isNotEmpty ? email : 'Not provided',
+                          readOnlyValue: email.isNotEmpty
+                              ? email
+                              : 'Not provided',
                         );
                       },
                     ),
@@ -254,7 +275,9 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                       labelNote: 'optional',
                       hint: 'Dr. name',
                       controller: _vet,
+                      focusNode: _vetFocus,
                       textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => _vetPhoneFocus.requestFocus(),
                     ),
                     const SizedBox(height: 12),
                     LabeledField(
@@ -262,19 +285,20 @@ class _OwnerInfoScreenState extends State<OwnerInfoScreen> {
                       labelNote: 'optional',
                       hint: '+91 00000 00000',
                       controller: _vetPhone,
+                      focusNode: _vetPhoneFocus,
                       keyboardType: TextInputType.phone,
                       textInputAction: TextInputAction.done,
                     ),
                     // Artwork is assessment-only; the editor is a settings
                     // screen and a mascot there is noise.
                     if (!widget.isEditing) ...[
-                    const SizedBox(height: 6),
-                    const DesignImage(
-                      AppAssets.ownerDetails,
-                      width: 120,
-                      shadow: true,
-                      semanticLabel: 'Waving puppy',
-                    ),
+                      const SizedBox(height: 6),
+                      const DesignImage(
+                        AppAssets.ownerDetails,
+                        width: 120,
+                        shadow: true,
+                        semanticLabel: 'Waving puppy',
+                      ),
                     ],
                   ],
                 ),

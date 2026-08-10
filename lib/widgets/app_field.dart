@@ -12,12 +12,24 @@ class AppField extends StatefulWidget {
   final Widget? icon;
 
   final TextEditingController? controller;
+
+  /// Supplied by the parent when fields are chained, so the node outlives
+  /// any rebuild of this widget and focus can be handed straight to the next
+  /// field without the keyboard closing in between.
+  final FocusNode? focusNode;
+
   final bool obscure;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final TextCapitalization textCapitalization;
   final double height;
   final ValueChanged<String>? onChanged;
+
+  /// Return/Next pressed. Chain this to the next field's node rather than
+  /// unfocusing — an unfocus tears the keyboard down and the next field
+  /// immediately builds it back up, which is the visible flicker.
+  final ValueChanged<String>? onSubmitted;
+
   final String? initialValue;
 
   /// Trailing widget — the eye toggle on password fields.
@@ -30,12 +42,14 @@ class AppField extends StatefulWidget {
     required this.hint,
     this.icon,
     this.controller,
+    this.focusNode,
     this.obscure = false,
     this.keyboardType,
     this.textInputAction,
     this.textCapitalization = TextCapitalization.sentences,
     this.height = AppTheme.fieldHeight,
     this.onChanged,
+    this.onSubmitted,
     this.initialValue,
     this.trailing,
     this.enabled = true,
@@ -46,27 +60,47 @@ class AppField extends StatefulWidget {
 }
 
 class _AppFieldState extends State<AppField> {
-  late final FocusNode _focus;
+  /// Owned only when the parent supplied none — a node this widget created
+  /// is this widget's to dispose, one it was handed is not.
+  FocusNode? _internalFocus;
+
   TextEditingController? _internal;
   bool _focused = false;
 
+  FocusNode get _focus => widget.focusNode ?? (_internalFocus ??= FocusNode());
+
   TextEditingController get _controller =>
-      widget.controller ?? (_internal ??= TextEditingController(text: widget.initialValue));
+      widget.controller ??
+      (_internal ??= TextEditingController(text: widget.initialValue));
 
   @override
   void initState() {
     super.initState();
-    _focus = FocusNode()
-      ..addListener(() {
-        if (_focus.hasFocus != _focused) {
-          setState(() => _focused = _focus.hasFocus);
-        }
-      });
+    _focus.addListener(_onFocusChanged);
+  }
+
+  @override
+  void didUpdateWidget(AppField old) {
+    super.didUpdateWidget(old);
+    // A swapped-in node has to carry the listener with it, or the border
+    // stops reflecting focus for the rest of the screen's life.
+    if (widget.focusNode != old.focusNode) {
+      (old.focusNode ?? _internalFocus)?.removeListener(_onFocusChanged);
+      _focus.addListener(_onFocusChanged);
+    }
+  }
+
+  void _onFocusChanged() {
+    if (!mounted) return;
+    if (_focus.hasFocus != _focused) {
+      setState(() => _focused = _focus.hasFocus);
+    }
   }
 
   @override
   void dispose() {
-    _focus.dispose();
+    _focus.removeListener(_onFocusChanged);
+    _internalFocus?.dispose();
     _internal?.dispose();
     super.dispose();
   }
@@ -98,10 +132,7 @@ class _AppFieldState extends State<AppField> {
       ),
       child: Row(
         children: [
-          if (widget.icon != null) ...[
-            widget.icon!,
-            const SizedBox(width: 12),
-          ],
+          if (widget.icon != null) ...[widget.icon!, const SizedBox(width: 12)],
           Expanded(
             child: TextField(
               controller: _controller,
@@ -111,6 +142,7 @@ class _AppFieldState extends State<AppField> {
               textInputAction: widget.textInputAction,
               textCapitalization: widget.textCapitalization,
               onChanged: widget.onChanged,
+              onSubmitted: widget.onSubmitted,
               enabled: widget.enabled,
               cursorColor: context.c.actionText,
               style: AppTheme.font(

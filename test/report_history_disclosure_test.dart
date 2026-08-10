@@ -46,16 +46,15 @@ void main() {
     String petId = 'p1',
     HealthCategory band = HealthCategory.good,
     Map<String, double> categories = const {},
-  }) =>
-      ScoreResult(
-        rawScore: percent,
-        maxPossibleScore: 100,
-        percentageScore: percent,
-        category: band,
-        categoryScores: categories,
-        completedAt: DateTime.now().subtract(Duration(days: daysAgo)),
-        petId: petId,
-      );
+  }) => ScoreResult(
+    rawScore: percent,
+    maxPossibleScore: 100,
+    percentageScore: percent,
+    category: band,
+    categoryScores: categories,
+    completedAt: DateTime.now().subtract(Duration(days: daysAgo)),
+    petId: petId,
+  );
 
   String rowDateLine(int daysAgo) {
     final when = DateTime.now().subtract(Duration(days: daysAgo));
@@ -63,16 +62,16 @@ void main() {
   }
 
   PetInfo pet(String id, String name) => PetInfo(
-        id: id,
-        name: name,
-        breed: 'Beagle',
-        ageYears: 3,
-        ageMonths: 2,
-        gender: PetGender.male,
-        weightKg: 12,
-        heightCm: 38,
-        updatedAt: DateTime.utc(2026, 1, 2),
-      );
+    id: id,
+    name: name,
+    breed: 'Beagle',
+    ageYears: 3,
+    ageMonths: 2,
+    gender: PetGender.male,
+    weightKg: 12,
+    heightCm: 38,
+    updatedAt: DateTime.utc(2026, 1, 2),
+  );
 
   Future<QuizProvider> quizWith(
     Map<String, List<ScoreResult>> byPet, {
@@ -111,12 +110,18 @@ void main() {
           builder: (_, _) => const ReportHistoryScreen(),
         ),
         GoRoute(
-          path: '${AppRoutes.report}/history/:index',
-          builder: (_, state) => Scaffold(
-            body: Center(
-              child: Text('REPORT ${state.pathParameters['index']}'),
-            ),
-          ),
+          // Identity-addressed now; resolved back to a position so these
+          // cases keep asserting *which* report opened.
+          path: '${AppRoutes.report}/history/:identity',
+          builder: (_, state) {
+            final identity = Uri.decodeComponent(
+              state.pathParameters['identity'] ?? '',
+            );
+            final at = quiz.assessmentHistory.indexWhere(
+              (r) => QuizProvider.identityOf(r) == identity,
+            );
+            return Scaffold(body: Center(child: Text('REPORT $at')));
+          },
         ),
         GoRoute(
           path: AppRoutes.quiz,
@@ -171,13 +176,13 @@ void main() {
 
   /// Four records: enough for a trend, milestones, and a collapsed timeline.
   Future<QuizProvider> fullRecord() => quizWith({
-        'p1': [
-          report(74, daysAgo: 0, categories: const {skin: 70, dental: 78}),
-          report(70, daysAgo: 30, categories: const {skin: 62, dental: 74}),
-          report(66, daysAgo: 60, categories: const {skin: 55, dental: 70}),
-          report(60, daysAgo: 90, categories: const {skin: 48, dental: 66}),
-        ],
-      });
+    'p1': [
+      report(74, daysAgo: 0, categories: const {skin: 70, dental: 78}),
+      report(70, daysAgo: 30, categories: const {skin: 62, dental: 74}),
+      report(66, daysAgo: 60, categories: const {skin: 55, dental: 70}),
+      report(60, daysAgo: 90, categories: const {skin: 48, dental: 66}),
+    ],
+  });
 
   group('what is always visible', () {
     testWidgets('the summary and the trend need no tap', (tester) async {
@@ -194,8 +199,9 @@ void main() {
       expect(find.text('Next assessment'), findsOneWidget);
     });
 
-    testWidgets('the newest assessment is never behind the control',
-        (tester) async {
+    testWidgets('the newest assessment is never behind the control', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await fullRecord();
 
@@ -273,8 +279,9 @@ void main() {
   });
 
   group('expanding and collapsing', () {
-    testWidgets('category progress opens on a tap and closes again',
-        (tester) async {
+    testWidgets('category progress opens on a tap and closes again', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await fullRecord();
 
@@ -322,8 +329,9 @@ void main() {
       expect(find.byType(MilestoneCard), findsWidgets);
     });
 
-    testWidgets('expansion survives an ordinary provider rebuild',
-        (tester) async {
+    testWidgets('expansion survives an ordinary provider rebuild', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await fullRecord();
       final pets = await withPets([pet('p1', 'Bruno')]);
@@ -345,8 +353,9 @@ void main() {
   });
 
   group('nothing important hides', () {
-    testWidgets('an alert the headline did not lead with stays visible',
-        (tester) async {
+    testWidgets('an alert the headline did not lead with stays visible', (
+      tester,
+    ) async {
       sizeUp(tester);
       // Overall improved, so the headline is positive — but one area fell far
       // enough to be an alert. The alert outranks nothing on weight, so it
@@ -363,15 +372,13 @@ void main() {
 
       // Closed, and the caution is on screen anyway.
       expect(find.text('What changed'), findsOneWidget);
-      expect(
-        find.text('$skin declined by 22 points'),
-        findsOneWidget,
-      );
+      expect(find.text('$skin declined by 22 points'), findsOneWidget);
       expect(find.byType(InsightCard), findsOneWidget);
     });
 
-    testWidgets('with nothing pressing, the closed section reports coverage',
-        (tester) async {
+    testWidgets('with nothing pressing, the closed section reports coverage', (
+      tester,
+    ) async {
       sizeUp(tester);
       // Everything moved the right way: no caution, no alert, so there is
       // nothing to lift out — and the overview already carries the headline.
@@ -389,8 +396,9 @@ void main() {
       expect(find.textContaining('findings'), findsOneWidget);
     });
 
-    testWidgets('a closed section says how much it is standing in for',
-        (tester) async {
+    testWidgets('a closed section says how much it is standing in for', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await fullRecord();
 
@@ -403,11 +411,14 @@ void main() {
   });
 
   group('empty and partial records', () {
-    testWidgets('one assessment gets a summary and an invitation, once',
-        (tester) async {
+    testWidgets('one assessment gets a summary and an invitation, once', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await quizWith({
-        'p1': [report(64, daysAgo: 0, categories: const {skin: 40})],
+        'p1': [
+          report(64, daysAgo: 0, categories: const {skin: 40}),
+        ],
       });
 
       await tester.pumpWidget(host(quiz, await withPets([pet('p1', 'Bruno')])));
@@ -430,7 +441,9 @@ void main() {
     testWidgets('no milestones means no milestone heading', (tester) async {
       sizeUp(tester);
       final quiz = await quizWith({
-        'p1': [report(64, daysAgo: 0, categories: const {skin: 40})],
+        'p1': [
+          report(64, daysAgo: 0, categories: const {skin: 40}),
+        ],
       });
 
       await tester.pumpWidget(host(quiz, await withPets([pet('p1', 'Bruno')])));
@@ -442,8 +455,9 @@ void main() {
   });
 
   group('the loading race', () {
-    testWidgets('a read in flight shows a skeleton, not "no reports yet"',
-        (tester) async {
+    testWidgets('a read in flight shows a skeleton, not "no reports yet"', (
+      tester,
+    ) async {
       sizeUp(tester);
 
       // Deliberately not initialised: this is the frame between the screen
@@ -461,8 +475,9 @@ void main() {
       expect(find.text('No reports yet'), findsNothing);
     });
 
-    testWidgets('the invitation arrives once the read lands empty',
-        (tester) async {
+    testWidgets('the invitation arrives once the read lands empty', (
+      tester,
+    ) async {
       sizeUp(tester);
 
       final quiz = QuizProvider(service: FakeCloud());
@@ -478,8 +493,9 @@ void main() {
       expect(find.text('No reports yet'), findsOneWidget);
     });
 
-    testWidgets('restored history never flashes an empty state',
-        (tester) async {
+    testWidgets('restored history never flashes an empty state', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await fullRecord();
 
@@ -493,8 +509,9 @@ void main() {
   });
 
   group('switching pets', () {
-    testWidgets('the new pet starts from its own default disclosure',
-        (tester) async {
+    testWidgets('the new pet starts from its own default disclosure', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await quizWith({
         'p1': [
@@ -502,12 +519,20 @@ void main() {
           report(60, daysAgo: 30, categories: const {skin: 50, dental: 60}),
         ],
         'p2': [
-          report(45, daysAgo: 2, petId: 'p2',
-              band: HealthCategory.needsImprovement,
-              categories: const {skin: 30, dental: 44}),
-          report(30, daysAgo: 40, petId: 'p2',
-              band: HealthCategory.needsImprovement,
-              categories: const {skin: 22, dental: 38}),
+          report(
+            45,
+            daysAgo: 2,
+            petId: 'p2',
+            band: HealthCategory.needsImprovement,
+            categories: const {skin: 30, dental: 44},
+          ),
+          report(
+            30,
+            daysAgo: 40,
+            petId: 'p2',
+            band: HealthCategory.needsImprovement,
+            categories: const {skin: 22, dental: 38},
+          ),
         ],
       });
       final pets = await withPets([pet('p1', 'Bruno'), pet('p2', 'Mia')]);
@@ -549,12 +574,20 @@ void main() {
           report(60, daysAgo: 30, categories: const {skin: 50}),
         ],
         'p2': [
-          report(45, daysAgo: 2, petId: 'p2',
-              band: HealthCategory.needsImprovement,
-              categories: const {skin: 30, dental: 44}),
-          report(30, daysAgo: 40, petId: 'p2',
-              band: HealthCategory.needsImprovement,
-              categories: const {skin: 22, dental: 38}),
+          report(
+            45,
+            daysAgo: 2,
+            petId: 'p2',
+            band: HealthCategory.needsImprovement,
+            categories: const {skin: 30, dental: 44},
+          ),
+          report(
+            30,
+            daysAgo: 40,
+            petId: 'p2',
+            band: HealthCategory.needsImprovement,
+            categories: const {skin: 22, dental: 38},
+          ),
         ],
       });
       final pets = await withPets([pet('p1', 'Bruno'), pet('p2', 'Mia')]);
@@ -575,8 +608,9 @@ void main() {
   });
 
   group('the record is unchanged', () {
-    testWidgets('every stored figure reads the same before and after opening',
-        (tester) async {
+    testWidgets('every stored figure reads the same before and after opening', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await fullRecord();
       final before = [
@@ -677,16 +711,19 @@ void main() {
   });
 
   group('motion', () {
-    testWidgets('a section opens on the next frame with animations off',
-        (tester) async {
+    testWidgets('a section opens on the next frame with animations off', (
+      tester,
+    ) async {
       sizeUp(tester);
       final quiz = await fullRecord();
 
-      await tester.pumpWidget(host(
-        quiz,
-        await withPets([pet('p1', 'Bruno')]),
-        disableAnimations: true,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz,
+          await withPets([pet('p1', 'Bruno')]),
+          disableAnimations: true,
+        ),
+      );
       await tester.pump();
 
       await tester.tap(find.text('Category progress'));
@@ -708,11 +745,9 @@ void main() {
           sizeAt(tester, entry.value);
           final quiz = await fullRecord();
 
-          await tester.pumpWidget(host(
-            quiz,
-            await withPets([pet('p1', 'Bruno')]),
-            textScale: scale,
-          ));
+          await tester.pumpWidget(
+            host(quiz, await withPets([pet('p1', 'Bruno')]), textScale: scale),
+          );
           await tester.pumpAndSettle();
 
           // Scrolled to and confirmed built before anything is asserted about
@@ -740,11 +775,13 @@ void main() {
       sizeUp(tester);
       final quiz = await fullRecord();
 
-      await tester.pumpWidget(host(
-        quiz,
-        await withPets([pet('p1', 'Bruno')]),
-        brightness: Brightness.dark,
-      ));
+      await tester.pumpWidget(
+        host(
+          quiz,
+          await withPets([pet('p1', 'Bruno')]),
+          brightness: Brightness.dark,
+        ),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Category progress'));

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../providers/address_provider.dart';
 import '../providers/pet_info_provider.dart';
 import '../providers/quiz_provider.dart';
 
@@ -49,9 +50,13 @@ class AppStartupProvider extends ChangeNotifier {
   /// than once for a single sign-in, and only the first call should do the
   /// work. A previous failure does not block a retry — only an in-flight or
   /// completed load does.
+  /// [address] is optional so the many tests that only care about pets and
+  /// assessments need not stand one up. Production always passes it — the
+  /// delivery address is account state and has to be restored with the rest.
   Future<void> initialize({
     required PetInfoProvider petInfo,
     required QuizProvider quiz,
+    AddressProvider? address,
   }) async {
     if (_stage == StartupStage.loading || _stage == StartupStage.ready) {
       return;
@@ -79,6 +84,13 @@ class AppStartupProvider extends ChangeNotifier {
       await petInfo.loadOwnerFromFirestore();
       await petInfo.loadPetsFromFirestore();
       await quiz.loadAssessmentsFromFirestore();
+      // The delivery address belongs to the account, so it is restored here
+      // with everything else that does. main() also reads it at launch, but
+      // that read happens before there is a session — it can only reach the
+      // device cache, and on a handset that has just signed in there is
+      // nothing in it. Without this second read the account's saved address
+      // stayed in Firestore and the profile offered to add one.
+      await address?.init();
       _stage = StartupStage.ready;
     } catch (error, stack) {
       // Without this the throw escaped and left the stage on `loading`

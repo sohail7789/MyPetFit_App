@@ -24,21 +24,22 @@ class _QuizDraft {
       categoryIndex == 0 && answers.isEmpty && multi.isEmpty && texts.isEmpty;
 
   Map<String, dynamic> toJson() => {
-        'categoryIndex': categoryIndex,
-        'answers': answers.map((k, v) => MapEntry(k, v.id)),
-        'multi': multi.map((k, v) => MapEntry(k, v.toList())),
-        'texts': texts,
-      };
+    'categoryIndex': categoryIndex,
+    'answers': answers.map((k, v) => MapEntry(k, v.id)),
+    'multi': multi.map((k, v) => MapEntry(k, v.toList())),
+    'texts': texts,
+  };
 
   /// Also parses the pre-per-pet payload, which carried these same keys at
   /// the top level of the saved state.
   factory _QuizDraft.fromJson(Map<String, dynamic> json) {
     final draft = _QuizDraft();
 
-    draft.categoryIndex = (json['categoryIndex'] as num?)?.toInt().clamp(
-              0,
-              healthCategories.length - 1,
-            ) ??
+    draft.categoryIndex =
+        (json['categoryIndex'] as num?)?.toInt().clamp(
+          0,
+          healthCategories.length - 1,
+        ) ??
         0;
 
     // Answers persist by option id and are resolved back against the
@@ -87,7 +88,7 @@ class QuizProvider extends ChangeNotifier with CloudSync {
   final FirestoreService _firestore;
 
   QuizProvider({FirestoreService? service})
-      : _firestore = service ?? FirestoreService();
+    : _firestore = service ?? FirestoreService();
 
   /// In-progress answers, one draft per pet.
   final Map<String, _QuizDraft> _drafts = {};
@@ -143,13 +144,13 @@ class QuizProvider extends ChangeNotifier with CloudSync {
 
   /// Questions the user has engaged with — the progress bar and the home
   /// screen's resume card both count every question, not just scored ones.
-  int get answeredCount =>
-      allQuestions
-          .where((q) =>
-      q.isMulti
-          ? (_multiAnswers[q.id]?.isNotEmpty ?? false)
-          : _selectedAnswers.containsKey(q.id))
-          .length;
+  int get answeredCount => allQuestions
+      .where(
+        (q) => q.isMulti
+            ? (_multiAnswers[q.id]?.isNotEmpty ?? false)
+            : _selectedAnswers.containsKey(q.id),
+      )
+      .length;
 
   double get overallProgress =>
       totalQuestions == 0 ? 0 : answeredCount / totalQuestions;
@@ -161,8 +162,7 @@ class QuizProvider extends ChangeNotifier with CloudSync {
   /// Scored questions still unanswered in [index].
   int remainingInCategory(int index) {
     if (index < 0 || index >= healthCategories.length) return 0;
-    return healthCategories[index]
-        .scoredQuestions
+    return healthCategories[index].scoredQuestions
         .where((q) => !_selectedAnswers.containsKey(q.id))
         .length;
   }
@@ -188,9 +188,7 @@ class QuizProvider extends ChangeNotifier with CloudSync {
 
   /// The bound pet's last [maxHistory] assessments, newest first.
   List<ScoreResult> get assessmentHistory =>
-      List.unmodifiable(
-        _allHistory.where((r) => r.petId == _activePetId),
-      );
+      List.unmodifiable(_allHistory.where((r) => r.petId == _activePetId));
 
   bool get hasCompletedAssessment => assessmentHistory.isNotEmpty;
 
@@ -252,10 +250,9 @@ class QuizProvider extends ChangeNotifier with CloudSync {
   Set<String> multiSelectionFor(String questionId) =>
       _multiAnswers[questionId] ?? const {};
 
-  bool isOptionSelected(Question question, Answer answer) =>
-      question.isMulti
-          ? multiSelectionFor(question.id).contains(answer.id)
-          : _selectedAnswers[question.id]?.id == answer.id;
+  bool isOptionSelected(Question question, Answer answer) => question.isMulti
+      ? multiSelectionFor(question.id).contains(answer.id)
+      : _selectedAnswers[question.id]?.id == answer.id;
 
   String? textFieldValueFor(String questionId) => _textFieldValues[questionId];
 
@@ -306,7 +303,7 @@ class QuizProvider extends ChangeNotifier with CloudSync {
     if (max == 0) return 0;
     final earned = category.scoredQuestions.fold<int>(
       0,
-          (sum, q) => sum + _earnedFor(q),
+      (sum, q) => sum + _earnedFor(q),
     );
     return (earned / max) * 100;
   }
@@ -317,8 +314,8 @@ class QuizProvider extends ChangeNotifier with CloudSync {
     if (span <= 0) return 0;
     final earned = healthCategories.fold<int>(
       0,
-          (sum, c) =>
-      sum + c.scoredQuestions.fold<int>(0, (s, q) => s + _earnedFor(q)),
+      (sum, c) =>
+          sum + c.scoredQuestions.fold<int>(0, (s, q) => s + _earnedFor(q)),
     );
     return (((earned - assessmentMinScore) / span) * 100).round().clamp(0, 100);
   }
@@ -326,8 +323,8 @@ class QuizProvider extends ChangeNotifier with CloudSync {
   Future<ScoreResult> calculateResult() async {
     final rawScore = healthCategories.fold<int>(
       0,
-          (sum, c) =>
-      sum + c.scoredQuestions.fold<int>(0, (s, q) => s + _earnedFor(q)),
+      (sum, c) =>
+          sum + c.scoredQuestions.fold<int>(0, (s, q) => s + _earnedFor(q)),
     );
 
     final catScores = <String, double>{
@@ -436,8 +433,11 @@ class QuizProvider extends ChangeNotifier with CloudSync {
         if (historyJson != null) {
           _allHistory
             ..clear()
-            ..addAll(historyJson
-                .map((e) => ScoreResult.fromJson(e as Map<String, dynamic>)));
+            ..addAll(
+              historyJson.map(
+                (e) => ScoreResult.fromJson(e as Map<String, dynamic>),
+              ),
+            );
         }
 
         // Older saves kept the newest result outside the history list. If it
@@ -512,9 +512,7 @@ class QuizProvider extends ChangeNotifier with CloudSync {
         // Two pets can be assessed in the same millisecond on a restore of
         // seeded data; the identity keeps the order from shuffling between
         // reads of the same records.
-        return byTime != 0
-            ? byTime
-            : _identityOf(a).compareTo(_identityOf(b));
+        return byTime != 0 ? byTime : _identityOf(a).compareTo(_identityOf(b));
       });
 
     _allHistory
@@ -541,15 +539,40 @@ class QuizProvider extends ChangeNotifier with CloudSync {
   static String _identityOf(ScoreResult result) =>
       '${result.petId ?? ''}@${result.completedAt.toUtc().toIso8601String()}';
 
+  /// The stable, routable identity of [result].
+  ///
+  /// The same string [loadAssessmentsFromFirestore] reconciles on, promoted
+  /// to public because navigation needs it too. A report used to be
+  /// addressed by its position in [assessmentHistory] — a list filtered to
+  /// the *active* pet, re-sorted on every cloud restore and trimmed as it
+  /// grows. Opening a report from a pet who was not the active one therefore
+  /// resolved an index into somebody else's history, and a trim silently
+  /// shifted every link by one. A record's identity has to be a property of
+  /// the record.
+  static String identityOf(ScoreResult result) => _identityOf(result);
+
+  /// The report [identity] names, from any pet's history.
+  ///
+  /// Searched across [_allHistory] rather than the bound pet's slice, so a
+  /// report opened from a pet profile resolves whether or not that pet is
+  /// the active one. Null while the history is still loading, or when the
+  /// record is genuinely gone — the caller distinguishes those with
+  /// [isLoaded].
+  ScoreResult? reportByIdentity(String identity) {
+    for (final result in _allHistory) {
+      if (_identityOf(result) == identity) return result;
+    }
+    return null;
+  }
 
   Map<String, dynamic> _snapshot() => {
-        'history': _allHistory.map((r) => r.toJson()).toList(),
-        // Empty drafts are dropped rather than written as noise.
-        'drafts': {
-          for (final entry in _drafts.entries)
-            if (!entry.value.isEmpty) entry.key: entry.value.toJson(),
-        },
-      };
+    'history': _allHistory.map((r) => r.toJson()).toList(),
+    // Empty drafts are dropped rather than written as noise.
+    'drafts': {
+      for (final entry in _drafts.entries)
+        if (!entry.value.isEmpty) entry.key: entry.value.toJson(),
+    },
+  };
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();

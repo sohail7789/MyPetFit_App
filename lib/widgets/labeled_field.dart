@@ -15,10 +15,20 @@ class LabeledField extends StatelessWidget {
 
   final String hint;
   final TextEditingController? controller;
+
+  /// Supplied by the form when fields are chained, so focus can pass
+  /// straight from one to the next without the keyboard closing between
+  /// them. See [AppField], which takes the same pair.
+  final FocusNode? focusNode;
+
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final TextCapitalization textCapitalization;
   final ValueChanged<String>? onChanged;
+
+  /// Return/Next pressed. Chain to the next field's node rather than
+  /// unfocusing.
+  final ValueChanged<String>? onSubmitted;
 
   /// Input restrictions, e.g. digits-only and a length cap on a PIN code.
   final List<TextInputFormatter>? inputFormatters;
@@ -42,10 +52,12 @@ class LabeledField extends StatelessWidget {
     this.labelNote,
     this.hint = '',
     this.controller,
+    this.focusNode,
     this.keyboardType,
     this.textInputAction,
     this.textCapitalization = TextCapitalization.sentences,
     this.onChanged,
+    this.onSubmitted,
     this.inputFormatters,
     this.height = 58,
     this.radius = AppTheme.radiusField,
@@ -120,11 +132,13 @@ class LabeledField extends StatelessWidget {
           else
             TextField(
               controller: controller,
+              focusNode: focusNode,
               keyboardType: keyboardType,
               textCapitalization: textCapitalization,
               textInputAction: textInputAction,
               inputFormatters: inputFormatters,
               onChanged: onChanged,
+              onSubmitted: onSubmitted,
               cursorColor: context.c.actionText,
               style: valueStyle,
               decoration: InputDecoration(
@@ -179,7 +193,9 @@ class ChoiceChips extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: selected == option ? context.c.tint : context.c.surface,
+                  color: selected == option
+                      ? context.c.tint
+                      : context.c.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: selected == option

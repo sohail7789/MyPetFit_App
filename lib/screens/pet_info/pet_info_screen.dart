@@ -121,10 +121,9 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
     _gender = existing.gender == PetGender.male ? 'Male' : 'Female';
   }
 
-  static String _trimZero(double value) =>
-      value == value.roundToDouble()
-          ? value.toStringAsFixed(0)
-          : value.toStringAsFixed(1);
+  static String _trimZero(double value) => value == value.roundToDouble()
+      ? value.toStringAsFixed(0)
+      : value.toStringAsFixed(1);
 
   @override
   void dispose() {
@@ -143,23 +142,23 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
   }
 
   String get _title => switch (widget.mode) {
-        PetFormMode.onboarding => 'Pet details',
-        PetFormMode.add => 'Add a pet',
-        PetFormMode.edit => 'Edit pet',
-      };
+    PetFormMode.onboarding => 'Pet details',
+    PetFormMode.add => 'Add a pet',
+    PetFormMode.edit => 'Edit pet',
+  };
 
   String get _subtitle => switch (widget.mode) {
-        PetFormMode.onboarding => 'Step 3 of 3 · this shapes the scoring.',
-        PetFormMode.add =>
-          'Just the basics. You can take the assessment right after.',
-        PetFormMode.edit => 'Update anything that has changed.',
-      };
+    PetFormMode.onboarding => 'Step 3 of 3 · this shapes the scoring.',
+    PetFormMode.add =>
+      'Just the basics. You can take the assessment right after.',
+    PetFormMode.edit => 'Update anything that has changed.',
+  };
 
   String get _cta => switch (widget.mode) {
-        PetFormMode.onboarding => 'Start the assessment',
-        PetFormMode.add => 'Save pet',
-        PetFormMode.edit => 'Save changes',
-      };
+    PetFormMode.onboarding => 'Start the assessment',
+    PetFormMode.add => 'Save pet',
+    PetFormMode.edit => 'Save changes',
+  };
 
   /// Builds a [PetInfo] from the form. The vet lives on the owner.
   PetInfo _collect() {
@@ -174,8 +173,9 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
       species: base?.species ?? PetSpecies.dog,
       weightKg: double.tryParse(_weight.text.trim()) ?? 0,
       heightCm: double.tryParse(_height.text.trim()) ?? 0,
-      microchipNumber:
-          _microchip.text.trim().isEmpty ? null : _microchip.text.trim(),
+      microchipNumber: _microchip.text.trim().isEmpty
+          ? null
+          : _microchip.text.trim(),
       photoPath: _photoPath,
       // Stamped by the provider, not here. Overwritten on save.
       updatedAt: kUnknownUpdatedAt,
@@ -201,8 +201,10 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
 
       case PetFormMode.add:
         if (!pets.canAddPet) {
-          setState(() => _error =
-          'You can manage up to ${PetInfoProvider.maxPets} pets.');
+          setState(
+            () => _error =
+                'You can manage up to ${PetInfoProvider.maxPets} pets.',
+          );
           return;
         }
 
@@ -210,9 +212,7 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
 
         if (!mounted) return;
 
-        context.pushReplacement(
-          '${AppRoutes.pets}/${pets.activePetIndex}',
-        );
+        context.pushReplacement('${AppRoutes.pets}/${pets.activePetIndex}');
 
       case PetFormMode.edit:
         final index = widget.petIndex;
@@ -251,8 +251,10 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
                   const SizedBox(height: 18),
                   Text(
                     _title,
-                    style:
-                        context.t.h1.copyWith(fontSize: 26, letterSpacing: -1),
+                    style: context.t.h1.copyWith(
+                      fontSize: 26,
+                      letterSpacing: -1,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -287,6 +289,10 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
                       controller: _name,
                       height: 56,
                       textInputAction: TextInputAction.next,
+                      // Focus moves along the form's traversal order; an
+                      // unfocus here would close the keyboard and the next
+                      // field would immediately reopen it.
+                      onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                       onChanged: (_) {
                         if (_error != null) setState(() => _error = null);
                       },
@@ -309,6 +315,10 @@ class _PetInfoScreenState extends State<PetInfoScreen> {
                       controller: _breed,
                       height: 56,
                       textInputAction: TextInputAction.next,
+                      // Focus moves along the form's traversal order; an
+                      // unfocus here would close the keyboard and the next
+                      // field would immediately reopen it.
+                      onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                     ),
                     const SizedBox(height: 11),
                     Row(
@@ -453,11 +463,7 @@ class _PhotoPrompt extends StatelessWidget {
       ),
       child: Row(
         children: [
-          PhotoSlot(
-            photoPath: photoPath,
-            slot: slot,
-            onChanged: onChanged,
-          ),
+          PhotoSlot(photoPath: photoPath, slot: slot, onChanged: onChanged),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -476,8 +482,8 @@ class _PhotoPrompt extends StatelessWidget {
                   hasPhoto
                       ? 'Tap the photo to change or remove it.'
                       : 'Tap the circle to take one or pick from your '
-                          'library. It shows on the report card and helps '
-                          'your vet identify records.',
+                            'library. It shows on the report card and helps '
+                            'your vet identify records.',
                   style: AppTheme.font(
                     size: 12.5,
                     color: context.c.body,

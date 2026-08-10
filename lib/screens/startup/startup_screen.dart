@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../config/assets.dart';
 import '../../config/theme.dart';
+import '../../providers/address_provider.dart';
 import '../../providers/app_startup_provider.dart';
 import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
@@ -36,9 +37,10 @@ class _StartupScreenState extends State<StartupScreen> {
   Future<void> _load() async {
     if (!mounted) return;
     await context.read<AppStartupProvider>().initialize(
-          petInfo: context.read<PetInfoProvider>(),
-          quiz: context.read<QuizProvider>(),
-        );
+      petInfo: context.read<PetInfoProvider>(),
+      quiz: context.read<QuizProvider>(),
+      address: context.read<AddressProvider>(),
+    );
   }
 
   @override
