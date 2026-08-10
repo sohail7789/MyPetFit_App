@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "969502932777-demj41goluu3edmpcfuav0hl4gp3ipjl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mypetfit.in",
+            "certificate_hash": "cd9d30355aab367583478ef677640f9c779798c9"
+          }
+        },
+        {
           "client_id": "969502932777-ii0pdejrnde51a781hltoad4fkg1bp3p.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
