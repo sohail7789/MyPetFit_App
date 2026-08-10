@@ -275,6 +275,31 @@ void main() {
       expect(find.text('DELETED'), findsOneWidget);
     });
 
+    // Apple accounts reached the password prompt and could not answer it, so
+    // the one group Apple *requires* to be able to delete themselves were the
+    // only ones who could not. The service method existed and was correct —
+    // nothing chose it.
+    testWidgets('is refreshed through Apple for an Apple account',
+        (tester) async {
+      sizeUp(tester);
+      final deletion = _StaleSessionDeletion(steps, providerId: 'apple.com');
+
+      await tester.pumpWidget(host(deletion));
+      await tester.pumpAndSettle();
+      await confirmAndDelete(tester);
+
+      // The defect, stated directly: an Apple account has no password, so
+      // being asked for one is a dead end.
+      expect(find.text('Confirm your password'), findsNothing);
+      expect(steps, [
+        'deleteUserData',
+        'deleteAccount',
+        'reauthenticateWithApple',
+        'deleteAccount',
+      ]);
+      expect(find.text('DELETED'), findsOneWidget);
+    });
+
     testWidgets('cancelling the prompt leaves the account alone',
         (tester) async {
       sizeUp(tester);
@@ -448,6 +473,12 @@ class _StaleSessionDeletion extends AccountDeletion {
   Future<void> reauthenticateWithGoogle() async {
     steps.add('reauthenticateWithGoogle');
     if (reauthFails) throw Exception('Google sign-in was cancelled.');
+  }
+
+  @override
+  Future<void> reauthenticateWithApple() async {
+    steps.add('reauthenticateWithApple');
+    if (reauthFails) throw Exception('Apple sign in was cancelled.');
   }
 }
 

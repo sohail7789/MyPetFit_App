@@ -140,7 +140,9 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   /// Asks the user to prove who they are, using the provider they signed up
   /// with. Returns false when they cancel.
   Future<bool> _reauthenticate(AccountDeletion deletion) async {
-    final isGoogle = (deletion.providerId ?? '').contains('google');
+    final provider = deletion.providerId ?? '';
+    final isGoogle = provider.contains('google');
+    final isApple = provider.contains('apple');
 
     if (isGoogle) {
       try {
@@ -153,6 +155,27 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Could not confirm your Google account.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return false;
+      }
+    }
+
+    // Apple accounts have no password to fall through to. Without this branch
+    // they reached the prompt below and could not answer it, which left the
+    // one group Apple requires to be able to delete themselves unable to —
+    // Guideline 5.1.1(v). The service side already existed; only the choice
+    // of it was missing.
+    if (isApple) {
+      try {
+        await deletion.reauthenticateWithApple();
+        return true;
+      } catch (error) {
+        if (!mounted) return false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not confirm your Apple account.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
