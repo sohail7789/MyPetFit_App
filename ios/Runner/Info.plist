@@ -42,6 +42,13 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- The app's only encryption is HTTPS/TLS reached through Apple's own and
+	     Firebase's standard APIs; it implements none of its own. That is the
+	     exemption, and declaring it here answers the export-compliance question
+	     once instead of on every upload, where a missed answer holds the build
+	     back from testers. Revisit if the app ever ships its own cryptography. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
