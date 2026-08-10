@@ -8,6 +8,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
     // Must come after the Android plugin; consumes google-services.json.
     id("com.google.gms.google-services")
+    // Must come after google-services. Flutter enables R8 for every release
+    // build, so the shipped bundle is always obfuscated. Without this plugin
+    // the Crashlytics SDK still reports errors, but no mapping file is
+    // uploaded and the native-side stack traces arrive unreadable.
+    id("com.google.firebase.crashlytics")
 }
 
 // ─── Release signing ────────────────────────────────────────────────────────

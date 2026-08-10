@@ -24,6 +24,9 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.10.0"
     // Reads android/app/google-services.json into the build.
     id("com.google.gms.google-services") version "4.4.2" apply false
+    // Uploads the mapping/symbol files Crashlytics needs to make release
+    // stack traces readable. Must be applied after google-services.
+    id("com.google.firebase.crashlytics") version "3.0.7" apply false
 }
 
 include(":app")
