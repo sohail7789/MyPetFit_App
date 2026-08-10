@@ -240,6 +240,17 @@ class AuthService {
       OAuthProvider('apple.com').credential(
         idToken: appleCredential.identityToken,
         rawNonce: rawNonce,
+        // Firebase needs Apple's authorization code as well as the identity
+        // token. Without it the assertion reaches Identity Toolkit missing
+        // `access_token`, and the server answers 400 INVALID_IDP_RESPONSE —
+        // "Invalid OAuth response from apple.com" — no matter how correct the
+        // identity token is. The code is what lets Firebase's backend complete
+        // the OAuth exchange with Apple, which is also what backs token
+        // revocation on account deletion.
+        //
+        // Omitting it is easy to do because FlutterFire's own Apple sample
+        // omits it. `authorizationCode` is non-nullable and always returned.
+        accessToken: appleCredential.authorizationCode,
       ),
     );
 
@@ -355,6 +366,12 @@ class AuthService {
       OAuthProvider('apple.com').credential(
         idToken: appleCredential.identityToken,
         rawNonce: rawNonce,
+        // Same requirement as sign-in above: re-authentication goes through
+        // the same Identity Toolkit endpoint and fails the same way without
+        // the authorization code. This path guards account deletion, so
+        // leaving it out would break deletion for exactly the users Apple
+        // requires to be able to delete themselves.
+        accessToken: appleCredential.authorizationCode,
       ),
     );
   }
