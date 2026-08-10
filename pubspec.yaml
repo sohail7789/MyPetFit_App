@@ -1,7 +1,7 @@
 name: mypetfit_app
 description: "Pet health assessment and product recommendation app"
 publish_to: 'none'
-version: 1.1.0+3
+version: 1.1.0+5
 
 environment:
   sdk: ^3.11.3
@@ -45,14 +45,29 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   image_picker_platform_interface: ^2.11.1
 
+# Launcher icons only. The in-app artwork (assets/v3/logo.png) is a separate
+# asset and is deliberately not referenced here.
+#
+# `app-icon.png` is the supplied master and is transparent. Transparency is
+# flattened *before* generation rather than left to `remove_alpha_ios`, which
+# composites onto black and is what turns a transparent logo into a black
+# tile on the home screen. `app-icon-opaque.png` is that flatten onto white
+# at 82%; `app-icon-foreground.png` is the same art, transparent, at 91% of
+# the drawable — the generated adaptive XML insets it a further 16%, so it
+# lands at ~62% of the icon, inside the mask's guaranteed-visible circle.
+# Both are derived from the master; regenerate them from it, never by hand.
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/v3/logo.png"
+  image_path: "assets/v3/app-icon-opaque.png"
   min_sdk_android: 21
-  adaptive_icon_background: "#F1F0F6"
-  adaptive_icon_foreground: "assets/v3/logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/v3/app-icon-foreground.png"
+  # Belt and braces: the source is already opaque, so this has nothing left
+  # to flatten. Kept because the App Store rejects an icon with an alpha
+  # channel and this guarantees the 1024 has none.
   remove_alpha_ios: true
+  background_color_ios: "#FFFFFF"
 
 flutter:
   uses-material-design: true
