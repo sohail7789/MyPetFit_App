@@ -11,7 +11,9 @@ import '../../providers/cart_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/pet_info_provider.dart';
 import '../../providers/quiz_provider.dart';
+import '../../providers/reminders_provider.dart';
 import '../../services/crash_reporter.dart';
+import '../../services/reminder_scheduler.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/design_image.dart';
 import '../../widgets/settings_tile.dart';
@@ -30,6 +32,16 @@ class AccountScreen extends StatelessWidget {
     final pets = context.read<PetInfoProvider>();
     final auth = context.read<AuthProvider>();
     final startup = context.read<AppStartupProvider>();
+    final reminders = context.read<RemindersProvider>();
+    final reminderScheduler = context.read<ReminderScheduler>();
+
+    // Pending reminders name the pet they are about ("Time to check in on
+    // Bruno"), so leaving them registered would pop that pet's name onto the
+    // next person's lock screen weeks after they signed in. Cancelled with
+    // the OS *and* the preference cleared, for the same reason the address
+    // below is: this is per-user state on a shared device.
+    await reminderScheduler.cancelAll();
+    await reminders.reset();
 
     await quiz.resetAll();
     await cart.reset();

@@ -260,8 +260,6 @@ void main() {
         AppRoutes.signIn,
         AppRoutes.signUp,
         AppRoutes.forgotPassword,
-        AppRoutes.verifyCode,
-        AppRoutes.resetPassword,
         AppRoutes.startup,
       };
 

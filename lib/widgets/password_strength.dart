@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 
 /// Three-segment password strength meter with a trailing caption, as shown on
-/// the sign-up and reset-password screens.
+/// the sign-up screen.
 class PasswordStrength extends StatelessWidget {
   /// Filled segments, 0–3.
   final int level;

@@ -20,6 +20,9 @@ import 'package:mypetfit_app/providers/quiz_provider.dart';
 import 'package:mypetfit_app/providers/theme_provider.dart';
 import 'package:mypetfit_app/screens/account/delete_account_screen.dart';
 import 'package:mypetfit_app/services/account_deletion.dart';
+import 'package:mypetfit_app/providers/reminders_provider.dart';
+import 'package:mypetfit_app/services/reminder_gateway.dart';
+import 'package:mypetfit_app/services/reminder_scheduler.dart';
 import 'package:mypetfit_app/services/auth_service.dart'
     show ReauthenticationRequired;
 
@@ -103,6 +106,12 @@ void main() {
         ChangeNotifierProvider(create: (_) => AppStartupProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        // Deleting the account cancels any pending retake reminder and
+        // clears the preference, so the screen needs both in scope.
+        ChangeNotifierProvider(create: (_) => RemindersProvider()),
+        Provider<ReminderScheduler>(
+          create: (_) => ReminderScheduler(const NoopReminderGateway()),
+        ),
       ],
       child: MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     );

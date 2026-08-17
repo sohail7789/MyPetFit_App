@@ -12,7 +12,11 @@ import 'providers/quiz_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/app_startup_provider.dart';
+import 'providers/reminders_provider.dart';
 import 'services/crash_reporter.dart';
+import 'services/reminder_gateway.dart';
+import 'services/reminder_schedule.dart';
+import 'services/reminder_scheduler.dart';
 import 'providers/firebase_startup_provider.dart';
 
 Future<void> main() async {
@@ -56,6 +60,15 @@ Future<void> main() async {
   final themeProvider = ThemeProvider();
   final productProvider = ProductProvider();
   final appStartupProvider = AppStartupProvider();
+  final remindersProvider = RemindersProvider();
+  // The gateway is the only part that touches the notification plugin, so
+  // the unsupported platforms get an inert one rather than a conditional at
+  // every call site.
+  final reminderScheduler = ReminderScheduler(
+    remindersSupported
+        ? LocalNotificationGateway()
+        : const NoopReminderGateway(),
+  );
 
   runApp(
     MultiProvider(
@@ -72,6 +85,8 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: productProvider),
         ChangeNotifierProvider.value(value: appStartupProvider),
         ChangeNotifierProvider.value(value: firebaseStartup),
+        ChangeNotifierProvider.value(value: remindersProvider),
+        Provider<ReminderScheduler>.value(value: reminderScheduler),
       ],
       child: const MyPetFitApp(),
     ),
@@ -91,6 +106,29 @@ Future<void> main() async {
   void hydrateCart() => cartProvider.hydrate(productProvider.products);
   productProvider.addListener(hydrateCart);
 
+  // Reminders are derived state, never state of their own: what the OS holds
+  // is recomputed from the preference, the pets and their latest results
+  // whenever any of the three changes. Wired here for the same reason as the
+  // two above — the dependency between them is visible in one place.
+  //
+  // Turning the preference off produces an empty plan, which cancels
+  // everything pending. That is what makes disabling a reminder actually
+  // stop it rather than only hiding the switch.
+  void syncReminders() {
+    reminderScheduler.apply(
+      planRetakeReminders(
+        enabled: remindersProvider.assessmentRetake,
+        pets: petInfoProvider.pets,
+        latestFor: quizProvider.resultFor,
+        now: DateTime.now(),
+      ),
+    );
+  }
+
+  remindersProvider.addListener(syncReminders);
+  petInfoProvider.addListener(syncReminders);
+  quizProvider.addListener(syncReminders);
+
   // Kick off persisted-state loads after the first frame has been scheduled.
   // The router re-evaluates its redirect when these land (see AppRoutes.build).
   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -107,6 +145,10 @@ Future<void> main() async {
     localeProvider.init();
     addressProvider.init();
     themeProvider.init();
+    // Reconciles once the stored preference is known. Nothing is scheduled
+    // before this lands: the default is off, and the listener above only
+    // fires on a change.
+    remindersProvider.init().then((_) => syncReminders());
     // Products are loaded from Firestore, which is async, so the provider is
     // constructed synchronously with an empty list and the load is kicked off
     // here. The provider calls notifyListeners() when the load completes so

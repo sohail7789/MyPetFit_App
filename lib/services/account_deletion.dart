@@ -53,7 +53,14 @@ class AccountDeletion {
   /// between the Storage deletes and the document deletes — and nothing
   /// afterwards reconciles what was missed. A Cloud Function on
   /// `auth.user().onDelete()` is what would make erasure guaranteed rather
-  /// than best-effort; see the note in the class doc.
+  /// than best-effort.
+  ///
+  /// That function is specified in `docs/ACCOUNT_DELETION.md` — including
+  /// what it must delete, why a document delete does not cascade to
+  /// subcollections, and the billing change it requires — but deliberately
+  /// not created here: it needs deployment and a Blaze plan, and inventing
+  /// infrastructure in a repository that nobody has agreed to run is how a
+  /// project acquires a function that everyone assumes is live.
   Future<void> deleteUserData() async {
     // Read the pet ids before anything is deleted.
     final petIds = <String>[];

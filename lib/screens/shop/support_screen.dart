@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../config/assets.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
-import '../../widgets/design_image.dart';
 
 /// FAQ copy, verbatim from the design.
 const _faqs = <({String question, String answer})>[
@@ -60,56 +58,12 @@ class SupportScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 16, 22, 24),
                 children: [
-                  AppCard(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [context.c.surface, context.c.surfaceRaised],
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const DesignImage(
-                          AppAssets.emoHappy,
-                          width: 52,
-                          height: 52,
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Chat with us',
-                                style: AppTheme.font(
-                                  size: 14.5,
-                                  weight: FontWeight.w800,
-                                  color: context.c.ink,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Usually replies in under 5 minutes, '
-                                '9 am – 9 pm',
-                                style: AppTheme.font(
-                                  size: 12.5,
-                                  color: context.c.body,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        AppButton(
-                          label: 'Chat',
-                          height: 40,
-                          expand: false,
-                          onPressed: () {},
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+                  // A "Chat with us" card sat here, promising replies "in
+                  // under 5 minutes, 9 am – 9 pm" behind a Chat button whose
+                  // handler was empty. There is no live chat to route anyone
+                  // to, and a staffed-hours promise is a specific commitment
+                  // to a real person. Email — further down, and real — is
+                  // what support actually is today.
                   const Padding(
                     padding: EdgeInsets.fromLTRB(4, 4, 4, 0),
                     child: SectionLabel('Common questions'),

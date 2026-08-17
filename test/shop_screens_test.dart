@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mypetfit_app/config/routes.dart';
 import 'package:mypetfit_app/config/theme.dart';
 import 'package:mypetfit_app/providers/cart_provider.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';
@@ -11,6 +12,7 @@ import 'package:mypetfit_app/screens/shop/cart_screen.dart';
 import 'package:mypetfit_app/screens/shop/order_reference.dart';
 import 'package:mypetfit_app/screens/shop/shop_screen.dart';
 import 'package:mypetfit_app/screens/shop/widgets/product_tile.dart';
+import 'package:mypetfit_app/widgets/app_button.dart';
 import 'support/network_image_stub.dart';
 import 'support/product_fixtures.dart';
 
@@ -179,12 +181,44 @@ void main() {
       await tester.pumpWidget(_host(const CartScreen(), cart: cart));
       await tester.pump();
 
-      expect(
-        find.text('Checkout · ${formatPrice(product.price)}'),
-        findsOneWidget,
-      );
+      // The basket is still priced up whether or not it can be ordered —
+      // the subtotal is what the cart is for.
+      expect(find.text(formatPrice(product.price)), findsWidgets);
       expect(find.text('Free'), findsOneWidget);
     });
+
+    testWidgets(
+      'checkout is disabled and says why while ordering is closed',
+      (tester) async {
+        // The cart used to carry a live "Checkout · ₹total" button that led
+        // to a "Checkout is not open yet" wall — a priced commitment
+        // followed by a refusal. The refusal now arrives before the tap.
+        expect(
+          AppRoutes.shopEnabled,
+          isFalse,
+          reason: 'This test describes the closed-ordering cart.',
+        );
+
+        final cart = CartProvider()..addProduct(testCatalog.first);
+        await tester.pumpWidget(_host(const CartScreen(), cart: cart));
+        await tester.pump();
+
+        expect(find.text('Checkout unavailable'), findsOneWidget);
+        expect(
+          find.textContaining('Ordering is not open yet'),
+          findsOneWidget,
+        );
+
+        // Disabled, not merely relabelled.
+        final button = tester.widget<AppButton>(
+          find.widgetWithText(AppButton, 'Checkout unavailable'),
+        );
+        expect(button.onPressed, isNull);
+
+        // Nothing offers the old priced route onward.
+        expect(find.textContaining('Checkout · '), findsNothing);
+      },
+    );
   });
 
   group('order reference', () {

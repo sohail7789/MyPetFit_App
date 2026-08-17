@@ -4,22 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mypetfit_app/config/theme.dart';
 import 'package:mypetfit_app/screens/auth/forgot_password_screen.dart';
-import 'package:mypetfit_app/screens/auth/reset_password_screen.dart';
-import 'package:mypetfit_app/screens/auth/verify_code_screen.dart';
-import 'package:mypetfit_app/widgets/app_button.dart';
+import 'package:mypetfit_app/widgets/password_strength.dart';
 
 Widget _host(Widget child) => MaterialApp(
       theme: AppTheme.light,
       home: child,
     );
-
-/// True when the button carrying [label] is enabled.
-bool _enabled(WidgetTester tester, String label) {
-  final button = tester.widget<AppButton>(
-    find.widgetWithText(AppButton, label),
-  );
-  return button.onPressed != null;
-}
 
 void main() {
   group('07 Forgot password', () {
@@ -93,73 +83,28 @@ void main() {
     });
   });
 
-  group('08 Verify code', () {
-    testWidgets('renders six code boxes', (tester) async {
-      await tester.pumpWidget(_host(const VerifyCodeScreen()));
-
-      expect(find.text('Check your email'), findsOneWidget);
-      expect(find.byType(TextField), findsNWidgets(6));
-    });
-
-    testWidgets('Verify stays disabled until all six digits are entered',
-        (tester) async {
-      await tester.pumpWidget(_host(const VerifyCodeScreen()));
-
-      expect(_enabled(tester, 'Verify'), isFalse);
-
-      final boxes = find.byType(TextField);
-      for (var i = 0; i < 5; i++) {
-        await tester.enterText(boxes.at(i), '${i + 1}');
-        await tester.pump();
-      }
-      expect(_enabled(tester, 'Verify'), isFalse);
-
-      await tester.enterText(boxes.at(5), '6');
-      await tester.pump();
-      expect(_enabled(tester, 'Verify'), isTrue);
-    });
-
-    testWidgets('counts the resend timer down', (tester) async {
-      await tester.pumpWidget(_host(const VerifyCodeScreen()));
-
-      expect(find.textContaining('00:42'), findsOneWidget);
-      await tester.pump(const Duration(seconds: 1));
-      expect(find.textContaining('00:41'), findsOneWidget);
-
-      // Let the timer finish so the test ends with no pending work.
-      await tester.pump(const Duration(seconds: 42));
-    });
-  });
-
-  group('09 Reset password', () {
-    testWidgets('Save stays disabled until both entries match',
-        (tester) async {
-      await tester.pumpWidget(_host(const ResetPasswordScreen()));
-
-      expect(_enabled(tester, 'Save new password'), isFalse);
-
-      final fields = find.byType(TextField);
-      await tester.enterText(fields.at(0), 'sup3rsecret!');
-      await tester.pump();
-      expect(_enabled(tester, 'Save new password'), isFalse);
-
-      await tester.enterText(fields.at(1), 'mismatch');
-      await tester.pump();
-      expect(_enabled(tester, 'Save new password'), isFalse);
-
-      await tester.enterText(fields.at(1), 'sup3rsecret!');
-      await tester.pump();
-      expect(_enabled(tester, 'Save new password'), isTrue);
-    });
-
-    testWidgets('strength meter reaches Strong for a varied password',
-        (tester) async {
-      await tester.pumpWidget(_host(const ResetPasswordScreen()));
-
-      await tester.enterText(find.byType(TextField).at(0), 'sup3rSecret!');
-      await tester.pump();
+  // Design screens 08 (verify code) and 09 (create new password) once had
+  // suites here. Both screens have been removed: they implemented a custom
+  // reset flow that never existed behind them — the code screen accepted any
+  // six characters, and "Save new password" changed no password — while the
+  // app resets through Firebase Auth's emailed link. Their tests went with
+  // them rather than being kept passing against deleted code.
+  //
+  // The password strength meter outlived them: it is still on sign-up, and
+  // screen 09 happened to be the only place it was covered. That coverage is
+  // kept here, against the widget itself.
+  group('password strength meter', () {
+    testWidgets('reaches Strong for a varied password', (tester) async {
+      await tester.pumpWidget(_host(PasswordStrength.of('sup3rSecret!')));
 
       expect(find.text('Strong'), findsOneWidget);
+    });
+
+    testWidgets('rates a short single-case password below Strong',
+        (tester) async {
+      await tester.pumpWidget(_host(PasswordStrength.of('abcdef')));
+
+      expect(find.text('Strong'), findsNothing);
     });
   });
 }

@@ -15,6 +15,9 @@ import 'package:mypetfit_app/providers/theme_provider.dart';
 import 'package:mypetfit_app/providers/pet_info_provider.dart';
 import 'package:mypetfit_app/providers/quiz_provider.dart';
 import 'package:mypetfit_app/screens/account/account_screen.dart';
+import 'package:mypetfit_app/providers/reminders_provider.dart';
+import 'package:mypetfit_app/services/reminder_gateway.dart';
+import 'package:mypetfit_app/services/reminder_scheduler.dart';
 
 import 'support/fake_cloud.dart';
 
@@ -158,6 +161,12 @@ void main() {
           ChangeNotifierProvider(create: (_) => LocaleProvider()),
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
           ChangeNotifierProvider(create: (_) => AppStartupProvider()),
+          // Signing out cancels any pending retake reminder and clears the
+          // preference, so the screen needs both in scope.
+          ChangeNotifierProvider(create: (_) => RemindersProvider()),
+          Provider<ReminderScheduler>(
+            create: (_) => ReminderScheduler(const NoopReminderGateway()),
+          ),
         ],
         child: MaterialApp.router(theme: AppTheme.light, routerConfig: router),
       );

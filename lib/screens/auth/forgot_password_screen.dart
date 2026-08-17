@@ -22,6 +22,13 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _email = TextEditingController();
 
+  /// Guards against a second request while one is in flight.
+  ///
+  /// The button used to stay live for the whole round trip, so an impatient
+  /// double-tap sent two reset emails and raced two navigations at the same
+  /// destination.
+  bool _sending = false;
+
   @override
   void dispose() {
     _email.dispose();
@@ -29,22 +36,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _sendResetLink() async {
+    if (_sending) return;
+
     final authProvider = context.read<AuthProvider>();
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
 
+    final email = _email.text.trim();
+
+    // The same validator sign-in and sign-up use. This screen only checked
+    // for emptiness, so an obvious typo was sent to Firebase and came back
+    // as a generic failure instead of being caught in the field.
+    final invalid = AuthValidators.email(email);
+    if (invalid != null) {
+      messenger.showSnackBar(SnackBar(content: Text(invalid)));
+      return;
+    }
+
+    setState(() => _sending = true);
+
     try {
-      final email = _email.text.trim();
-
-      if (email.isEmpty) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Please enter your email address.'),
-          ),
-        );
-        return;
-      }
-
       // Deliberately no "is this address registered?" pre-check.
       //
       // There used to be one, and it queried the `users` collection by
@@ -62,6 +73,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
       if (!mounted) return;
 
+      // Shown on the ScaffoldMessenger, which sits above the router, so the
+      // confirmation survives the navigation below and is read on the
+      // sign-in screen. It does not need the screen to linger to be seen —
+      // which is what the three-second sleep that used to sit here was
+      // doing, on top of a request that had already come back.
       messenger.showSnackBar(
         const SnackBar(
           content: Text(
@@ -70,14 +86,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
       );
 
-      await Future.delayed(const Duration(seconds: 3));
-
-      if (!mounted) return;
-
       router.go(AppRoutes.signIn);
-
-
-
     } catch (e) {
       if (!mounted) return;
 
@@ -88,6 +97,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
       );
+      // Only released on failure. A success navigates away, and re-enabling
+      // the button on a screen that is leaving invites a second send during
+      // the transition.
+      setState(() => _sending = false);
     }
   }
 
@@ -139,9 +152,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 18),
         AppButton(
-          label: 'Send Reset Link',
+          label: _sending ? 'Sending…' : 'Send Reset Link',
           icon: AppIcon(AppIcons.send(), size: 19),
-          onPressed: _sendResetLink,
+          onPressed: _sending ? null : _sendResetLink,
         ),
         const SizedBox(height: 22),
         BackToLogin(onTap: () => context.go(AppRoutes.signIn)),

@@ -41,6 +41,12 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Required by flutter_local_notifications, which uses java.time APIs
+        // that need backporting below API 26. Without this the build fails at
+        // :app:checkReleaseAarMetadata with "requires core library desugaring
+        // to be enabled for :app". Paired with the coreLibraryDesugaring
+        // dependency at the foot of this file.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -87,4 +93,12 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Backports the java.time APIs flutter_local_notifications relies on to
+    // the minSdk this app ships. 2.1.4 is the minimum that plugin's 19.x line
+    // requires; it is a build-time desugaring artifact, not a runtime library
+    // the app code calls into.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

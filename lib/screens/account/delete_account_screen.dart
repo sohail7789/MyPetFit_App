@@ -19,6 +19,8 @@ import '../../widgets/app_field.dart';
 import '../../widgets/design_image.dart';
 import '../../widgets/labeled_field.dart';
 import '../../widgets/settings_tile.dart';
+import '../../providers/reminders_provider.dart';
+import '../../services/reminder_scheduler.dart';
 
 /// Screen 36 — Delete account.
 ///
@@ -77,6 +79,8 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     final address = context.read<AddressProvider>();
     final auth = context.read<AuthProvider>();
     final startup = context.read<AppStartupProvider>();
+    final reminders = context.read<RemindersProvider>();
+    final reminderScheduler = context.read<ReminderScheduler>();
     final deletion = widget.deletion;
 
     setState(() => _deleting = true);
@@ -118,6 +122,14 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     }
 
     // The account is gone. Only now is it true to clear the device.
+    //
+    // Reminders first: they are the one piece of state held outside the app,
+    // by the OS, and they name the pet they are about. A retake reminder
+    // left registered would announce a deleted pet weeks later, on a device
+    // whose account no longer exists.
+    await reminderScheduler.cancelAll();
+    await reminders.reset();
+
     await quiz.resetAll();
     await cart.reset();
     await pets.reset();

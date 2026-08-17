@@ -6,6 +6,8 @@ import '../../config/routes.dart';
 import '../../config/theme.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../providers/reminders_provider.dart';
+import '../../services/reminder_scheduler.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/design_image.dart';
@@ -15,8 +17,17 @@ import 'account_screen.dart' show SectionLabelText;
 
 // ─── Reminders & notifications ─────────────────────────────────────────────
 
-/// Toggle state for the reminder screen. Local-only until notifications are
-/// wired to a backend.
+/// Reminder preferences.
+///
+/// One toggle, and it works. This screen used to show five — vaccination,
+/// deworming, order updates and weekly tips alongside the retake — all held
+/// in widget state that popping the screen discarded, under a line claiming
+/// they were saved. Four of them also described things the app has no data
+/// for: [PetInfo] carries no vaccination or deworming dates, and ordering is
+/// closed, so none of them could ever have fired.
+///
+/// What remains is derived from a date the app does hold — the last
+/// assessment — and is scheduled on the device by [ReminderScheduler].
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
 
@@ -25,16 +36,55 @@ class RemindersScreen extends StatefulWidget {
 }
 
 class _RemindersScreenState extends State<RemindersScreen> {
-  final _values = <String, bool>{
-    'retake': true,
-    'vacc': true,
-    'deworm': false,
-    'orders': true,
-    'tips': false,
-  };
+  /// True while a permission prompt is open, so the switch cannot be driven
+  /// twice into two prompts.
+  bool _busy = false;
+
+  /// Turning the reminder on asks for notification permission first.
+  ///
+  /// Permission is requested here rather than at launch: this is the moment
+  /// the user has asked for the thing the permission is for, which is both
+  /// the only honest time to ask and the time it is most likely granted. A
+  /// refusal leaves the preference off rather than storing an intent that
+  /// silently does nothing.
+  Future<void> _onChanged(bool wanted) async {
+    if (_busy) return;
+
+    final reminders = context.read<RemindersProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    if (!wanted) {
+      await reminders.setAssessmentRetake(false);
+      return;
+    }
+
+    setState(() => _busy = true);
+    try {
+      final granted = await context.read<ReminderScheduler>().requestPermission();
+      if (!mounted) return;
+
+      if (!granted) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Notifications are turned off for MyPetFit. Enable them in '
+              'your device settings to get retake reminders.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      await reminders.setAssessmentRetake(true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final reminders = context.watch<RemindersProvider>();
+
     return Scaffold(
       backgroundColor: context.c.surface,
       body: SafeArea(
@@ -53,40 +103,24 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   const SizedBox(height: 10),
                   SettingsGroup(
                     children: [
-                      _tile('retake', 'Assessment retake', 'Every 3 months'),
-                      _tile(
-                        'vacc',
-                        'Vaccination due',
-                        "Based on the dates in your pet's records",
-                      ),
-                      _tile(
-                        'deworm',
-                        'Deworming & tick control',
-                        'Monthly schedule',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  const SectionLabelText('App'),
-                  const SizedBox(height: 10),
-                  SettingsGroup(
-                    children: [
-                      _tile(
-                        'orders',
-                        'Order updates',
-                        'Dispatch, delivery and returns',
-                      ),
-                      _tile(
-                        'tips',
-                        'Weekly wellness tips',
-                        'One tip a week, no spam',
+                      SettingsSwitchTile(
+                        label: 'Assessment retake',
+                        hint: 'Every 3 months, for each pet',
+                        value: reminders.assessmentRetake,
+                        onChanged: _onChanged,
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Push notifications are not connected yet — these '
-                    'preferences are saved for when they are.',
+                    reminders.assessmentRetake
+                        ? "You'll get a reminder when each pet's assessment "
+                              'is three months old. Pets without an '
+                              'assessment yet are not counted until they '
+                              'have one.'
+                        : 'A reminder when each pet’s fitness assessment is '
+                              'due again. Scheduled on this device — nothing '
+                              'is sent to you from anywhere else.',
                     style: AppTheme.font(
                       size: 12.5,
                       color: context.c.muted,
@@ -101,13 +135,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
       ),
     );
   }
-
-  Widget _tile(String key, String label, String hint) => SettingsSwitchTile(
-        label: label,
-        hint: hint,
-        value: _values[key]!,
-        onChanged: (v) => setState(() => _values[key] = v),
-      );
 }
 
 // ─── Language ──────────────────────────────────────────────────────────────
@@ -260,9 +287,15 @@ class InboxScreen extends StatelessWidget {
                       const SizedBox(height: 14),
                       Text('Nothing here yet', style: context.t.h2),
                       const SizedBox(height: 10),
+                      // Retake reminders are delivered by the device, not
+                      // collected into an in-app feed, so this no longer
+                      // promises that they will "land here". Naming
+                      // vaccinations and orders was a second promise: the
+                      // app holds no vaccination dates and ordering is
+                      // closed.
                       Text(
-                        'Reminders about assessments, vaccinations and orders '
-                        'will land here once notifications are connected.',
+                        'Retake reminders arrive as device notifications. '
+                        'Choose whether to get them in Reminders.',
                         textAlign: TextAlign.center,
                         style: context.t.bodyText,
                       ),

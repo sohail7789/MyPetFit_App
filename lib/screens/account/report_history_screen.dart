@@ -110,7 +110,7 @@ class ReportHistoryScreen extends StatelessWidget {
                 // Read, and genuinely empty. Into the questionnaire, not back
                 // through consent — see the dashboard's retake action.
                 (true, true) => _Empty(
-                  onStart: () => context.push(AppRoutes.quiz),
+                  onStart: () => startAssessmentFor(context, pet),
                 ),
                 // The analytics module hosted here rather than on a screen of
                 // its own: navigation stays in one place and the widgets stay
@@ -131,6 +131,34 @@ class ReportHistoryScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Starts the assessment **for [pet]** rather than for whoever happens to be
+/// active.
+///
+/// This screen can show a pet that is not the active one — a pet profile
+/// opens its own history — but the quiz always scores the active pet. So
+/// opening Pet B's history and tapping "Start the assessment" recorded the
+/// result against Pet A: a health record filed under the wrong animal, and
+/// silently, because the questionnaire never names its subject.
+///
+/// Selecting the subject before starting is what the pet profile already
+/// does. [PetInfoProvider.setActivePet] notifies synchronously and the quiz
+/// is bound to the active pet by a listener wired in `main`, so the pet is
+/// already re-bound by the time [QuizProvider.reset] clears the draft —
+/// which therefore clears *this* pet's draft, not the previous subject's.
+///
+/// A null [pet] is the Report tab before any pet exists; there is nothing to
+/// select, and the push is left to behave as it did.
+@visibleForTesting
+void startAssessmentFor(BuildContext context, PetInfo? pet) {
+  if (pet != null) {
+    final pets = context.read<PetInfoProvider>();
+    final index = pets.pets.indexWhere((p) => p.id == pet.id);
+    if (index >= 0) pets.setActivePet(index);
+  }
+  context.read<QuizProvider>().reset();
+  context.push(AppRoutes.quiz);
 }
 
 /// How recently an assessment was taken, coarsely enough to group by.
@@ -554,7 +582,7 @@ class _HistoryBodyState extends State<_HistoryBody> {
         if (!hasTrend) ...[
           const SizedBox(height: 18),
           AnalyticsEmptyState.needsSecondAssessment(
-            onStart: () => context.push(AppRoutes.quiz),
+            onStart: () => startAssessmentFor(context, widget.pet),
           ),
         ] else ...[
           const SizedBox(height: 22),

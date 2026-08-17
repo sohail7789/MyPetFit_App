@@ -265,11 +265,54 @@ class _CartFooter extends StatelessWidget {
           const SizedBox(height: 10),
           const SummaryRow(label: 'Delivery', value: 'Free', valueIsFree: true),
           const SizedBox(height: 14),
-          AppButton(
-            label: 'Checkout · ${formatPrice(subtotal)}',
-            height: AppTheme.ctaHeightCompact,
-            onPressed: () => context.push(AppRoutes.checkout),
-          ),
+
+          // While ordering is closed the checkout control is disabled and
+          // says why, here, rather than staying live and walking the user
+          // into the "Checkout is not open yet" wall a tap later. Building a
+          // basket and pressing a priced button is a commitment: finding out
+          // afterwards that nothing can be ordered is the dead end, and the
+          // answer belongs at the point of the promise.
+          //
+          // The cart itself is untouched — a saved selection is still
+          // useful, and it is what will be waiting when orders open.
+          if (!AppRoutes.shopEnabled) ...[
+            Semantics(
+              container: true,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 17,
+                    color: context.c.muted,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Ordering is not open yet, so this cart cannot be '
+                      'checked out. Your selection is saved.',
+                      style: AppTheme.font(
+                        size: 12.5,
+                        color: context.c.muted,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const AppButton(
+              label: 'Checkout unavailable',
+              height: AppTheme.ctaHeightCompact,
+              onPressed: null,
+            ),
+          ] else
+            AppButton(
+              label: 'Checkout · ${formatPrice(subtotal)}',
+              height: AppTheme.ctaHeightCompact,
+              onPressed: () => context.push(AppRoutes.checkout),
+            ),
         ],
       ),
     );

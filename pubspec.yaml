@@ -32,6 +32,19 @@ dependencies:
   sign_in_with_apple: ^8.1.0
   crypto: ^3.0.7
   firebase_crashlytics: ^5.2.7
+  # Hands "Find a vet near me" to the platform's maps app. The vet alert is
+  # raised when the assessment says an animal needs professional attention,
+  # and its primary action did nothing at all before this.
+  url_launcher: ^6.3.1
+  # Assessment-retake reminders. Scheduled on the device: the reminder is
+  # derived from a date the app already holds, so it needs no server, no
+  # push certificates and no FCM project — see lib/services/reminder_*.dart.
+  flutter_local_notifications: ^19.4.2
+  # zonedSchedule works in TZDateTime; these resolve the device's zone so a
+  # reminder lands on the intended morning rather than drifting by the UTC
+  # offset.
+  timezone: ^0.10.1
+  flutter_timezone: ^4.1.1
 
 dev_dependencies:
   flutter_test:

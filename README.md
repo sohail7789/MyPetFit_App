@@ -207,10 +207,17 @@ customer their order was placed when nothing recorded it.
 
 ## Important notes
 
-- **Notifications are not implemented.** There is no FCM integration, no local
-  notification scheduling and no notification permission request. The
-  "Reminders & notifications" screen currently stores its toggles in local
-  screen state only.
+- **Reminders are local, not push.** There is no FCM integration and no
+  server: assessment-retake reminders are scheduled on the device by
+  `lib/services/reminder_gateway.dart`, from the last assessment date the app
+  already stores. The preference lives in `RemindersProvider` and persists;
+  notification permission is requested at the moment the reminder is switched
+  on, and switching it off cancels everything pending with the OS.
+
+  The Reminders screen carries the one reminder that has data behind it.
+  Vaccination and deworming reminders would need dates `PetInfo` does not
+  hold, and order updates would need the ordering backend that is closed —
+  those toggles were removed rather than left inert.
 - **Assessment retention** is capped per pet, so older reports are trimmed as
   new ones are recorded.
 - **The delivery address** is stored against the account in Firestore, with the

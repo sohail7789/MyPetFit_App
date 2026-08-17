@@ -5,6 +5,17 @@
          during development). -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Assessment-retake reminders (lib/services/reminder_gateway.dart).
+         POST_NOTIFICATIONS is the Android 13+ runtime permission, requested
+         at the moment the user switches the reminder on rather than at
+         launch. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- A retake reminder is scheduled up to three months out, so it will
+         very often outlive a reboot. Without this the OS silently drops
+         every pending alarm when the device restarts and the reminder never
+         arrives; the plugin's boot receiver re-registers them. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
     <application
         android:label="MyPetFit"
         android:name="${applicationName}"
@@ -46,6 +57,14 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Lets url_launcher resolve the maps handler for "Find a vet near
+             me" on the vet alert screen. Without this, package visibility on
+             API 30+ hides every browser and maps app from canLaunchUrl, and
+             the button fails on exactly the devices most users are on. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

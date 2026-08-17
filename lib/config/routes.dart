@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../providers/onboarding_provider.dart';
 import '../screens/auth/forgot_password_screen.dart';
-import '../screens/auth/reset_password_screen.dart';
 import '../screens/auth/sign_in_screen.dart';
 import '../screens/auth/sign_up_screen.dart';
 import '../screens/account/account_screen.dart';
@@ -16,7 +15,6 @@ import '../screens/account/owner_profile_screen.dart';
 import '../screens/account/pet_profile_screen.dart';
 import '../screens/account/preferences_screens.dart';
 import '../screens/account/report_history_screen.dart';
-import '../screens/auth/verify_code_screen.dart';
 import '../screens/home/home_dashboard_screen.dart';
 import '../screens/consent/consent_screen.dart';
 import '../screens/pet_info/owner_info_screen.dart';
@@ -54,8 +52,15 @@ class AppRoutes {
   static const signIn = '/sign-in'; // 05
   static const signUp = '/sign-up'; // 06
   static const forgotPassword = '/forgot-password'; // 07
-  static const verifyCode = '/verify-code'; // 08
-  static const resetPassword = '/reset-password'; // 09
+  // Screens 08 (verify code) and 09 (create new password) are deliberately
+  // absent. They were built from the design deck against a custom
+  // verification-code reset that was never implemented: the code screen
+  // accepted any six characters without checking them, and "Save new
+  // password" navigated to sign-in without changing any password. Reset is
+  // done by Firebase Auth's own emailed link (see
+  // AuthService.sendPasswordResetEmail), which is the flow the app actually
+  // ships — so the two screens claimed an outcome that never happened and
+  // are gone rather than hidden.
 
   // Assessment ----------------------------------------------------------
   static const consent = '/consent'; // 10
@@ -185,8 +190,6 @@ class AppRoutes {
     signIn,
     signUp,
     forgotPassword,
-    verifyCode,
-    resetPassword,
   };
 
   static final _shellKey = GlobalKey<NavigatorState>();
@@ -332,14 +335,6 @@ class AppRoutes {
         GoRoute(
           path: forgotPassword,
           builder: (context, state) => const ForgotPasswordScreen(),
-        ),
-        GoRoute(
-          path: verifyCode,
-          builder: (context, state) => const VerifyCodeScreen(),
-        ),
-        GoRoute(
-          path: resetPassword,
-          builder: (context, state) => const ResetPasswordScreen(),
         ),
 
         // ---- Assessment -------------------------------------------------
