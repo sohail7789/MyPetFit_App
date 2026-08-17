@@ -17,6 +17,11 @@ migrate_working_dir/
 *.ipr
 *.iws
 .idea/
+.run/
+
+# Editor / tooling workspace configuration. Local to whoever is working on
+# the project and of no use to anyone else, so it is kept out of the repo.
+.claude/
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
