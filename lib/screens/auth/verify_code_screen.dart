@@ -91,7 +91,7 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
           text: 'We sent a 6-digit code to\n',
           children: [
             TextSpan(
-              text: 'priya@email.com',
+              text: 'demo@example.com',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: context.c.ink,
